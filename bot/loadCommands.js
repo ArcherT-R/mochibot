@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 function loadCommands(client) {
-  const commandsPath = path.join(__dirname, 'commands');
+  const commandsPath = path.join(__dirname, '../commands');
 
   // Ensure the folder exists
   if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
