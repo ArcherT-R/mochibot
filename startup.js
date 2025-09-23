@@ -1,8 +1,8 @@
 // startup.js
 require('dotenv').config();
 
-const { startBot } = require('./src/bot/client');
-const { startWebServer } = require('./src/web/server');
+const { startBot } = require('./bot/client');
+const { startWebServer } = require('./web/server');
 
 async function main() {
   try {
