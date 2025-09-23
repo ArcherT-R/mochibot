@@ -1,3 +1,4 @@
+// bot/commands/ping.js
 const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
@@ -6,6 +7,7 @@ module.exports = {
     .setDescription('Replies with Pong!'),
 
   async execute(interaction) {
-    await interaction.reply('🏓 Pong!');
+    // Reply immediately — avoids the "Unknown interaction" error
+    return interaction.reply('🏓 Pong!');
   },
 };
