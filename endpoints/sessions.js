@@ -37,7 +37,7 @@ module.exports = (client) => {
         let host = null;
         let cohost = null;
         let overseer = null;
-        let timestamp = null;
+        let time = null;
 
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
