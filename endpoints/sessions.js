@@ -1,45 +1,75 @@
 const express = require('express');
 const router = express.Router();
+const { Client } = require('discord.js');
 
-const DISCORD_GUILD_ID = '1362322934794031104'; // your server ID
-const DISCORD_CHANNEL_ID = '1402605903508672554'; // channel where sessions are posted
+const GUILD_ID = process.env.GUILD_ID; // your guild
+const CHANNEL_ID = '1402605903508672554'; // session channel
+
+async function resolveDiscordMentions(client, guild, text) {
+  const matches = [...text.matchAll(/<@!?(\d+)>/g)];
+
+  for (const match of matches) {
+    const id = match[1];
+    let usernameTag = "<Unknown User>";
+
+    try {
+      const member = await guild.members.fetch(id).catch(() => null);
+      if (member && member.user) {
+        usernameTag = `${member.user.username}#${member.user.discriminator}`;
+      }
+    } catch (err) {
+      console.warn(`Failed to fetch member ${id}:`, err);
+    }
+
+    text = text.replace(match[0], usernameTag);
+  }
+
+  return text;
+}
 
 module.exports = (client) => {
-  // GET sessions
   router.get('/', async (req, res) => {
     try {
-      const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
-      const channel = await guild.channels.fetch(DISCORD_CHANNEL_ID);
+      const guild = await client.guilds.fetch(GUILD_ID);
+      const channel = await guild.channels.fetch(CHANNEL_ID);
+      if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
-      if (!channel || !channel.isTextBased()) {
-        return res.status(500).json({ error: 'Invalid channel' });
-      }
-
-      // Fetch messages (last 50 for example)
       const messages = await channel.messages.fetch({ limit: 50 });
       const sessions = [];
 
       for (const msg of messages.values()) {
-        const content = msg.content;
+        let host = "", cohost = "", overseer = "", timestamp = "";
 
-        const session = {};
+        // Match lines like "Host: ...", "CoHost: ...", "Overseer: ...", "Timestamp: ..."
+        const lines = msg.content.split(/\r?\n/);
+        for (const line of lines) {
+          const [key, ...rest] = line.split(":");
+          const value = rest.join(":").trim();
+          if (!value) continue;
 
-        // Match lines with "Host:", "CoHost:", "Overseer:", "Timestamp:"
-        const hostMatch = content.match(/Host:\s*(.+)/i);
-        const cohostMatch = content.match(/CoHost:\s*(.+)/i);
-        const overseerMatch = content.match(/Overseer:\s*(.+)/i);
-        const timestampMatch = content.match(/Timestamp:\s*(.+)/i);
-
-        if (hostMatch) session.host = await resolveDiscordMentions(client, guild, hostMatch[1]);
-        if (cohostMatch) session.cohost = await resolveDiscordMentions(client, guild, cohostMatch[1]);
-        if (overseerMatch) session.overseer = await resolveDiscordMentions(client, guild, overseerMatch[1]);
-
-        if (timestampMatch) {
-          const ts = new Date(timestampMatch[1]);
-          session.time = isNaN(ts.getTime()) ? null : ts.toISOString();
+          switch (key.trim().toLowerCase()) {
+            case 'host':
+              host = await resolveDiscordMentions(client, guild, value);
+              break;
+            case 'cohost':
+              cohost = await resolveDiscordMentions(client, guild, value);
+              break;
+            case 'overseer':
+              overseer = await resolveDiscordMentions(client, guild, value);
+              break;
+            case 'timestamp':
+              timestamp = value;
+              break;
+          }
         }
 
-        if (Object.keys(session).length > 0) sessions.push(session);
+        sessions.push({
+          host: host || null,
+          cohost: cohost || null,
+          overseer: overseer || null,
+          time: timestamp || null,
+          status: 'Planned' // default, you can parse differently if needed
+        });
       }
 
       res.json(sessions);
@@ -49,15 +79,5 @@ module.exports = (client) => {
     }
   });
 
-  // Helper: resolve Discord mentions to usernames
- async function resolveDiscordMentions(client, guild, text) {
-  return text.replace(/<@!?(\d+)>/g, (match, id) => {
-    const member = guild.members.cache.get(id);
-    if (member && member.user) {
-      return `${member.user.username}#${member.user.discriminator}`;
-    }
-    return `<Unknown User>`; // optional fallback
-  });
-}
   return router;
 };
