@@ -4,35 +4,22 @@ const router = express.Router();
 const GUILD_ID = '1362322934794031104'; // your guild
 const CHANNEL_ID = '1402605903508672554'; // session channel
 
-/**
- * Resolves Discord mentions or plain usernames to their nickname#discriminator.
- * If not a mention, returns the original text.
- */
-async function resolveDiscordMentions(client, guild, text) {
-  if (!text) return "";
-
-  // Match all user mentions
-  const matches = [...text.matchAll(/<@!?(\d+)>/g)];
-
-  for (const match of matches) {
-    const id = match[1];
-    let usernameTag = "<Unknown User>";
-
+// Resolve mentions or raw usernames to server nickname
+async function resolveDiscordName(client, guild, text) {
+  // If text is a mention like <@123456789>
+  const mentionMatch = text.match(/^<@!?(\d+)>$/);
+  if (mentionMatch) {
+    const id = mentionMatch[1];
     try {
       const member = await guild.members.fetch(id).catch(() => null);
-      if (member && member.user) {
-        usernameTag = member.nickname
-          ? `${member.nickname}#${member.user.discriminator}`
-          : `${member.user.username}#${member.user.discriminator}`;
-      }
-    } catch (err) {
-      console.warn(`Failed to fetch member ${id}:`, err);
+      if (member && member.nickname) return member.nickname;
+      if (member && member.user) return member.user.username;
+    } catch {
+      // ignore
     }
-
-    // Replace the mention in text
-    text = text.replace(match[0], usernameTag);
   }
 
+  // Otherwise just return the raw text
   return text.trim();
 }
 
@@ -47,45 +34,42 @@ module.exports = (client) => {
       const sessions = [];
 
       for (const msg of messages.values()) {
-        let host = "";
-        let cohost = "";
-        let overseer = "";
-        let timestamp = "";
+        let host = null;
+        let cohost = null;
+        let overseer = null;
+        let timestamp = null;
 
         const lines = msg.content.split(/\r?\n/);
-
         for (const line of lines) {
-          const [rawKey, ...rest] = line.split(":");
-          if (!rawKey || rest.length === 0) continue;
-
-          const key = rawKey.trim().toLowerCase();
-          const value = rest.join(":").trim();
+          const [key, ...rest] = line.split(':');
+          const value = rest.join(':').trim();
           if (!value) continue;
 
-          switch (key) {
+          switch (key.trim().toLowerCase()) {
             case 'host':
-              host = await resolveDiscordMentions(client, guild, value) || "";
+              host = await resolveDiscordName(client, guild, value);
               break;
             case 'cohost':
-              cohost = await resolveDiscordMentions(client, guild, value) || "";
+              cohost = await resolveDiscordName(client, guild, value);
               break;
             case 'overseer':
-              overseer = await resolveDiscordMentions(client, guild, value) || "";
+              overseer = await resolveDiscordName(client, guild, value);
               break;
             case 'timestamp':
-              timestamp = value;
+              // Convert Discord-style timestamp or raw string to Unix
+              let ts = value.match(/\d+/);
+              if (ts) timestamp = parseInt(ts[0], 10);
               break;
           }
         }
 
-        // Only add session if host and timestamp exist
-        if (!host || !timestamp) continue;
-
-        const session = { host, time: timestamp };
-        if (cohost) session.cohost = cohost;
-        if (overseer) session.overseer = overseer;
-
-        sessions.push(session);
+        // Only include if host and timestamp exist
+        if (host && timestamp) {
+          const session = { host, time: timestamp };
+          if (cohost) session.cohost = cohost;
+          if (overseer) session.overseer = overseer;
+          sessions.push(session);
+        }
       }
 
       res.json(sessions);
