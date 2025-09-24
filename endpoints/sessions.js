@@ -1,50 +1,65 @@
 // endpoints/sessions.js
 const express = require('express');
 const router = express.Router();
+const sessionsData = require('../sessionsData'); // your cached session info
 
-const SERVER_ID = '1362322934794031104';
-const CHANNEL_ID = '1402605903508672554';
-
+// Assuming your bot client is passed in
 module.exports = (client) => {
+
+  // Get sessions
   router.get('/', async (req, res) => {
     try {
-      const guild = client.guilds.cache.get(SERVER_ID);
-      if (!guild) return res.status(500).json({ error: 'Guild not found' });
+      // Clone data so we can modify without affecting original
+      const sessions = JSON.parse(JSON.stringify(Object.values(sessionsData.sessions)));
 
-      const channel = guild.channels.cache.get(CHANNEL_ID);
-      if (!channel || !channel.isTextBased()) {
-        return res.status(500).json({ error: 'Channel not found or not text-based' });
-      }
-
-      const messages = await channel.messages.fetch({ limit: 50 }); // adjust as needed
-      const sessions = [];
-
-      messages.forEach(msg => {
-        const data = {};
-        const lines = msg.content.split('\n');
-
-        for (const line of lines) {
-          const [key, ...rest] = line.split(':');
-          if (!key || rest.length === 0) continue;
-
-          const value = rest.join(':').trim();
-          if (value.length === 0) continue;
-
-          const lowerKey = key.trim().toLowerCase();
-          if (lowerKey === 'host') data.host = value;
-          else if (lowerKey === 'cohost') data.coHost = value;
-          else if (lowerKey === 'overseer') data.overseer = value;
-          else if (lowerKey === 'time') data.timestamp = value;
+      for (const session of sessions) {
+        // Convert Host
+        if (session.host) {
+          const match = session.host.match(/<@!?(\d+)>/);
+          if (match) {
+            const userId = match[1];
+            try {
+              const member = await client.users.fetch(userId);
+              session.host = member.username;
+            } catch {
+              session.host = "Unknown";
+            }
+          }
         }
 
-        // Only include messages that at least have a Host or Timestamp
-        if (Object.keys(data).length > 0) sessions.push(data);
-      });
+        // Convert CoHost
+        if (session.cohost) {
+          const match = session.cohost.match(/<@!?(\d+)>/);
+          if (match) {
+            const userId = match[1];
+            try {
+              const member = await client.users.fetch(userId);
+              session.cohost = member.username;
+            } catch {
+              session.cohost = "Unknown";
+            }
+          }
+        }
+
+        // Convert Overseer
+        if (session.overseer) {
+          const match = session.overseer.match(/<@!?(\d+)>/);
+          if (match) {
+            const userId = match[1];
+            try {
+              const member = await client.users.fetch(userId);
+              session.overseer = member.username;
+            } catch {
+              session.overseer = "Unknown";
+            }
+          }
+        }
+      }
 
       res.json(sessions);
     } catch (err) {
-      console.error('Error fetching sessions:', err);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error(err);
+      res.status(500).json({ error: "Failed to get sessions" });
     }
   });
 
