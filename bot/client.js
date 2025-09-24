@@ -1,4 +1,7 @@
-const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder } = require('discord.js');
+const { 
+  Client, GatewayIntentBits, Partials, Collection, EmbedBuilder,
+  REST, Routes 
+} = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,8 +16,8 @@ async function startBot() {
     partials: [Partials.Channel, Partials.GuildMember]
   });
 
-  // Command collection
   client.commands = new Collection();
+  const commands = [];
 
   // Load commands from ./commands
   const commandsPath = path.join(__dirname, '../commands');
@@ -25,10 +28,25 @@ async function startBot() {
     const command = require(filePath);
     if (command.data && command.execute) {
       client.commands.set(command.data.name, command);
+      commands.push(command.data.toJSON()); // for registration
       console.log(`✅ Loaded command: ${command.data.name}`);
     } else {
       console.warn(`⚠ Skipped invalid command file: ${file}`);
     }
+  }
+
+  // Register slash commands with Discord
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
+  try {
+    console.log('🔄 Refreshing application (/) commands...');
+    await rest.put(
+      Routes.applicationCommands(process.env.CLIENT_ID), // make sure CLIENT_ID is in Render env
+      { body: commands }
+    );
+    console.log('✅ Successfully registered application commands.');
+  } catch (err) {
+    console.error('❌ Failed to register commands:', err);
   }
 
   // When bot is ready
@@ -36,7 +54,7 @@ async function startBot() {
     console.log(`🤖 Logged in as ${client.user.tag}`);
   });
 
-  // Slash command handling
+  // Handle interactions
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
 
@@ -58,8 +76,6 @@ async function startBot() {
   // Welcome DM
   client.on('guildMemberAdd', async (member) => {
     try {
-      const dmChannel = await member.createDM();
-
       const welcomeEmbed = new EmbedBuilder()
         .setTitle('👋 Welcome!')
         .setDescription(`Hello ${member}, welcome to Mochi Bar's discord server!\n\n` +
@@ -68,7 +84,7 @@ async function startBot() {
         .setColor(0x00FFFF)
         .setTimestamp();
 
-      await dmChannel.send({ embeds: [welcomeEmbed] });
+      await member.send({ embeds: [welcomeEmbed] });
       console.log(`✅ Sent welcome DM to ${member.user.tag}`);
     } catch (err) {
       console.warn(`⚠ Failed to DM ${member.user.tag}:`, err);
@@ -80,3 +96,4 @@ async function startBot() {
 }
 
 module.exports = { startBot };
+
