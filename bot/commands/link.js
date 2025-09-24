@@ -1,7 +1,7 @@
 // bot/commands/link.js
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
-const { loadLinkedUsers, saveLinkedUsers } = require('../../data/data'); // <-- adjust relative path
+const { loadLinkedUsers, saveLinkedUsers } = require('../../data/data'); // adjust path
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -35,20 +35,8 @@ module.exports = {
     linkedUsers.discordToRoblox = linkedUsers.discordToRoblox || {};
     linkedUsers.robloxToDiscord = linkedUsers.robloxToDiscord || {};
 
-    // Check existing links
-    if (linkedUsers.discordToRoblox[discordId]) {
-      return await interaction.editReply({
-        content: `❌ <@${discordId}> is already linked to **${linkedUsers.discordToRoblox[discordId]}**.`
-      });
-    }
-    if (linkedUsers.robloxToDiscord[robloxUsername.toLowerCase()]) {
-      return await interaction.editReply({
-        content: `❌ The Roblox user **${robloxUsername}** is already linked to another Discord account.`
-      });
-    }
-
-    // Fetch Roblox ID + avatar
-    let thumbUrl;
+    // Fetch Roblox numeric ID + avatar
+    let robloxId, thumbUrl;
     try {
       const res = await fetch(`https://users.roblox.com/v1/usernames/users`, {
         method: 'POST',
@@ -56,7 +44,7 @@ module.exports = {
         body: JSON.stringify({ usernames: [robloxUsername] })
       });
       const userData = await res.json();
-      const robloxId = userData.data[0]?.id;
+      robloxId = userData.data[0]?.id;
 
       if (!robloxId) throw new Error('Roblox user not found');
 
@@ -67,11 +55,24 @@ module.exports = {
       thumbUrl = thumbData.data[0]?.imageUrl;
     } catch (err) {
       console.warn("⚠️ Could not fetch Roblox info:", err);
+      return await interaction.editReply({ content: '❌ Failed to fetch Roblox user.' });
     }
 
-    // Save link
+    // Check existing links
+    if (linkedUsers.discordToRoblox[discordId]) {
+      return await interaction.editReply({
+        content: `❌ <@${discordId}> is already linked to **${linkedUsers.discordToRoblox[discordId]}**.`
+      });
+    }
+    if (linkedUsers.robloxToDiscord[robloxId]) {
+      return await interaction.editReply({
+        content: `❌ The Roblox user **${robloxUsername}** is already linked to another Discord account.`
+      });
+    }
+
+    // Save link using numeric Roblox ID
     linkedUsers.discordToRoblox[discordId] = robloxUsername;
-    linkedUsers.robloxToDiscord[robloxUsername.toLowerCase()] = discordId;
+    linkedUsers.robloxToDiscord[robloxId] = discordId;
     saveLinkedUsers(linkedUsers);
 
     // Send embed
@@ -85,3 +86,4 @@ module.exports = {
     await interaction.editReply({ embeds: [embed] });
   }
 };
+
