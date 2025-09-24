@@ -15,7 +15,7 @@ async function resolveDiscordMentions(client, guild, text) {
     try {
       const member = await guild.members.fetch(id).catch(() => null);
       if (member && member.user) {
-        usernameTag = `${member.user.username}#${member.user.discriminator}`;
+        usernameTag = member.nickname || member.user.username;
       }
     } catch (err) {
       console.warn(`Failed to fetch member ${id}:`, err);
