@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { loadLinkedUsers, saveLinkedUsers } = require('../data/data');
 
-const ALLOWED_ROLE_ID = '1363595276576620595'; // Only users with this role can use the command
+const STAFF_ROLE_ID = '1363595276576620595'; // Only users with this role can use /link
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -19,8 +19,8 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    // Check if user has the required role
-    if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
+    // Ensure user has staff role
+    if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
       return interaction.reply({
         content: '❌ You do not have permission to use this command.',
         ephemeral: true
@@ -37,6 +37,7 @@ module.exports = {
     linkedUsers.robloxToDiscord[robloxUsername] = discordId;
     saveLinkedUsers(linkedUsers);
 
+    // Reply to staff
     await interaction.reply({
       content: `✅ Linked Roblox user **${robloxUsername}** to Discord ID **${discordId}**.`,
       ephemeral: true
