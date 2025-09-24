@@ -1,17 +1,26 @@
 require('dotenv').config();
 
 const { startBot, client } = require('./bot/client');
-const { startWebServer } = require('./web/server');
+const { startWebServer, app } = require('./web/server');
+
+// Endpoints
+const sotwRoleEndpoint = require('./endpoints/sotw-role');
+// Add other endpoints here if needed, e.g., check-perk, check-staff-otw
 
 async function main() {
   try {
+    // Start Express web server
+    await startWebServer();
+
+    // Register endpoints
+    sotwRoleEndpoint(app, client);
+    // e.g., checkPerkEndpoint(app, client);
+
     // Start Discord bot
     await startBot();
 
-    // Start Express web server and pass bot client for uptime
-    await startWebServer(client);
-
     console.log('✅ MochiBot is running!');
+
   } catch (err) {
     console.error('❌ Failed to start MochiBot:', err);
     process.exit(1);
