@@ -1,67 +1,62 @@
-// endpoints/sessions.js
 const express = require('express');
 const router = express.Router();
-const sessionsData = require('../sessionsData'); // your cached session info
 
-// Assuming your bot client is passed in
+const DISCORD_GUILD_ID = process.env.GUILD_ID; // your server ID
+const DISCORD_CHANNEL_ID = '1402605903508672554'; // channel where sessions are posted
+
 module.exports = (client) => {
-
-  // Get sessions
+  // GET sessions
   router.get('/', async (req, res) => {
     try {
-      // Clone data so we can modify without affecting original
-      const sessions = JSON.parse(JSON.stringify(Object.values(sessionsData.sessions)));
+      const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
+      const channel = await guild.channels.fetch(DISCORD_CHANNEL_ID);
 
-      for (const session of sessions) {
-        // Convert Host
-        if (session.host) {
-          const match = session.host.match(/<@!?(\d+)>/);
-          if (match) {
-            const userId = match[1];
-            try {
-              const member = await client.users.fetch(userId);
-              session.host = member.username;
-            } catch {
-              session.host = "Unknown";
-            }
-          }
+      if (!channel || !channel.isTextBased()) {
+        return res.status(500).json({ error: 'Invalid channel' });
+      }
+
+      // Fetch messages (last 50 for example)
+      const messages = await channel.messages.fetch({ limit: 50 });
+      const sessions = [];
+
+      for (const msg of messages.values()) {
+        const content = msg.content;
+
+        const session = {};
+
+        // Match lines with "Host:", "CoHost:", "Overseer:", "Timestamp:"
+        const hostMatch = content.match(/Host:\s*(.+)/i);
+        const cohostMatch = content.match(/CoHost:\s*(.+)/i);
+        const overseerMatch = content.match(/Overseer:\s*(.+)/i);
+        const timestampMatch = content.match(/Timestamp:\s*(.+)/i);
+
+        if (hostMatch) session.host = await resolveDiscordMentions(client, guild, hostMatch[1]);
+        if (cohostMatch) session.cohost = await resolveDiscordMentions(client, guild, cohostMatch[1]);
+        if (overseerMatch) session.overseer = await resolveDiscordMentions(client, guild, overseerMatch[1]);
+
+        if (timestampMatch) {
+          const ts = new Date(timestampMatch[1]);
+          session.time = isNaN(ts.getTime()) ? null : ts.toISOString();
         }
 
-        // Convert CoHost
-        if (session.cohost) {
-          const match = session.cohost.match(/<@!?(\d+)>/);
-          if (match) {
-            const userId = match[1];
-            try {
-              const member = await client.users.fetch(userId);
-              session.cohost = member.username;
-            } catch {
-              session.cohost = "Unknown";
-            }
-          }
-        }
-
-        // Convert Overseer
-        if (session.overseer) {
-          const match = session.overseer.match(/<@!?(\d+)>/);
-          if (match) {
-            const userId = match[1];
-            try {
-              const member = await client.users.fetch(userId);
-              session.overseer = member.username;
-            } catch {
-              session.overseer = "Unknown";
-            }
-          }
-        }
+        if (Object.keys(session).length > 0) sessions.push(session);
       }
 
       res.json(sessions);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to get sessions" });
+      console.error('Error fetching sessions:', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
+
+  // Helper: resolve Discord mentions to usernames
+  async function resolveDiscordMentions(client, guild, text) {
+    return text.replace(/<@!?(\d+)>/g, (match, id) => {
+      const member = guild.members.cache.get(id);
+      if (member) return `${member.user.username}#${member.user.discriminator}`;
+      return match; // leave as-is if not found
+    });
+  }
 
   return router;
 };
