@@ -4,12 +4,12 @@ const router = express.Router();
 const GUILD_ID = '1362322934794031104'; // your guild
 const CHANNEL_ID = '1402605903508672554'; // session channel
 
-// Resolve mentions, usernames, or fallback text to nickname
+// Resolve Discord mentions or plain usernames to nicknames#discriminator
 async function resolveDiscordUser(client, guild, text) {
   text = text.trim();
   if (!text) return null;
 
-  // 1️⃣ If it's a mention like <@123456789>
+  // If it's a mention
   const mentionMatch = text.match(/^<@!?(\d+)>$/);
   if (mentionMatch) {
     const id = mentionMatch[1];
@@ -18,32 +18,37 @@ async function resolveDiscordUser(client, guild, text) {
       if (member) return member.nickname || member.user.username;
     } catch (err) {
       console.warn(`Failed to fetch member ${id}:`, err);
+      return text; // fallback to raw
     }
-    return "<Unknown User>";
   }
 
-  // 2️⃣ If it's a plain username, try to fetch member by username
-  try {
-    const members = await guild.members.fetch();
-    const found = members.find(
-      m => m.user.username.toLowerCase() === text.toLowerCase()
+  // If it looks like a raw username#discriminator
+  const userTagMatch = text.match(/^([^#]+)#(\d{4})$/);
+  if (userTagMatch) {
+    const [_, username, discrim] = userTagMatch;
+    // Try to find in guild
+    const member = guild.members.cache.find(
+      m => m.user.username === username && m.user.discriminator === discrim
     );
-    if (found) return found.nickname || found.user.username;
-  } catch (err) {
-    console.warn(`Failed to fetch members for username lookup:`, err);
+    if (member) return member.nickname || member.user.username;
   }
 
-  // fallback: return the original text
+  // Otherwise just return the raw text
   return text;
 }
 
-// Parse timestamps to ISO
+// Convert raw timestamp to ISO string
 function parseSessionTime(raw) {
   if (!raw) return null;
 
   const date = new Date(raw);
-  if (!isNaN(date.getTime())) {
-    return date.toISOString();
+  if (!isNaN(date.getTime())) return date.toISOString();
+
+  const match = raw.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[ T](\d{1,2}):(\d{2})/);
+  if (match) {
+    const [_, y, m, d, h, min] = match;
+    const dt = new Date(Date.UTC(+y, +m - 1, +d, +h, +min));
+    return dt.toISOString();
   }
 
   return null;
@@ -91,12 +96,6 @@ module.exports = (client) => {
           time: timestamp || null
         });
       }
-
-      // Sort sessions by time (earliest first)
-      sessions.sort((a, b) => {
-        if (a.time && b.time) return new Date(a.time) - new Date(b.time);
-        return 0;
-      });
 
       res.json(sessions);
     } catch (err) {
