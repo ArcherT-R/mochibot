@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Client } = require('discord.js');
 
-const GUILD_ID = process.env.GUILD_ID; // your guild
+const GUILD_ID = '1362322934794031104'; // your guild
 const CHANNEL_ID = '1402605903508672554'; // session channel
 
 async function resolveDiscordMentions(client, guild, text) {
