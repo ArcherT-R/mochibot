@@ -2,8 +2,7 @@ require('dotenv').config();
 const { startBot } = require('./bot/client');
 const { startWebServer } = require('./web/server');
 const sotwRoleEndpoint = require('./endpoints/sotw-role');
-const sessionsEndpoint = require('./endpoints/sessions')(client);
-app.use('/sessions', sessionsEndpoint);
+const sessionsEndpointFactory = require('./endpoints/sessions');
 
 async function main() {
   try {
@@ -13,8 +12,10 @@ async function main() {
     // Start Express web server and get `app` instance
     const app = await startWebServer();
 
-    // Register SOTW endpoint **after bot is ready**
+    // Register endpoints **after bot is ready**
     sotwRoleEndpoint(app, client);
+    const sessionsEndpoint = sessionsEndpointFactory(client);
+    app.use('/sessions', sessionsEndpoint);
 
     console.log('✅ MochiBot is running!');
   } catch (err) {
@@ -24,4 +25,3 @@ async function main() {
 }
 
 main();
-
