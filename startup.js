@@ -2,6 +2,8 @@ require('dotenv').config();
 const { startBot } = require('./bot/client');
 const { startWebServer } = require('./web/server');
 const sotwRoleEndpoint = require('./endpoints/sotw-role');
+const sessionsEndpoint = require('./endpoints/sessions')(client);
+app.use('/sessions', sessionsEndpoint);
 
 async function main() {
   try {
