@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const DISCORD_GUILD_ID = process.env.GUILD_ID; // your server ID
+const DISCORD_GUILD_ID = '1362322934794031104' // your server ID
 const DISCORD_CHANNEL_ID = '1402605903508672554'; // channel where sessions are posted
 
 module.exports = (client) => {
