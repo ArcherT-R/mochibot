@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { loadLinkedUsers, saveLinkedUsers } = require('../data/data');
+const { loadLinkedUsers, saveLinkedUsers } = require('../../data/data');
 
 const STAFF_ROLE_ID = '1363595276576620595'; // Only users with this role can use /link
 
