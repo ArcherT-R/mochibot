@@ -1,30 +1,52 @@
 const express = require('express');
 const router = express.Router();
-const { Client } = require('discord.js');
 
 const GUILD_ID = '1362322934794031104'; // your guild
 const CHANNEL_ID = '1402605903508672554'; // session channel
 
-async function resolveDiscordMentions(client, guild, text) {
-  const matches = [...text.matchAll(/<@!?(\d+)>/g)];
+// Resolve mentions, usernames, or fallback text to nickname
+async function resolveDiscordUser(client, guild, text) {
+  text = text.trim();
+  if (!text) return null;
 
-  for (const match of matches) {
-    const id = match[1];
-    let usernameTag = "<Unknown User>";
-
+  // 1️⃣ If it's a mention like <@123456789>
+  const mentionMatch = text.match(/^<@!?(\d+)>$/);
+  if (mentionMatch) {
+    const id = mentionMatch[1];
     try {
       const member = await guild.members.fetch(id).catch(() => null);
-      if (member && member.user) {
-        usernameTag = member.nickname || member.user.username;
-      }
+      if (member) return member.nickname || member.user.username;
     } catch (err) {
       console.warn(`Failed to fetch member ${id}:`, err);
     }
-
-    text = text.replace(match[0], usernameTag);
+    return "<Unknown User>";
   }
 
+  // 2️⃣ If it's a plain username, try to fetch member by username
+  try {
+    const members = await guild.members.fetch();
+    const found = members.find(
+      m => m.user.username.toLowerCase() === text.toLowerCase()
+    );
+    if (found) return found.nickname || found.user.username;
+  } catch (err) {
+    console.warn(`Failed to fetch members for username lookup:`, err);
+  }
+
+  // fallback: return the original text
   return text;
+}
+
+// Parse timestamps to ISO
+function parseSessionTime(raw) {
+  if (!raw) return null;
+
+  const date = new Date(raw);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString();
+  }
+
+  return null;
 }
 
 module.exports = (client) => {
@@ -38,9 +60,8 @@ module.exports = (client) => {
       const sessions = [];
 
       for (const msg of messages.values()) {
-        let host = "", cohost = "", overseer = "", timestamp = "";
+        let host = null, cohost = null, overseer = null, timestamp = null;
 
-        // Match lines like "Host: ...", "CoHost: ...", "Overseer: ...", "Timestamp: ..."
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
           const [key, ...rest] = line.split(":");
@@ -49,16 +70,16 @@ module.exports = (client) => {
 
           switch (key.trim().toLowerCase()) {
             case 'host':
-              host = await resolveDiscordMentions(client, guild, value);
+              host = await resolveDiscordUser(client, guild, value);
               break;
             case 'cohost':
-              cohost = await resolveDiscordMentions(client, guild, value);
+              cohost = await resolveDiscordUser(client, guild, value);
               break;
             case 'overseer':
-              overseer = await resolveDiscordMentions(client, guild, value);
+              overseer = await resolveDiscordUser(client, guild, value);
               break;
             case 'timestamp':
-              timestamp = value;
+              timestamp = parseSessionTime(value);
               break;
           }
         }
@@ -67,10 +88,15 @@ module.exports = (client) => {
           host: host || null,
           cohost: cohost || null,
           overseer: overseer || null,
-          time: timestamp || null,
-          status: 'Planned' // default, you can parse differently if needed
+          time: timestamp || null
         });
       }
+
+      // Sort sessions by time (earliest first)
+      sessions.sort((a, b) => {
+        if (a.time && b.time) return new Date(a.time) - new Date(b.time);
+        return 0;
+      });
 
       res.json(sessions);
     } catch (err) {
