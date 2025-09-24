@@ -1,4 +1,4 @@
-// src/bot/client.js
+// bot/client.js
 const {
   Client,
   GatewayIntentBits,
@@ -32,27 +32,39 @@ async function startBot() {
   // Load commands into client
   loadCommands(client);
 
-  // Login
+  // Login to Discord
   await client.login(DISCORD_TOKEN);
 
+  // Once ready
   client.once(Events.ClientReady, async c => {
     console.log(`🤖 Logged in as ${c.user.tag}`);
-    if (CLIENT_ID && GUILD_ID) await registerCommandsToGuild(client);
+    if (CLIENT_ID && GUILD_ID) {
+      await registerCommandsToGuild(client);
+      console.log('📜 Commands registered to guild.');
+    }
   });
 
-  // Command handler
+  // Handle interactions
   client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) return;
+
     const command = client.commands.get(interaction.commandName);
     if (!command) {
       return interaction.reply({ content: 'Command not found.', ephemeral: true });
     }
+
     try {
       await command.execute(interaction);
     } catch (err) {
       console.error(`Error executing ${interaction.commandName}:`, err);
+      if (!interaction.replied && !interaction.deferred) {
+        interaction.reply({ content: '❌ An error occurred.', ephemeral: true }).catch(() => {});
+      }
     }
   });
+
+  return client; // Important: return the client for endpoints to use
 }
 
 module.exports = { client, startBot };
+
