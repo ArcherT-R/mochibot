@@ -8,8 +8,13 @@ const STAFF_ROLE_ID = '1363595276576620595';
 const app = express();
 app.use(express.json());
 
+// Root route for website
+app.get('/', (req, res) => {
+  res.send(`🤖 MochiBot is running! Uptime: ${process.uptime().toFixed(0)}s`);
+});
+
 // Health endpoint
-app.get('/health', (req, res) => res.send('Bot is running!'));
+app.get('/health', (req, res) => res.send('The ittsy bittsy spider.. bot is running!'));
 
 // Check if a Roblox ID is linked (basic perk)
 app.get('/check-perk', (req, res) => {
@@ -32,7 +37,12 @@ app.get('/check-staff-otw', async (req, res) => {
     const discordId = linkedUsers[robloxId];
     if (!discordId) return res.json({ hasPerk: false });
 
-    const guild = await client.guilds.fetch(process.env.GUILD_ID);
+    // Make sure client is ready
+    if (!client.isReady()) return res.json({ hasPerk: false });
+
+    const guild = client.guilds.cache.get(process.env.GUILD_ID);
+    if (!guild) return res.json({ hasPerk: false });
+
     const member = await guild.members.fetch(discordId).catch(() => null);
     if (!member) return res.json({ hasPerk: false });
 
