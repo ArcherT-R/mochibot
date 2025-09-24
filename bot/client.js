@@ -1,4 +1,6 @@
-const { Client, GatewayIntentBits, EmbedBuilder, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 
 async function startBot() {
   const client = new Client({
@@ -11,13 +13,51 @@ async function startBot() {
     partials: [Partials.Channel, Partials.GuildMember]
   });
 
+  // Command collection
+  client.commands = new Collection();
+
+  // Load commands from ./commands
+  const commandsPath = path.join(__dirname, '../commands');
+  const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    if (command.data && command.execute) {
+      client.commands.set(command.data.name, command);
+      console.log(`✅ Loaded command: ${command.data.name}`);
+    } else {
+      console.warn(`⚠ Skipped invalid command file: ${file}`);
+    }
+  }
+
+  // When bot is ready
   client.once('ready', () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
   });
 
+  // Slash command handling
+  client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isCommand()) return;
+
+    const command = client.commands.get(interaction.commandName);
+    if (!command) return;
+
+    try {
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(error);
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: '❌ There was an error executing this command.', ephemeral: true });
+      } else {
+        await interaction.reply({ content: '❌ There was an error executing this command.', ephemeral: true });
+      }
+    }
+  });
+
+  // Welcome DM
   client.on('guildMemberAdd', async (member) => {
     try {
-      // Make sure the bot can DM
       const dmChannel = await member.createDM();
 
       const welcomeEmbed = new EmbedBuilder()
@@ -40,4 +80,3 @@ async function startBot() {
 }
 
 module.exports = { startBot };
-
