@@ -1,27 +1,46 @@
-require('dotenv').config();
-const { startBot } = require('./bot/client');
-const { startWebServer } = require('./web/server');
-const sotwRoleEndpoint = require('./endpoints/sotw-role');
-const sessionsEndpointFactory = require('./endpoints/sessions');
+// bot/client.js
+const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 
-async function main() {
-  try {
-    // Start Discord bot
-    const client = await startBot();
+async function startBot() {
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.DirectMessages,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent
+    ],
+    partials: [Partials.Channel] // Needed for DMs to new members
+  });
 
-    // Start Express web server and get `app` instance
-    const app = await startWebServer();
+  client.once('ready', () => {
+    console.log(`Logged in as ${client.user.tag}`);
+  });
 
-    // Register endpoints **after bot is ready**
-    sotwRoleEndpoint(app, client);
-    const sessionsEndpoint = sessionsEndpointFactory(client);
-    app.use('/sessions', sessionsEndpoint);
+  client.on('guildMemberAdd', async (member) => {
+    try {
+      const server = member.guild;
+      const memberCount = server.memberCount;
 
-    console.log('✅ MochiBot is running!');
-  } catch (err) {
-    console.error('❌ Failed to start MochiBot:', err);
-    process.exit(1);
-  }
+      const embed = new EmbedBuilder()
+        .setColor(0x00FFAA) // greenish color
+        .setTitle('👋 Welcome!')
+        .setDescription(
+          `👋 Hello ${member}!\n` +
+          `Welcome to Mochi Bar's Discord server. Be sure to /verify with Bloxlink in <#1365990340011753502>!\n\n` +
+          `🎉 Questions can be asked in tickets. You are our **#${memberCount} member!**`
+        )
+        .setTimestamp();
+
+      await member.send({ embeds: [embed] });
+      console.log(`Sent welcome embed to ${member.user.tag}`);
+    } catch (err) {
+      console.warn(`Could not DM ${member.user.tag}:`, err);
+    }
+  });
+
+  await client.login(process.env.DISCORD_TOKEN);
+  return client;
 }
 
-main();
+module.exports = { startBot };
