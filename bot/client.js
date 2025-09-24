@@ -1,70 +1,43 @@
-// bot/client.js
-const {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  Events,
-  Collection,
-} = require('discord.js');
-
-const { registerCommandsToGuild } = require('./register');
-const loadCommands = require('./loadCommands');
-
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
-
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-  ],
-  partials: [Partials.Channel, Partials.Message],
-});
-
-client.commands = new Collection();
+const { Client, GatewayIntentBits, EmbedBuilder, Partials } = require('discord.js');
 
 async function startBot() {
-  if (!DISCORD_TOKEN) throw new Error('DISCORD_TOKEN missing in .env');
-
-  // Load commands into client
-  loadCommands(client);
-
-  // Login to Discord
-  await client.login(DISCORD_TOKEN);
-
-  // Once ready
-  client.once(Events.ClientReady, async c => {
-    console.log(`🤖 Logged in as ${c.user.tag}`);
-    if (CLIENT_ID && GUILD_ID) {
-      await registerCommandsToGuild(client);
-      console.log('📜 Commands registered to guild.');
-    }
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent
+    ],
+    partials: [Partials.Channel, Partials.GuildMember]
   });
 
-  // Handle interactions
-  client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+  client.once('ready', () => {
+    console.log(`🤖 Logged in as ${client.user.tag}`);
+  });
 
-    const command = client.commands.get(interaction.commandName);
-    if (!command) {
-      return interaction.reply({ content: 'Command not found.', ephemeral: true });
-    }
-
+  client.on('guildMemberAdd', async (member) => {
     try {
-      await command.execute(interaction);
+      // Make sure the bot can DM
+      const dmChannel = await member.createDM();
+
+      const welcomeEmbed = new EmbedBuilder()
+        .setTitle('👋 Welcome!')
+        .setDescription(`Hello ${member}, welcome to Mochi Bar's discord server!\n\n` +
+                        `Be sure to /verify with bloxlink in <#1365990340011753502>!\n\n` +
+                        `🎉 Questions can be asked in tickets, you are our **#${member.guild.memberCount}** member!`)
+        .setColor(0x00FFFF)
+        .setTimestamp();
+
+      await dmChannel.send({ embeds: [welcomeEmbed] });
+      console.log(`✅ Sent welcome DM to ${member.user.tag}`);
     } catch (err) {
-      console.error(`Error executing ${interaction.commandName}:`, err);
-      if (!interaction.replied && !interaction.deferred) {
-        interaction.reply({ content: '❌ An error occurred.', ephemeral: true }).catch(() => {});
-      }
+      console.warn(`⚠ Failed to DM ${member.user.tag}:`, err);
     }
   });
 
-  return client; // Important: return the client for endpoints to use
+  await client.login(process.env.DISCORD_TOKEN);
+  return client;
 }
 
-module.exports = { client, startBot };
+module.exports = { startBot };
 
