@@ -50,13 +50,14 @@ module.exports = (client) => {
   });
 
   // Helper: resolve Discord mentions to usernames
-  async function resolveDiscordMentions(client, guild, text) {
-    return text.replace(/<@!?(\d+)>/g, (match, id) => {
-      const member = guild.members.cache.get(id);
-      if (member) return `${member.user.username}#${member.user.discriminator}`;
-      return match; // leave as-is if not found
-    });
-  }
-
+ async function resolveDiscordMentions(client, guild, text) {
+  return text.replace(/<@!?(\d+)>/g, (match, id) => {
+    const member = guild.members.cache.get(id);
+    if (member && member.user) {
+      return `${member.user.username}#${member.user.discriminator}`;
+    }
+    return `<Unknown User>`; // optional fallback
+  });
+}
   return router;
 };
