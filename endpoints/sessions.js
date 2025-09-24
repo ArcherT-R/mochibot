@@ -34,7 +34,7 @@ module.exports = (client) => {
           if (lowerKey === 'host') data.host = value;
           else if (lowerKey === 'cohost') data.coHost = value;
           else if (lowerKey === 'overseer') data.overseer = value;
-          else if (lowerKey === 'timestamp') data.timestamp = value;
+          else if (lowerKey === 'time') data.timestamp = value;
         }
 
         // Only include messages that at least have a Host or Timestamp
