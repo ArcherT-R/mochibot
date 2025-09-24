@@ -27,14 +27,6 @@ async function resolveDiscordMentions(client, guild, text) {
   return text.trim();
 }
 
-function parseTimestamp(value) {
-  if (!value) return "";
-  // Try to parse a valid date
-  const date = new Date(value);
-  if (!isNaN(date.getTime())) return date.toISOString();
-  return value; // fallback: return raw string if invalid
-}
-
 module.exports = (client) => {
   router.get('/', async (req, res) => {
     try {
@@ -47,8 +39,8 @@ module.exports = (client) => {
 
       for (const msg of messages.values()) {
         let host = "";
-        let cohost = null;
-        let overseer = null;
+        let cohost = "";
+        let overseer = "";
         let timestamp = "";
 
         const lines = msg.content.split(/\r?\n/);
@@ -65,24 +57,23 @@ module.exports = (client) => {
               host = await resolveDiscordMentions(client, guild, value) || "";
               break;
             case 'cohost':
-              cohost = await resolveDiscordMentions(client, guild, value) || null;
+              cohost = await resolveDiscordMentions(client, guild, value) || "";
               break;
             case 'overseer':
-              overseer = await resolveDiscordMentions(client, guild, value) || null;
+              overseer = await resolveDiscordMentions(client, guild, value) || "";
               break;
             case 'timestamp':
-              timestamp = parseTimestamp(value);
+              timestamp = value; // Keep as-is, e.g., <t:1758776400:F>
               break;
           }
         }
 
         // Always include host and time
         const session = {
-          host: host,
-          time: timestamp
+          host: host || "",
+          time: timestamp || ""
         };
 
-        // Only include optional fields if they have a value
         if (cohost) session.cohost = cohost;
         if (overseer) session.overseer = overseer;
 
