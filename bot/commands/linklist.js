@@ -1,45 +1,41 @@
 // bot/commands/linklist.js
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { loadLinkedUsers } = require('../../data/data'); // adjust relative path
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('linklist')
-    .setDescription('Show all linked Discord ↔ Roblox users'),
+    .setDescription('Show all linked Discord ↔ Roblox accounts (staff only)'),
 
   async execute(interaction) {
-    try {
-      await interaction.deferReply({ flags: 64 }); // ephemeral reply
+    const requiredRoleId = '1363595276576620595';
+    await interaction.deferReply({ flags: 64 }); // ephemeral
 
-      if (!global.linkedUsers || !global.linkedUsers.discordToRoblox) {
-        return await interaction.editReply({ content: '❌ No linked users found.' });
-      }
-
-      const entries = Object.entries(global.linkedUsers.discordToRoblox);
-
-      if (entries.length === 0) {
-        return await interaction.editReply({ content: '❌ No linked users found.' });
-      }
-
-      // Format list
-      let description = entries
-        .map(([discordId, robloxName]) => `• <@${discordId}> → **${robloxName}**`)
-        .join('\n');
-
-      // Avoid Discord embed limits
-      if (description.length > 4000) {
-        description = description.slice(0, 3997) + '...';
-      }
-
-      const embed = new EmbedBuilder()
-        .setTitle('🔗 Linked Users')
-        .setDescription(description)
-        .setColor(0x0099ff);
-
-      await interaction.editReply({ embeds: [embed] });
-
-    } catch (error) {
-      console.error("Error in /linklist command:", error);
-      await interaction.editReply({ content: '❌ An error occurred fetching the link list.' }).catch(() => {});
+    // Permission check
+    if (!interaction.member.roles.cache.has(requiredRoleId)) {
+      return await interaction.editReply({
+        content: '❌ You don’t have permission to use this command.'
+      });
     }
+
+    const linkedUsers = loadLinkedUsers();
+    const mappings = linkedUsers.discordToRoblox || {};
+
+    if (Object.keys(mappings).length === 0) {
+      return await interaction.editReply({ content: '📭 No linked users found.' });
+    }
+
+    // Build a nice embed
+    const embed = new EmbedBuilder()
+      .setTitle('🔗 Linked Users')
+      .setColor(0x0099FF)
+      .setDescription(
+        Object.entries(mappings)
+          .map(([discordId, robloxName]) => `👤 <@${discordId}> → **${robloxName}**`)
+          .join('\n')
+      );
+
+    await interaction.editReply({ embeds: [embed] });
   }
 };
+
