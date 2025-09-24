@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
 
-const GUILD_ID = '1362322934794031104';
-const CHANNEL_ID = '1402605903508672554';
+const GUILD_ID = '1362322934794031104'; // your guild
+const CHANNEL_ID = '1402605903508672554'; // session channel
 
+/**
+ * Resolves Discord mentions or plain usernames to their nickname#discriminator.
+ * If not a mention, returns the original text.
+ */
 async function resolveDiscordMentions(client, guild, text) {
-  if (!text) return text;
+  if (!text) return "";
 
-  // Match mentions like <@123456789>
+  // Match all user mentions
   const matches = [...text.matchAll(/<@!?(\d+)>/g)];
 
   for (const match of matches) {
@@ -16,11 +20,16 @@ async function resolveDiscordMentions(client, guild, text) {
 
     try {
       const member = await guild.members.fetch(id).catch(() => null);
-      if (member) usernameTag = member.displayName;
+      if (member && member.user) {
+        usernameTag = member.nickname
+          ? `${member.nickname}#${member.user.discriminator}`
+          : `${member.user.username}#${member.user.discriminator}`;
+      }
     } catch (err) {
       console.warn(`Failed to fetch member ${id}:`, err);
     }
 
+    // Replace the mention in text
     text = text.replace(match[0], usernameTag);
   }
 
@@ -46,13 +55,14 @@ module.exports = (client) => {
         const lines = msg.content.split(/\r?\n/);
 
         for (const line of lines) {
-          const [key, ...rest] = line.split(":");
-          if (!key || rest.length === 0) continue;
+          const [rawKey, ...rest] = line.split(":");
+          if (!rawKey || rest.length === 0) continue;
 
+          const key = rawKey.trim().toLowerCase();
           const value = rest.join(":").trim();
           if (!value) continue;
 
-          switch (key.trim().toLowerCase()) {
+          switch (key) {
             case 'host':
               host = await resolveDiscordMentions(client, guild, value) || "";
               break;
@@ -63,17 +73,15 @@ module.exports = (client) => {
               overseer = await resolveDiscordMentions(client, guild, value) || "";
               break;
             case 'timestamp':
-              timestamp = value; // Keep as-is, e.g., <t:1758776400:F>
+              timestamp = value;
               break;
           }
         }
 
-        // Always include host and time
-        const session = {
-          host: host || "",
-          time: timestamp || ""
-        };
+        // Only add session if host and timestamp exist
+        if (!host || !timestamp) continue;
 
+        const session = { host, time: timestamp };
         if (cohost) session.cohost = cohost;
         if (overseer) session.overseer = overseer;
 
