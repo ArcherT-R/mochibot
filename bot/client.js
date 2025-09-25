@@ -27,9 +27,7 @@ async function startBot() {
 
   // --- Persistent bot data ---
   client.botData = {
-    linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
-    points: {},
-    settings: {}
+    linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} }
   };
 
   client.saveBotData = async (createBackup = false) => {
