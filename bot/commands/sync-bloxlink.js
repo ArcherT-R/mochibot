@@ -3,30 +3,51 @@ const { SlashCommandBuilder } = require('discord.js');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sync-bloxlink')
-    .setDescription('Sync linked users from Bloxlink channel'),
+    .setDescription('Sync linked users from the Bloxlink channel'),
 
   async execute(interaction) {
-    await interaction.reply({ content: '🔄 Syncing...', ephemeral: true });
+    const BOT_DATA_CHANNEL_ID = process.env.BOT_DATA_CHANNEL_ID; // where bot stores data
+    const BLOXLINK_CHANNEL_ID = '1420711771747913788'; // adjust to your logs channel
 
-    const channel = await interaction.client.channels.fetch(process.env.BLOXLINK_CHANNEL_ID);
-    const messages = await channel.messages.fetch({ limit: 100 });
+    await interaction.deferReply({ ephemeral: true });
 
-    const discordToRoblox = {};
-    const robloxToDiscord = {};
+    try {
+      const guild = interaction.guild;
+      if (!guild) return interaction.editReply('❌ Could not find guild.');
 
-    messages.forEach(msg => {
-      const match = msg.content.match(/<@!?(\d+)>\s*→\s*(\w+)/);
-      if (match) {
-        const discordId = match[1];
-        const robloxName = match[2];
-        discordToRoblox[discordId] = robloxName;
-        robloxToDiscord[robloxName] = discordId;
-      }
-    });
+      // Fetch channels
+      const botDataChannel = await guild.channels.fetch(BOT_DATA_CHANNEL_ID);
+      const bloxlinkChannel = await guild.channels.fetch(BLOXLINK_CHANNEL_ID);
 
-    interaction.client.botData.linkedUsers = { discordToRoblox, robloxToDiscord };
-    await interaction.client.saveBotData();
+      if (!botDataChannel || !bloxlinkChannel)
+        return interaction.editReply('❌ Could not find one of the channels.');
 
-    await interaction.editReply({ content: `✅ Synced ${messages.size} links from Bloxlink.` });
+      // Fetch Bloxlink messages
+      const messages = await bloxlinkChannel.messages.fetch({ limit: 100 });
+      const discordToRoblox = {};
+      const robloxToDiscord = {};
+
+      messages.forEach(msg => {
+        // Match format: "<@DiscordID> → RobloxName"
+        const match = msg.content.match(/<@!?(\d+)>\s*→\s*(\w+)/);
+        if (match) {
+          const discordId = match[1];
+          const robloxName = match[2];
+          discordToRoblox[discordId] = robloxName;
+          robloxToDiscord[robloxName] = discordId;
+        }
+      });
+
+      // Update client.botData
+      interaction.client.botData.linkedUsers = { discordToRoblox, robloxToDiscord };
+
+      // Save bot data
+      if (interaction.client.saveBotData) await interaction.client.saveBotData();
+
+      return interaction.editReply(`✅ Synced ${Object.keys(discordToRoblox).length} linked users from Bloxlink.`);
+    } catch (err) {
+      console.error('❌ Failed to sync Bloxlink:', err);
+      return interaction.editReply('❌ Failed to sync Bloxlink.');
+    }
   }
 };
