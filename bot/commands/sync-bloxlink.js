@@ -25,21 +25,13 @@ module.exports = {
 
       for (const member of members.values()) {
         const nick = member.nickname;
-
         if (!nick) continue;
 
         let robloxUsername;
-
-        // Format: single word or multi-word with (@username)
         const match = nick.match(/\(@(.+?)\)/);
-        if (match) {
-          robloxUsername = match[1]; // Text inside (@username)
-        } else {
-          robloxUsername = nick; // Single-word nickname is the username
-        }
+        robloxUsername = match ? match[1] : nick;
 
         try {
-          // Get Roblox ID from username
           const res = await axios.get(`https://api.roblox.com/users/get-by-username?username=${robloxUsername}`);
           if (res.data && res.data.Id) {
             newData.discordToRoblox[member.id] = robloxUsername;
@@ -53,29 +45,30 @@ module.exports = {
         }
       }
 
-      // Save to bot data channel in chunks
+      // Prepare JSON string
       const botData = { linkedUsers: newData };
-      const contentStr = JSON.stringify(botData, null, 2);
+      const contentStr = JSON.stringify(botData);
 
-      // Split content into 1500-char chunks
+      // Split into 1950-char chunks
       const chunks = [];
-      for (let i = 0; i < contentStr.length; i += 1500) {
-        chunks.push(contentStr.slice(i, i + 1500));
+      for (let i = 0; i < contentStr.length; i += 1950) {
+        chunks.push(contentStr.slice(i, i + 1950));
       }
 
-      const messages = await channel.messages.fetch({ limit: 1 });
-      const lastMessage = messages.first();
-
-      if (lastMessage) {
-        await lastMessage.delete(); // Remove old data
+      // Clear old messages first
+      const messages = await channel.messages.fetch({ limit: 10 });
+      for (const msg of messages.values()) {
+        await msg.delete();
       }
 
+      // Send clean raw chunks (prepend with invisible char so no embed preview)
       for (const chunk of chunks) {
-        await channel.send(`\`\`\`json\n${chunk}\n\`\`\``);
+        await channel.send(`\u200B${chunk}`);
       }
 
-      // Reply to user
-      await interaction.editReply(`✅ Synced ${Object.keys(newData.robloxToDiscord).length} users.\n\nDebug:\n${debugLog.join('\n')}`);
+      await interaction.editReply(
+        `✅ Synced ${Object.keys(newData.robloxToDiscord).length} users.\n\nDebug:\n${debugLog.join('\n')}`
+      );
     } catch (err) {
       console.error('❌ Error in sync-bloxlink:', err);
       if (!interaction.replied) {
