@@ -28,13 +28,18 @@ module.exports = {
         if (!nick) continue;
 
         let robloxUsername;
+
+        // Format: multi-word with (@username) or plain nickname
         const match = nick.match(/\(@(.+?)\)/);
-        robloxUsername = match ? match[1] : nick;
+        if (match) {
+          robloxUsername = match[1];
+        } else {
+          robloxUsername = nick;
+        }
 
         try {
-          const res = await axios.get(
-            `https://api.roblox.com/users/get-by-username?username=${robloxUsername}`
-          );
+          // Get Roblox ID from username
+          const res = await axios.get(`https://api.roblox.com/users/get-by-username?username=${robloxUsername}`);
           if (res.data && res.data.Id) {
             newData.discordToRoblox[member.id] = robloxUsername;
             newData.robloxToDiscord[res.data.Id] = member.id;
@@ -47,9 +52,9 @@ module.exports = {
         }
       }
 
-      // Prepare JSON string
+      // Prepare JSON to save
       const botData = { linkedUsers: newData };
-      const contentStr = JSON.stringify(botData);
+      const contentStr = JSON.stringify(botData, null, 2);
 
       // Split into 1950-char chunks
       const chunks = [];
@@ -57,29 +62,24 @@ module.exports = {
         chunks.push(contentStr.slice(i, i + 1950));
       }
 
-      // Clear old messages first
-      const messages = await channel.messages.fetch({ limit: 10 });
-      for (const msg of messages.values()) {
-        await msg.delete();
+      // Delete all old messages in channel (to keep clean)
+      const oldMessages = await channel.messages.fetch({ limit: 20 });
+      for (const msg of oldMessages.values()) {
+        await msg.delete().catch(() => {});
       }
 
-      // Send clean raw chunks
+      // Send raw JSON chunks (no markdown)
       for (const chunk of chunks) {
-        await channel.send(`\u200B${chunk}`);
+        await channel.send(chunk);
       }
 
-      // Truncate debug log to avoid "Invalid Form Body"
-      let debugMsg = debugLog.join('\n');
-      if (debugMsg.length > 1500) {
-        debugMsg = debugMsg.slice(0, 1500) + '\n... (truncated)';
-      }
-
+      // Reply to user
       await interaction.editReply(
-        `✅ Synced ${Object.keys(newData.robloxToDiscord).length} users.\n\nDebug:\n${debugMsg}`
+        `✅ Synced ${Object.keys(newData.robloxToDiscord).length} users.\n\nDebug:\n${debugLog.join('\n')}`
       );
     } catch (err) {
       console.error('❌ Error in sync-bloxlink:', err);
-      if (!interaction.replied && !interaction.deferred) {
+      if (!interaction.replied) {
         await interaction.reply({ content: '❌ Failed to sync.', ephemeral: true });
       } else {
         await interaction.editReply('❌ Failed to sync.');
