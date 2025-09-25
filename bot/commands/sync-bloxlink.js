@@ -32,7 +32,9 @@ module.exports = {
         robloxUsername = match ? match[1] : nick;
 
         try {
-          const res = await axios.get(`https://api.roblox.com/users/get-by-username?username=${robloxUsername}`);
+          const res = await axios.get(
+            `https://api.roblox.com/users/get-by-username?username=${robloxUsername}`
+          );
           if (res.data && res.data.Id) {
             newData.discordToRoblox[member.id] = robloxUsername;
             newData.robloxToDiscord[res.data.Id] = member.id;
@@ -61,17 +63,23 @@ module.exports = {
         await msg.delete();
       }
 
-      // Send clean raw chunks (prepend with invisible char so no embed preview)
+      // Send clean raw chunks
       for (const chunk of chunks) {
         await channel.send(`\u200B${chunk}`);
       }
 
+      // Truncate debug log to avoid "Invalid Form Body"
+      let debugMsg = debugLog.join('\n');
+      if (debugMsg.length > 1500) {
+        debugMsg = debugMsg.slice(0, 1500) + '\n... (truncated)';
+      }
+
       await interaction.editReply(
-        `✅ Synced ${Object.keys(newData.robloxToDiscord).length} users.\n\nDebug:\n${debugLog.join('\n')}`
+        `✅ Synced ${Object.keys(newData.robloxToDiscord).length} users.\n\nDebug:\n${debugMsg}`
       );
     } catch (err) {
       console.error('❌ Error in sync-bloxlink:', err);
-      if (!interaction.replied) {
+      if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ content: '❌ Failed to sync.', ephemeral: true });
       } else {
         await interaction.editReply('❌ Failed to sync.');
