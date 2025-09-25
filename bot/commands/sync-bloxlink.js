@@ -1,49 +1,51 @@
+// commands/sync-bloxlink.js
 const { SlashCommandBuilder } = require('discord.js');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch'); // make sure node-fetch is installed
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sync-bloxlink')
-    .setDescription('Sync all linked users from nicknames'),
+    .setDescription('Sync Roblox IDs from Bloxlink nicknames'),
 
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
-    try {
-      const guild = interaction.guild;
-      const members = await guild.members.fetch();
+    const guild = interaction.guild;
+    if (!guild) return interaction.editReply('❌ Not in a guild.');
 
-      let count = 0;
+    const members = await guild.members.fetch();
+    let syncedCount = 0;
 
-      for (const member of members.values()) {
-        if (!member.nickname) continue;
+    for (const [id, member] of members) {
+      const nickname = member.nickname || member.user.username;
 
-        const match = member.nickname.match(/(.+)\s+\(@(.+)\)/);
-        if (!match) continue;
+      // Match format: DisplayName (@Username)
+      const match = nickname.match(/\(@(\w+)\)/);
+      if (!match) continue;
 
-        const robloxUsername = match[2];
+      const robloxUsername = match[1];
 
-        // Convert Roblox username to numeric ID
-        const res = await fetch(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(robloxUsername)}`);
+      // Fetch Roblox ID
+      let robloxId;
+      try {
+        const res = await fetch(`https://users.roblox.com/v1/users/by-username/${robloxUsername}`);
+        if (!res.ok) continue;
         const data = await res.json();
-        if (!data.Id) continue;
-
-        const discordId = member.id;
-        const robloxId = data.Id.toString();
-
-        // Save in botData
-        interaction.client.botData.linkedUsers.discordToRoblox[discordId] = robloxId;
-        interaction.client.botData.linkedUsers.robloxToDiscord[robloxId] = discordId;
-        count++;
+        robloxId = data.id.toString();
+      } catch (err) {
+        console.warn(`Failed to fetch Roblox ID for ${robloxUsername}:`, err);
+        continue;
       }
 
-      // Save persistent JSON
-      await interaction.client.saveBotData();
-
-      await interaction.editReply(`✅ Synced ${count} users from nicknames.`);
-    } catch (err) {
-      console.error(err);
-      await interaction.editReply('❌ An error occurred while syncing.');
+      // Update botData
+      interaction.client.botData.linkedUsers.robloxToDiscord[robloxId] = member.id;
+      interaction.client.botData.linkedUsers.discordToRoblox[member.id] = robloxId;
+      syncedCount++;
     }
+
+    // Save botData
+    await interaction.client.saveBotData();
+
+    return interaction.editReply(`✅ Synced ${syncedCount} members from Bloxlink nicknames.`);
   },
 };
