@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,22 +13,25 @@ async function startBot() {
     partials: [Partials.Channel, Partials.GuildMember]
   });
 
-  // Command collection
+  // --- Command collection ---
   client.commands = new Collection();
   const commandsPath = path.join(__dirname, 'commands');
-  if (fs.existsSync(commandsPath)) {
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-    for (const file of commandFiles) {
-      const filePath = path.join(commandsPath, file);
-      const command = require(filePath);
-      if (command.data && command.execute) client.commands.set(command.data.name, command);
+  if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
+
+  const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    if (command?.data && command.execute) {
+      client.commands.set(command.data.name, command);
+      console.log(`✅ Loaded command: ${command.data.name}`);
+    } else {
+      console.warn(`⚠ Skipped invalid command file: ${file}`);
     }
   }
 
   // --- Persistent bot data ---
-  client.botData = {
-    linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} }
-  };
+  client.botData = { linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} } };
 
   client.saveBotData = async (createBackup = false) => {
     try {
@@ -53,70 +56,67 @@ async function startBot() {
   client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
 
-    // Load saved bot data
+    // Load bot data
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
       const messages = await channel.messages.fetch({ limit: 1 });
       const lastMessage = messages.first();
-      if (lastMessage) {
-        client.botData = JSON.parse(lastMessage.content);
-      }
+      if (lastMessage) client.botData = JSON.parse(lastMessage.content);
       console.log('💾 Loaded bot data:', client.botData);
     } catch (err) {
       console.error('❌ Failed to load bot data:', err);
     }
+
+    // Register slash commands to the guild
+    try {
+      const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+      const commandsData = client.commands.map(cmd => cmd.data.toJSON());
+      await rest.put(
+        Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
+        { body: commandsData }
+      );
+      console.log('✅ Commands registered with Discord');
+    } catch (err) {
+      console.error('❌ Failed to register commands:', err);
+    }
   });
 
-  // Slash command handling
+  // --- Interaction handling ---
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
+    global.requestsToday = (global.requestsToday || 0) + 1;
+
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
 
     try {
       await command.execute(interaction);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: '❌ There was an error executing this command.', ephemeral: true });
+        await interaction.followUp({ content: '❌ Error executing command.', ephemeral: true });
       } else {
-        await interaction.reply({ content: '❌ There was an error executing this command.', ephemeral: true });
+        await interaction.reply({ content: '❌ Error executing command.', ephemeral: true });
       }
     }
   });
 
-  // Globals
-  global.requestsToday = 0;
-  global.incidentsToday = 0;
-  global.startTime = Date.now();
+  // --- Error handling ---
+  client.on('error', err => { console.error('❌ Client error:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
+  process.on('uncaughtException', err => { console.error('❌ Uncaught exception:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
 
-  client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isCommand()) return;
-    global.requestsToday++;
-  });
-
-  client.on('error', (err) => {
-    console.error("❌ Client error:", err);
-    global.incidentsToday++;
-  });
-
-  process.on('uncaughtException', (err) => {
-    console.error("❌ Uncaught exception:", err);
-    global.incidentsToday++;
-  });
-
-  // Welcome DM
-  client.on('guildMemberAdd', async (member) => {
+  // --- Welcome DM ---
+  client.on('guildMemberAdd', async member => {
     try {
-      const dmChannel = await member.createDM();
-      const welcomeEmbed = new EmbedBuilder()
+      const dm = await member.createDM();
+      const embed = new EmbedBuilder()
         .setTitle('👋 Welcome!')
-        .setDescription(`Hello ${member}, welcome to Mochi Bar's discord server!\n\n` +
-                        `Be sure to /verify with bloxlink in <#1365990340011753502>!\n\n` +
-                        `🎉 Questions can be asked in tickets, you are our **#${member.guild.memberCount}** member!`)
+        .setDescription(`Hello ${member}, welcome to Mochi Bar's Discord server!\n\n` +
+                        `Be sure to /verify with Bloxlink in <#1365990340011753502>!\n\n` +
+                        `🎉 You are our **#${member.guild.memberCount}** member!`)
         .setColor(0x00FFFF)
         .setTimestamp();
-      await dmChannel.send({ embeds: [welcomeEmbed] });
+      await dm.send({ embeds: [embed] });
     } catch (err) {
       console.warn(`⚠ Failed to DM ${member.user.tag}:`, err);
     }
