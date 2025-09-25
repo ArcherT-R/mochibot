@@ -37,7 +37,7 @@ module.exports = (client) => {
         let host = null;
         let cohost = null;
         let overseer = null;
-        let time = null;
+        let timestamp = null; // declare here
 
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
@@ -56,9 +56,8 @@ module.exports = (client) => {
               overseer = await resolveDiscordName(client, guild, value);
               break;
             case 'timestamp':
-              // Convert Discord-style timestamp or raw string to Unix
-              let ts = value.match(/\d+/);
-              if (ts) timestamp = parseInt(ts[0], 10);
+              const tsMatch = value.match(/\d+/);
+              if (tsMatch) timestamp = parseInt(tsMatch[0], 10);
               break;
           }
         }
