@@ -1,5 +1,7 @@
+// bot/commands/link.js
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
+const { saveLinkedUsers } = require('../../data/data'); // local JSON backup
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,7 +20,7 @@ module.exports = {
 
   async execute(interaction) {
     const requiredRoleId = '1363595276576620595';
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 }); // ephemeral
 
     if (!interaction.member.roles.cache.has(requiredRoleId)) {
       return await interaction.editReply({ content: '❌ You don’t have permission to use this command.' });
@@ -28,10 +30,10 @@ module.exports = {
     const robloxUsername = interaction.options.getString('roblox');
     const discordId = targetUser.id;
 
-    // --- Use client.botData for persistence ---
-    const client = interaction.client;
-    client.botData.linkedUsers = client.botData.linkedUsers || { discordToRoblox: {}, robloxToDiscord: {} };
-    const linkedUsers = client.botData.linkedUsers;
+    // Load memory-based linked users
+    const linkedUsers = interaction.client.botData.linkedUsers || { discordToRoblox: {}, robloxToDiscord: {} };
+    linkedUsers.discordToRoblox = linkedUsers.discordToRoblox || {};
+    linkedUsers.robloxToDiscord = linkedUsers.robloxToDiscord || {};
 
     // Fetch Roblox numeric ID + avatar
     let robloxId, thumbUrl;
@@ -43,7 +45,6 @@ module.exports = {
       });
       const userData = await res.json();
       robloxId = userData.data[0]?.id;
-
       if (!robloxId) throw new Error('Roblox user not found');
 
       const thumbRes = await fetch(
@@ -68,17 +69,22 @@ module.exports = {
       });
     }
 
-    // Save link in botData
+    // Save in memory
     linkedUsers.discordToRoblox[discordId] = robloxUsername;
     linkedUsers.robloxToDiscord[robloxId] = discordId;
-    await client.saveBotData(); // persist to Discord channel
+    interaction.client.botData.linkedUsers = linkedUsers;
 
-    // Send embed
+    // Save to Discord (primary persistence)
+    if (interaction.client.saveBotData) await interaction.client.saveBotData();
+
+    // Save to local JSON backup
+    saveLinkedUsers(linkedUsers);
+
+    // Send confirmation embed
     const embed = new EmbedBuilder()
       .setTitle('✅ Link Successful')
       .setDescription(`<@${discordId}> has been linked to **${robloxUsername}**.`)
       .setColor(0x00FF00);
-
     if (thumbUrl) embed.setThumbnail(thumbUrl);
 
     await interaction.editReply({ embeds: [embed] });
