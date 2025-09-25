@@ -8,14 +8,13 @@ function startWebServer() {
 
     // Root dashboard
     app.get('/', (req, res) => {
-      const uptimeMs = Date.now() - global.startTime;
-
       res.send(`
         <!DOCTYPE html>
         <html>
         <head>
           <title>MochiBot Dashboard</title>
           <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { font-family: Arial, sans-serif; background: #9ee0ff; text-align: center; padding: 20px; }
             .title-box {
@@ -26,15 +25,27 @@ function startWebServer() {
               margin: 0 auto;
               font-size: 20px;
             }
-            .container { display: flex; justify-content: space-around; margin-top: 30px; }
+            .container { display: flex; justify-content: space-around; margin-top: 30px; gap: 20px; flex-wrap: wrap; }
             .card {
               background: #61bfe6;
               padding: 20px;
               border-radius: 20px;
               width: 200px;
+              flex-shrink: 0;
             }
             h1 { margin-bottom: 10px; }
             .big { font-size: 22px; font-weight: bold; }
+
+            /* Mobile-friendly: stack vertically */
+            @media (max-width: 600px) {
+              .container {
+                flex-direction: column;
+                align-items: center;
+              }
+              .card {
+                width: 90%;
+              }
+            }
           </style>
         </head>
         <body>
