@@ -1,53 +1,49 @@
 const { SlashCommandBuilder } = require('discord.js');
+const fetch = require('node-fetch');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sync-bloxlink')
-    .setDescription('Sync linked users from the Bloxlink channel'),
+    .setDescription('Sync all linked users from nicknames'),
 
   async execute(interaction) {
-    const BOT_DATA_CHANNEL_ID = process.env.BOT_DATA_CHANNEL_ID; // where bot stores data
-    const BLOXLINK_CHANNEL_ID = '1420711771747913788'; // adjust to your logs channel
-
     await interaction.deferReply({ ephemeral: true });
 
     try {
       const guild = interaction.guild;
-      if (!guild) return interaction.editReply('❌ Could not find guild.');
+      const members = await guild.members.fetch();
 
-      // Fetch channels
-      const botDataChannel = await guild.channels.fetch(BOT_DATA_CHANNEL_ID);
-      const bloxlinkChannel = await guild.channels.fetch(BLOXLINK_CHANNEL_ID);
+      let count = 0;
 
-      if (!botDataChannel || !bloxlinkChannel)
-        return interaction.editReply('❌ Could not find one of the channels.');
+      for (const member of members.values()) {
+        if (!member.nickname) continue;
 
-      // Fetch Bloxlink messages
-      const messages = await bloxlinkChannel.messages.fetch({ limit: 100 });
-      const discordToRoblox = {};
-      const robloxToDiscord = {};
+        const match = member.nickname.match(/(.+)\s+\(@(.+)\)/);
+        if (!match) continue;
 
-      messages.forEach(msg => {
-        // Match format: "<@DiscordID> → RobloxName"
-        const match = msg.content.match(/<@!?(\d+)>\s*→\s*(\w+)/);
-        if (match) {
-          const discordId = match[1];
-          const robloxName = match[2];
-          discordToRoblox[discordId] = robloxName;
-          robloxToDiscord[robloxName] = discordId;
-        }
-      });
+        const robloxUsername = match[2];
 
-      // Update client.botData
-      interaction.client.botData.linkedUsers = { discordToRoblox, robloxToDiscord };
+        // Convert Roblox username to numeric ID
+        const res = await fetch(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(robloxUsername)}`);
+        const data = await res.json();
+        if (!data.Id) continue;
 
-      // Save bot data
-      if (interaction.client.saveBotData) await interaction.client.saveBotData();
+        const discordId = member.id;
+        const robloxId = data.Id.toString();
 
-      return interaction.editReply(`✅ Synced ${Object.keys(discordToRoblox).length} linked users from Bloxlink.`);
+        // Save in botData
+        interaction.client.botData.linkedUsers.discordToRoblox[discordId] = robloxId;
+        interaction.client.botData.linkedUsers.robloxToDiscord[robloxId] = discordId;
+        count++;
+      }
+
+      // Save persistent JSON
+      await interaction.client.saveBotData();
+
+      await interaction.editReply(`✅ Synced ${count} users from nicknames.`);
     } catch (err) {
-      console.error('❌ Failed to sync Bloxlink:', err);
-      return interaction.editReply('❌ Failed to sync Bloxlink.');
+      console.error(err);
+      await interaction.editReply('❌ An error occurred while syncing.');
     }
-  }
+  },
 };
