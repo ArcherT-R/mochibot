@@ -1,64 +1,69 @@
 const { SlashCommandBuilder } = require('discord.js');
-const axios = require('axios');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('sync-bloxlink')
-    .setDescription('Syncs Roblox usernames from Bloxlink and updates bot data.'),
-
+    .setDescription('Sync Discord users linked via Bloxlink into bot data.'),
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
-
     try {
       const guild = interaction.guild;
-      const channel = await guild.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
+      if (!guild) return interaction.editReply('❌ Guild not found.');
 
-      // Fetch all members
-      await guild.members.fetch();
-      const linkedUsers = { discordToRoblox: {}, robloxToDiscord: {} };
+      const members = await guild.members.fetch();
+      console.log(`📥 Fetched ${members.size} members.`);
 
-      let count = 0;
-      guild.members.cache.forEach(member => {
-        const nick = member.nickname || member.user.username; // fallback to username
-        // Check for "DisplayName (@Username)"
-        const match = nick.match(/^(.+)\s+\(@(.+)\)$/);
+      const discordToRoblox = {};
+      const robloxToDiscord = {};
+
+      members.forEach(member => {
+        const nick = member.nickname || member.user.username;
+        let robloxUsername;
+
+        // Check for format: DisplayName (@Username)
+        const match = nick.match(/\(@(.+?)\)/);
         if (match) {
-          const displayName = match[1];
-          const username = match[2];
-          linkedUsers.discordToRoblox[member.id] = username;
-          linkedUsers.robloxToDiscord[username] = member.id;
-          count++;
+          robloxUsername = match[1];
+        } else {
+          robloxUsername = nick; // single word username
         }
+
+        discordToRoblox[member.id] = robloxUsername;
+        robloxToDiscord[robloxUsername] = member.id;
+
+        console.log(`🔹 ${member.user.tag} -> ${robloxUsername}`);
       });
 
-      // Convert to JSON string
-      const jsonString = JSON.stringify({ linkedUsers }, null, 2);
+      const botData = { linkedUsers: { discordToRoblox, robloxToDiscord } };
+      const jsonString = JSON.stringify(botData, null, 2);
 
-      // Split into multiple messages if too long
-      const MAX_CHARS = 2000;
-      const chunks = jsonString.match(/[\s\S]{1,4000}/g);
+      const channel = await guild.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
+      if (!channel) return interaction.editReply('❌ Bot data channel not found.');
 
-      // Send or edit first message
+      // Split into 1500-char chunks
+      const MAX_CHARS = 1500;
+      const chunks = jsonString.match(/[\s\S]{1,1500}/g);
+
+      // Fetch last message to edit
       const messages = await channel.messages.fetch({ limit: 1 });
       const lastMessage = messages.first();
+
       if (lastMessage) {
-        await lastMessage.edit(chunks[0]);
-      } else {
-        await channel.send(chunks[0]);
+        await lastMessage.delete(); // delete old one
       }
 
-      // Send remaining chunks as new messages
-      for (let i = 1; i < chunks.length; i++) {
-        await channel.send(chunks[i]);
+      for (const chunk of chunks) {
+        await channel.send(`\`\`\`json\n${chunk}\n\`\`\``);
       }
 
-      // Update in-memory bot data
-      interaction.client.botData = { linkedUsers };
-
-      await interaction.editReply(`✅ Synced ${count} users from Bloxlink!`);
+      console.log('💾 Bot data synced successfully.');
+      await interaction.editReply(`✅ Synced ${members.size} members to bot data. Messages sent: ${chunks.length}`);
     } catch (err) {
       console.error('❌ Error in sync-bloxlink:', err);
-      await interaction.editReply('❌ Failed to sync users.');
+      if (!interaction.replied) {
+        await interaction.editReply('❌ Failed to sync bot data.');
+      }
     }
   }
 };
+
