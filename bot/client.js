@@ -59,6 +59,28 @@ async function startBot() {
     }
   });
 
+  // Globals (reset on restart)
+global.requestsToday = 0;
+global.incidentsToday = 0;
+global.startTime = Date.now(); // bot start time
+
+// Count every command request
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isCommand()) return;
+  global.requestsToday++;
+});
+
+// Count every error as incident
+client.on('error', (err) => {
+  console.error("❌ Client error:", err);
+  global.incidentsToday++;
+});
+
+process.on('uncaughtException', (err) => {
+  console.error("❌ Uncaught exception:", err);
+  global.incidentsToday++;
+});
+
   // Welcome DM
   client.on('guildMemberAdd', async (member) => {
     try {
