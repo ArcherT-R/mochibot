@@ -35,7 +35,7 @@ module.exports = {
       const jsonString = JSON.stringify({ linkedUsers }, null, 2);
 
       // Split into multiple messages if too long
-      const MAX_CHARS = 4000;
+      const MAX_CHARS = 2000;
       const chunks = jsonString.match(/[\s\S]{1,4000}/g);
 
       // Send or edit first message
