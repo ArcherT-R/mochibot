@@ -2,49 +2,37 @@ module.exports = (app, client) => {
   app.get('/sotw-role', async (req, res) => {
     try {
       const { robloxId } = req.query;
-      const ROLE_ID = '1401529260509761648'; // the role to check
-      const CHANNEL_ID = '1420711771747913788'; // channel where links are logged
+      const ROLE_ID = '1401529260509761648';
+      const BOT_DATA_CHANNEL_ID = process.env.BOT_DATA_CHANNEL_ID;
       const GUILD_ID = process.env.GUILD_ID;
 
       if (!robloxId) return res.status(400).json({ error: 'robloxId is required' });
       if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
 
-      // Fetch guild and channel
       const guild = await client.guilds.fetch(GUILD_ID);
       if (!guild) return res.status(500).json({ error: 'Guild not found' });
 
-      const channel = await guild.channels.fetch(CHANNEL_ID);
-      if (!channel) return res.status(500).json({ error: 'Channel not found' });
+      const channel = await client.channels.fetch(BOT_DATA_CHANNEL_ID);
+      if (!channel) return res.status(500).json({ error: 'Bot data channel not found' });
 
-      // Fetch recent messages (adjust limit if needed)
-      const messages = await channel.messages.fetch({ limit: 100 });
+      const messages = await channel.messages.fetch({ limit: 1 });
+      const lastMessage = messages.first();
+      if (!lastMessage) return res.status(500).json({ error: 'No bot data found' });
 
-      // Build mapping from channel logs: robloxId -> discordId
-      const mappings = {};
-      messages.forEach(msg => {
-        // Expected format: <@discordId> → robloxName (robloxId)
-        const match = msg.content.match(/<@!?(\d+)>\s*→\s*\w+\s*\(?(\d+)\)?/);
-        if (match) {
-          const discordId = match[1];
-          const robloxIdFromLog = match[2];
-          mappings[robloxIdFromLog] = discordId;
-        }
-      });
+      const botData = JSON.parse(lastMessage.content);
+      const mappings = botData.linkedUsers?.robloxToDiscord || {};
+      const discordId = mappings[robloxId];
 
-      // Lookup Discord ID by Roblox ID
-      const discordId = mappings[String(robloxId)];
-      if (!discordId) return res.json({ hasRole: false, reason: 'Not linked in channel logs' });
+      if (!discordId) return res.json({ linked: false, hasRole: false, reason: 'Not linked' });
 
-      // Fetch member
       const member = await guild.members.fetch(discordId).catch(() => null);
-      if (!member) return res.json({ hasRole: false, reason: 'User not in guild' });
+      if (!member) return res.json({ linked: true, hasRole: false, reason: 'User not in guild' });
 
-      // Check role
       const hasRole = member.roles.cache.has(ROLE_ID);
-      return res.json({ hasRole });
+      return res.json({ linked: true, hasRole });
     } catch (err) {
       console.error('Error in /sotw-role:', err);
-      return res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 };
