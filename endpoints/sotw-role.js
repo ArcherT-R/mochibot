@@ -3,7 +3,7 @@ module.exports = (app, client) => {
     try {
       const { robloxId } = req.query;
       const ROLE_ID = '1401529260509761648';
-      const CHANNEL_ID = '1420711771747913788'; // where links are logged
+      const CHANNEL_ID = '1420711771747913788';
       const GUILD_ID = process.env.GUILD_ID;
 
       if (!robloxId) return res.status(400).json({ error: 'robloxId is required' });
@@ -14,22 +14,23 @@ module.exports = (app, client) => {
       const channel = await guild.channels.fetch(CHANNEL_ID);
       if (!channel) return res.status(500).json({ error: 'Channel not found' });
 
-      // Fetch recent messages (adjust limit if needed)
+      // Fetch recent messages
       const messages = await channel.messages.fetch({ limit: 100 });
 
-      // Build mapping from messages
-      const mappings = {}; // robloxId -> discordId
+      // Build mapping from messages: robloxId -> discordId
+      const mappings = {};
       messages.forEach(msg => {
-        const match = msg.content.match(/<@!?(\d+)>\s*→\s*(\w+)/);
+        // Example message format: "<@123456789> → Username (ID:1314110478)"
+        const match = msg.content.match(/<@!?(\d+)>\s*→\s*.+\(ID:(\d+)\)/);
         if (match) {
           const discordId = match[1];
-          const robloxName = match[2];
-          mappings[robloxName] = discordId; // or store Roblox ID if you have it
+          const robloxIdFromMsg = match[2];
+          mappings[robloxIdFromMsg] = discordId;
         }
       });
 
       const discordId = mappings[robloxId];
-      if (!discordId) return res.json({ hasRole: false, reason: 'Not linked' });
+      if (!discordId) return res.json({ hasRole: false, reason: 'Not linked in channel logs' });
 
       const member = await guild.members.fetch(discordId).catch(() => null);
       if (!member) return res.json({ hasRole: false, reason: 'User not in guild' });
