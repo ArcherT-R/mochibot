@@ -1,7 +1,5 @@
-// bot/commands/link.js
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
-const { loadLinkedUsers, saveLinkedUsers } = require('../../data/data'); // adjust path
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -20,7 +18,7 @@ module.exports = {
 
   async execute(interaction) {
     const requiredRoleId = '1363595276576620595';
-    await interaction.deferReply({ flags: 64 }); // ephemeral
+    await interaction.deferReply({ ephemeral: true });
 
     if (!interaction.member.roles.cache.has(requiredRoleId)) {
       return await interaction.editReply({ content: '❌ You don’t have permission to use this command.' });
@@ -30,10 +28,10 @@ module.exports = {
     const robloxUsername = interaction.options.getString('roblox');
     const discordId = targetUser.id;
 
-    // Load and initialize linked users
-    const linkedUsers = loadLinkedUsers();
-    linkedUsers.discordToRoblox = linkedUsers.discordToRoblox || {};
-    linkedUsers.robloxToDiscord = linkedUsers.robloxToDiscord || {};
+    // --- Use client.botData for persistence ---
+    const client = interaction.client;
+    client.botData.linkedUsers = client.botData.linkedUsers || { discordToRoblox: {}, robloxToDiscord: {} };
+    const linkedUsers = client.botData.linkedUsers;
 
     // Fetch Roblox numeric ID + avatar
     let robloxId, thumbUrl;
@@ -70,10 +68,10 @@ module.exports = {
       });
     }
 
-    // Save link using numeric Roblox ID
+    // Save link in botData
     linkedUsers.discordToRoblox[discordId] = robloxUsername;
     linkedUsers.robloxToDiscord[robloxId] = discordId;
-    saveLinkedUsers(linkedUsers);
+    await client.saveBotData(); // persist to Discord channel
 
     // Send embed
     const embed = new EmbedBuilder()
@@ -86,4 +84,3 @@ module.exports = {
     await interaction.editReply({ embeds: [embed] });
   }
 };
-
