@@ -2,6 +2,7 @@
 const express = require("express");
 const path = require("path");
 const { Client, GatewayIntentBits } = require("discord.js");
+const client = require('./bot/client'); // this should initialize the bot
 
 const client = new Client({
   intents: [
