@@ -1,5 +1,9 @@
-module.exports = (app, client) => {
-  app.get('/sotw-role', async (req, res) => {
+// /endpoints/sotw-role.js
+const express = require('express');
+const router = express.Router();
+
+module.exports = (client) => {
+  router.get('/', async (req, res) => {
     try {
       const { robloxId } = req.query;
       const ROLE_ID = '1401529260509761648';
@@ -35,4 +39,6 @@ module.exports = (app, client) => {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
+
+  return router;
 };
