@@ -1,9 +1,8 @@
-// /endpoints/sessions.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
-const GUILD_ID = '1362322934794031104'; // your guild
-const CHANNEL_ID = '1402605903508672554'; // session channel
+const GUILD_ID = "1362322934794031104"; // your guild
+const CHANNEL_ID = "1402605903508672554"; // session channel
 
 // Resolve mentions or raw usernames to server nickname
 async function resolveDiscordName(client, guild, text) {
@@ -24,34 +23,17 @@ async function resolveDiscordName(client, guild, text) {
   return text.trim();
 }
 
-// Try parsing timestamp from text
-function parseTimestamp(value) {
-  // If it's all digits, treat as epoch
-  if (/^\d+$/.test(value)) {
-    return parseInt(value, 10);
-  }
-
-  // Try parsing a human-readable date
-  const parsed = Date.parse(value);
-  if (!isNaN(parsed)) {
-    return Math.floor(parsed / 1000); // convert ms → seconds
-  }
-
-  return null;
-}
-
 module.exports = (client) => {
-  router.get('/', async (req, res) => {
+  router.get("/", async (req, res) => {
     try {
       const guild = await client.guilds.fetch(GUILD_ID);
       const channel = await guild.channels.fetch(CHANNEL_ID);
-      if (!channel) return res.status(404).json({ error: 'Channel not found' });
+      if (!channel) return res.status(404).json({ error: "Channel not found" });
 
       const messages = await channel.messages.fetch({ limit: 50 });
       const sessions = [];
 
       for (const msg of messages.values()) {
-        console.log("📩 Raw message:", msg.content); // debug log
         let host = null;
         let cohost = null;
         let overseer = null;
@@ -59,33 +41,29 @@ module.exports = (client) => {
 
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
-          const [key, ...rest] = line.split(':');
-          if (!key || rest.length === 0) continue;
-
-          const k = key.trim().toLowerCase();
-          const value = rest.join(':').trim();
+          const [key, ...rest] = line.split(":");
+          const value = rest.join(":").trim();
           if (!value) continue;
 
-          switch (k) {
-            case 'host':
-            case 'main host':
+          switch (key.trim().toLowerCase()) {
+            case "host":
               host = await resolveDiscordName(client, guild, value);
               break;
-            case 'cohost':
+            case "cohost":
               cohost = await resolveDiscordName(client, guild, value);
               break;
-            case 'overseer':
+            case "overseer":
               overseer = await resolveDiscordName(client, guild, value);
               break;
-            case 'timestamp':
-            case 'time':
-              const ts = parseTimestamp(value);
-              if (ts) timestamp = ts;
+            case "time": {
+              // Matches <t:1758873600:F>
+              const tsMatch = value.match(/<t:(\d+)(?::[a-zA-Z])?>/);
+              if (tsMatch) timestamp = parseInt(tsMatch[1], 10);
               break;
+            }
           }
         }
 
-        // Only include if host and timestamp exist
         if (host && timestamp) {
           const session = { host, time: timestamp };
           if (cohost) session.cohost = cohost;
@@ -96,8 +74,8 @@ module.exports = (client) => {
 
       res.json(sessions);
     } catch (err) {
-      console.error('Error fetching sessions:', err);
-      res.status(500).json({ error: 'Internal server error' });
+      console.error("Error fetching sessions:", err);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 
