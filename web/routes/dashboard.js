@@ -1,7 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const fetch = require("node-fetch"); // Node 18+ has global fetch
+const axios = require("axios"); // for fetching /sessions
 const { getAllPlayers, searchPlayersByUsername } = require("../../endpoints/database");
+
+// Helper to convert Discord timestamp to readable format
+function formatDiscordTimestamp(ts) {
+  const date = new Date(ts * 1000); // Discord timestamp is in seconds
+  return date.toLocaleString(); // change to your preferred format
+}
 
 // Main dashboard
 router.get("/", async (req, res) => {
@@ -14,13 +20,19 @@ router.get("/", async (req, res) => {
       .slice(0, 3);
 
     // Fetch sessions from /sessions endpoint
-    const sessionsResponse = await fetch(`http://localhost:${process.env.PORT || 3000}/sessions`);
-    const sessions = await sessionsResponse.json();
+    const sessionsResp = await axios.get(`${process.env.DASHBOARD_BASE_URL}/sessions`);
+    let sessions = sessionsResp.data || [];
 
-    // Sort sessions by time and pick next 3
+    // Sort by time ascending and take next 3
     const upcomingShifts = sessions
       .sort((a, b) => a.time - b.time)
-      .slice(0, 3);
+      .slice(0, 3)
+      .map((s) => ({
+        host: s.host,
+        cohost: s.cohost || null,
+        overseer: s.overseer || null,
+        time: formatDiscordTimestamp(s.time),
+      }));
 
     res.render("dashboard", {
       title: "Mochi Bar | Dashboard",
