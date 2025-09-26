@@ -41,7 +41,7 @@
               Host: <%= shift.host %>
               <% if (shift.cohost) { %> Cohost: <%= shift.cohost %> <% } %>
               <% if (shift.overseer) { %> Overseer: <%= shift.overseer %> <% } %>
-              Time: <span class="discord-time">&lt;t:<%= Math.floor(shift.time.getTime() / 1000) %>:F&gt;</span>
+              Time: <span class="shift-time" data-timestamp="<%= shift.time.getTime() %>"></span>
             </li>
           <% }) %>
         </ul>
@@ -49,18 +49,13 @@
         <p>No upcoming shifts.</p>
       <% } %>
     </section>
-
-    <!-- Debug (optional) -->
-    <section style="margin-top: 20px;">
-      <h3>Debug: upcomingShifts</h3>
-      <pre><%= JSON.stringify(upcomingShifts, null, 2) %></pre>
-    </section>
   </main>
 
   <script>
     const searchBar = document.getElementById('searchBar');
     const searchResults = document.getElementById('searchResults');
 
+    // Search functionality
     searchBar.addEventListener('input', async () => {
       const query = searchBar.value.trim();
       if (!query) {
@@ -79,6 +74,13 @@
         console.error('Search error:', err);
         searchResults.innerHTML = '<div>Error fetching results.</div>';
       }
+    });
+
+    // Convert timestamps to human-readable
+    document.querySelectorAll('.shift-time').forEach(span => {
+      const timestamp = parseInt(span.dataset.timestamp, 10);
+      const date = new Date(timestamp);
+      span.textContent = date.toLocaleString(); // You can customize format here
     });
   </script>
 </body>
