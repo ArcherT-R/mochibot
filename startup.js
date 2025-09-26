@@ -1,21 +1,14 @@
-require("dotenv").config();
+const client = require("./client"); // your Discord client
+const app = require("./web/server");
 
-const { startBot } = require("./bot/client");
-const app = require("./web/server"); // Express app is already running
+// Import endpoints
+const sessionsRoute = require("./endpoints/sessions");
 
-async function main() {
-  try {
-    console.log("🚀 Starting MochiBot...");
+// Mount /sessions with client
+app.use("/sessions", sessionsRoute(client));
 
-    // Start Discord bot
-    const client = await startBot();
-    console.log("✅ Discord bot connected as", client.user.tag);
-
-    console.log("🎉 MochiBot is fully running!");
-  } catch (err) {
-    console.error("❌ Failed to start MochiBot:", err);
-    process.exit(1);
-  }
-}
-
-main();
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🌐 Web dashboard running on port ${PORT}`);
+});
