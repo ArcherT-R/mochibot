@@ -4,8 +4,8 @@ const path = require("path");
 // Import routes
 const dashboardRoute = require("./routes/dashboard");
 const dashboardSearchRoute = require("./routes/dashboardSearch");
-const sessionsRoute = require("./routes/sessions"); // if needed
-// const sotwRoleRoute = require("./routes/sotw-role"); // if needed
+const sessionsRoute = require('./endpoints/sessions');
+app.use('/sessions', sessionsRoute(client));
 
 const app = express();
 
