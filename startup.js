@@ -5,15 +5,17 @@ const { Client, GatewayIntentBits } = require("discord.js");
 
 // Initialize Discord client
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 // Import web routes
 const dashboardRoute = require("./web/routes/dashboard");
 const dashboardSearchRoute = require("./web/routes/dashboardSearch");
-const sessionsRoute = require("./endpoints/sessions"); // correct path
 
-// Initialize Express app
 const app = express();
 
 // Views setup
@@ -26,7 +28,6 @@ app.use(express.static(path.join(__dirname, "web/public")));
 // Routes
 app.use("/dashboard/search", dashboardSearchRoute);
 app.use("/dashboard", dashboardRoute);
-app.use("/sessions", sessionsRoute(client)); // pass Discord client
 
 // Start Express server
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,11 @@ app.listen(PORT, () => {
 // Start Discord bot
 client.once("ready", () => {
   console.log(`✅ Discord bot connected as ${client.user.tag}`);
+
+  // Now mount /sessions route (safe to call client APIs)
+  const sessionsRoute = require("./endpoints/sessions");
+  app.use("/sessions", sessionsRoute(client));
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
