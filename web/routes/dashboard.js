@@ -48,19 +48,3 @@ router.get("/search", async (req, res) => {
 });
 
 module.exports = router;
-
-// Search endpoint for AJAX
-router.get("/search", async (req, res) => {
-  const { username } = req.query;
-  if (!username) return res.json([]);
-
-  try {
-    const results = await searchPlayersByUsername(username); // new function in database.js
-    res.json(results);
-  } catch (err) {
-    console.error("Search error:", err);
-    res.status(500).json([]);
-  }
-});
-
-module.exports = router;
