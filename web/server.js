@@ -1,23 +1,28 @@
 // web/server.js
 const express = require('express');
-const path = require('path');
-require('dotenv').config();
 
-const dashboardRoutes = require('./routes/dashboard');
+function startWebServer() {
+  return new Promise((resolve, reject) => {
+    try {
+      const app = express();
+      app.use(express.json());
 
-const app = express();
+      // Example root route
+      app.get('/', (req, res) => {
+        res.send('<h1>MochiBot Dashboard</h1><p>Welcome!</p>');
+      });
 
-// EJS view engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+      // Start server on port from env or 4000
+      const port = process.env.PORT || 4000;
+      app.listen(port, () => {
+        console.log(`🌐 Web dashboard running on http://localhost:${port}/dashboard`);
+      });
 
-// Public assets
-app.use(express.static(path.join(__dirname, 'public')));
+      resolve(app);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
-// Routes (everything is under /dashboard)
-app.use('/dashboard', dashboardRoutes);
-
-const PORT = process.env.WEB_PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`🌐 Web dashboard running on http://localhost:${PORT}/dashboard`);
-});
+module.exports = { startWebServer }; // <- Must export as an object
