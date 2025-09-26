@@ -16,6 +16,7 @@ const client = new Client({
 const dashboardRoute = require("./web/routes/dashboard");
 const dashboardSearchRoute = require("./web/routes/dashboardSearch");
 const sessionsRoute = require("./endpoints/sessions"); // correct path
+const sotwRoleRoute = require("./web/routes/sotw-role");
 
 // Initialize Express app
 const app = express();
@@ -31,6 +32,7 @@ app.use(express.static(path.join(__dirname, "web/public")));
 app.use("/dashboard/search", dashboardSearchRoute);
 app.use("/dashboard", dashboardRoute);
 app.use("/sessions", sessionsRoute(client)); // pass Discord client
+app.use("/sotw-role", sotwRoleRoute); // add this
 
 // Root route
 app.get("/", (req, res) => {
