@@ -1,28 +1,23 @@
 const express = require("express");
 const path = require("path");
-const dashboardRouter = require("./routes/dashboard");
-const dashboardSearch = require("./routes/dashboard-search");
+const dashboardRoutes = require("./routes/dashboard");
+const dashboardSearchRoutes = require("./routes/dashboardSearch");
 
 function startWebServer() {
-  return new Promise((resolve, reject) => {
-    const app = express();
-    const PORT = process.env.PORT || 3000;
+  const app = express();
 
-    app.set("view engine", "ejs");
-    app.set("views", path.join(__dirname, "views"));
-    app.use(express.static(path.join(__dirname, "public")));
+  app.use(express.json());
+  app.use(express.static(path.join(__dirname, "public")));
 
-    // Dashboard main page
-    app.use("/dashboard", dashboardRouter);
+  // Set EJS
+  app.set("view engine", "ejs");
+  app.set("views", path.join(__dirname, "views"));
 
-    // Dashboard search endpoint
-    app.use("/dashboard/search", dashboardSearch);
+  // Dashboard routes
+  app.use("/dashboard", dashboardRoutes);
+  app.use("/dashboard/search", dashboardSearchRoutes);
 
-    app.listen(PORT, () => {
-      console.log(`🌐 Web dashboard running on http://localhost:${PORT}/dashboard`);
-      resolve(app);
-    }).on("error", reject);
-  });
+  return app;
 }
 
 module.exports = { startWebServer };
