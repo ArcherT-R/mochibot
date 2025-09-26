@@ -1,3 +1,4 @@
+// /endpoints/sessions.js
 const express = require('express');
 const router = express.Router();
 
@@ -23,6 +24,22 @@ async function resolveDiscordName(client, guild, text) {
   return text.trim();
 }
 
+// Try parsing timestamp from text
+function parseTimestamp(value) {
+  // If it's all digits, treat as epoch
+  if (/^\d+$/.test(value)) {
+    return parseInt(value, 10);
+  }
+
+  // Try parsing a human-readable date
+  const parsed = Date.parse(value);
+  if (!isNaN(parsed)) {
+    return Math.floor(parsed / 1000); // convert ms → seconds
+  }
+
+  return null;
+}
+
 module.exports = (client) => {
   router.get('/', async (req, res) => {
     try {
@@ -34,19 +51,24 @@ module.exports = (client) => {
       const sessions = [];
 
       for (const msg of messages.values()) {
+        console.log("📩 Raw message:", msg.content); // debug log
         let host = null;
         let cohost = null;
         let overseer = null;
-        let timestamp = null; // declare here
+        let timestamp = null;
 
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
           const [key, ...rest] = line.split(':');
+          if (!key || rest.length === 0) continue;
+
+          const k = key.trim().toLowerCase();
           const value = rest.join(':').trim();
           if (!value) continue;
 
-          switch (key.trim().toLowerCase()) {
+          switch (k) {
             case 'host':
+            case 'main host':
               host = await resolveDiscordName(client, guild, value);
               break;
             case 'cohost':
@@ -56,8 +78,9 @@ module.exports = (client) => {
               overseer = await resolveDiscordName(client, guild, value);
               break;
             case 'timestamp':
-              const tsMatch = value.match(/\d+/);
-              if (tsMatch) timestamp = parseInt(tsMatch[0], 10);
+            case 'time':
+              const ts = parseTimestamp(value);
+              if (ts) timestamp = ts;
               break;
           }
         }
