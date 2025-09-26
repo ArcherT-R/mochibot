@@ -16,8 +16,8 @@ const client = new Client({
 // Import web routes
 const dashboardRoute = require("./web/routes/dashboard");
 const dashboardSearchRoute = require("./web/routes/dashboardSearch");
-const sessionsRoute = require("./endpoints/sessions"); // pass client
-const sotwRoleRoute = require("./endpoints/sotw-role"); // should export a function taking client
+const sessionsRoute = require("./endpoints/sessions");
+const sotwRoleRoute = require("./endpoints/sotw-role");
 
 // Initialize Express app
 const app = express();
@@ -33,11 +33,11 @@ app.use(express.static(path.join(__dirname, "web/public")));
 app.use("/dashboard/search", dashboardSearchRoute);
 app.use("/dashboard", dashboardRoute);
 app.use("/sessions", sessionsRoute(client)); // pass Discord client
-app.use("/sotw-role", sotwRoleRoute(client)); // pass Discord client if needed
+app.use("/sotw-role", sotwRoleRoute(client)); // pass Discord client
 
 // Root route
 app.get("/", (req, res) => {
-  res.redirect("/dashboard"); // redirect base to dashboard
+  res.redirect("/dashboard"); // homepage redirect
 });
 
 // Start Express server
