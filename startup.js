@@ -3,17 +3,17 @@ const express = require("express");
 const path = require("path");
 const { Client, GatewayIntentBits } = require("discord.js");
 
-// Create Discord client
+// Initialize Discord client
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
-// Import routes
+// Import web routes
 const dashboardRoute = require("./web/routes/dashboard");
 const dashboardSearchRoute = require("./web/routes/dashboardSearch");
-const sessionsRoute = require("./endpoints/sessions");
+const sessionsRoute = require("./endpoints/sessions"); // correct path
 
-// Create Express app
+// Initialize Express app
 const app = express();
 
 // Views setup
@@ -23,10 +23,10 @@ app.set("view engine", "ejs");
 // Serve static files
 app.use(express.static(path.join(__dirname, "web/public")));
 
-// Mount routes
-app.use("/dashboard/search", dashboardSearchRoute(client));
-app.use("/dashboard", dashboardRoute(client));
-app.use("/sessions", sessionsRoute(client));
+// Routes
+app.use("/dashboard/search", dashboardSearchRoute);
+app.use("/dashboard", dashboardRoute);
+app.use("/sessions", sessionsRoute(client)); // pass Discord client
 
 // Start Express server
 const PORT = process.env.PORT || 3000;
@@ -39,6 +39,4 @@ client.once("ready", () => {
   console.log(`✅ Discord bot connected as ${client.user.tag}`);
 });
 
-client.login(process.env.BOT_TOKEN).catch(err => {
-  console.error("Failed to login Discord bot:", err);
-});
+client.login(process.env.DISCORD_TOKEN);
