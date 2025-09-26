@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= player.username %> - Mochi Bar</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1><%= player.username %></h1>
+    <a href="/dashboard">← Back to dashboard</a>
+  </header>
+
+  <main>
+    <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
+    <p><strong>Total Activity:</strong> <%= player.total_activity %> hrs</p>
+    <p><strong>Shifts Hosted This Week:</strong> <%= player.shifts_hosted %></p>
+  </main>
+</body>
+</html>
