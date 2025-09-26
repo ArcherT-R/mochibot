@@ -34,17 +34,26 @@
     <!-- Next 3 Shifts -->
     <section>
       <h2>Next 3 Shifts</h2>
-      <ul>
-        <% if (upcomingShifts && upcomingShifts.length > 0) { %>
-          <% upcomingShifts.forEach(s => { %>
+      <% if (upcomingShifts && upcomingShifts.length > 0) { %>
+        <ul>
+          <% upcomingShifts.forEach(shift => { %>
             <li>
-              <%= s.host %> at <%= s.time %>
+              Host: <%= shift.host %>
+              <% if (shift.cohost) { %> Cohost: <%= shift.cohost %> <% } %>
+              <% if (shift.overseer) { %> Overseer: <%= shift.overseer %> <% } %>
+              Time: <span class="discord-time">&lt;t:<%= Math.floor(shift.time.getTime() / 1000) %>:F&gt;</span>
             </li>
           <% }) %>
-        <% } else { %>
-          <li>No upcoming shifts scheduled.</li>
-        <% } %>
-      </ul>
+        </ul>
+      <% } else { %>
+        <p>No upcoming shifts.</p>
+      <% } %>
+    </section>
+
+    <!-- Debug (optional) -->
+    <section style="margin-top: 20px;">
+      <h3>Debug: upcomingShifts</h3>
+      <pre><%= JSON.stringify(upcomingShifts, null, 2) %></pre>
     </section>
   </main>
 
