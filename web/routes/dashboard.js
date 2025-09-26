@@ -1,44 +1,39 @@
+// web/routes/dashboard.js
 const express = require("express");
 const router = express.Router();
-const axios = require("axios");
-const { getAllPlayers } = require("../../endpoints/database");
+const axios = require("axios"); // for fetching /sessions
 
-const SESSIONS_URL = process.env.DASHBOARD_API_URL + "/sessions"; // ensure this env variable is set
+module.exports = (client) => {
+  // Main dashboard
+  router.get("/", async (req, res) => {
+    try {
+      // Fetch players from DB
+      const { getAllPlayers } = require("../../endpoints/database");
+      const players = await getAllPlayers();
 
-// Main dashboard
-router.get("/", async (req, res) => {
-  try {
-    const players = await getAllPlayers();
+      // Top 3 most active
+      const topPlayers = [...players].sort((a,b) => b.total_activity - a.total_activity).slice(0,3);
 
-    // Top 3 most active players
-    const topPlayers = [...players]
-      .sort((a, b) => b.total_activity - a.total_activity)
-      .slice(0, 3);
+      // Fetch next 3 shifts from /sessions endpoint
+      const sessionsUrl = process.env.BASE_URL + "/sessions"; // make sure BASE_URL is set in .env
+      const { data: allSessions } = await axios.get(sessionsUrl);
+      const upcomingShifts = allSessions
+        .sort((a,b) => a.time - b.time)
+        .slice(0,3)
+        .map(s => ({
+          host: s.host,
+          cohost: s.cohost,
+          overseer: s.overseer,
+          time: new Date(s.time * 1000) // convert Unix timestamp to JS Date
+        }));
 
-    // Fetch sessions from /sessions endpoint
-    const { data: sessions } = await axios.get(SESSIONS_URL);
+      res.render("dashboard", { title: "Mochi Bar | Dashboard", topPlayers, upcomingShifts });
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
+      res.status(500).send("Internal Server Error");
+    }
+  });
 
-    // Sort by timestamp and take next 3
-    const upcomingShifts = sessions
-      .sort((a, b) => a.time - b.time)
-      .slice(0, 3)
-      .map((s) => ({
-        host: s.host,
-        cohost: s.cohost || null,
-        overseer: s.overseer || null,
-        time: new Date(s.time * 1000), // convert UNIX timestamp to Date
-      }));
-
-    res.render("dashboard", {
-      title: "Mochi Bar | Dashboard",
-      topPlayers,
-      upcomingShifts,
-    });
-  } catch (err) {
-    console.error("Error loading dashboard:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-module.exports = router;
+  return router;
+};
 
