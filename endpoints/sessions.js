@@ -1,8 +1,9 @@
-const express = require("express");
+// /endpoints/sessions.js
+const express = require('express');
 const router = express.Router();
 
-const GUILD_ID = "1362322934794031104"; // your guild
-const CHANNEL_ID = "1402605903508672554"; // session channel
+const GUILD_ID = '1362322934794031104'; // your guild
+const CHANNEL_ID = '1402605903508672554'; // session channel
 
 // Resolve mentions or raw usernames to server nickname
 async function resolveDiscordName(client, guild, text) {
@@ -24,11 +25,15 @@ async function resolveDiscordName(client, guild, text) {
 }
 
 module.exports = (client) => {
-  router.get("/", async (req, res) => {
+  router.get('/', async (req, res) => {
     try {
+      if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
+
       const guild = await client.guilds.fetch(GUILD_ID);
+      if (!guild) return res.status(500).json({ error: 'Guild not found' });
+
       const channel = await guild.channels.fetch(CHANNEL_ID);
-      if (!channel) return res.status(404).json({ error: "Channel not found" });
+      if (!channel) return res.status(500).json({ error: 'Channel not found' });
 
       const messages = await channel.messages.fetch({ limit: 50 });
       const sessions = [];
@@ -41,29 +46,28 @@ module.exports = (client) => {
 
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
-          const [key, ...rest] = line.split(":");
-          const value = rest.join(":").trim();
+          const [key, ...rest] = line.split(':');
+          const value = rest.join(':').trim();
           if (!value) continue;
 
           switch (key.trim().toLowerCase()) {
-            case "host":
+            case 'host':
               host = await resolveDiscordName(client, guild, value);
               break;
-            case "cohost":
+            case 'cohost':
               cohost = await resolveDiscordName(client, guild, value);
               break;
-            case "overseer":
+            case 'overseer':
               overseer = await resolveDiscordName(client, guild, value);
               break;
-            case "time": {
-              // Matches <t:1758873600:F>
-              const tsMatch = value.match(/<t:(\d+)(?::[a-zA-Z])?>/);
-              if (tsMatch) timestamp = parseInt(tsMatch[1], 10);
+            case 'time': // use "Time" instead of "timestamp" based on your example
+              const tsMatch = value.match(/\d+/);
+              if (tsMatch) timestamp = parseInt(tsMatch[0], 10);
               break;
-            }
           }
         }
 
+        // Only include if host and timestamp exist
         if (host && timestamp) {
           const session = { host, time: timestamp };
           if (cohost) session.cohost = cohost;
@@ -74,8 +78,8 @@ module.exports = (client) => {
 
       res.json(sessions);
     } catch (err) {
-      console.error("Error fetching sessions:", err);
-      res.status(500).json({ error: "Internal server error" });
+      console.error('Error fetching sessions:', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
