@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mochi Bar Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Mochi Bar</h1>
+    <div class="search-container">
+      <input type="text" id="searchBar" placeholder="Search players...">
+      <div id="searchResults"></div>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Top 3 Most Active</h2>
+      <ul>
+        <% topPlayers.forEach(p => { %>
+          <li><a href="/dashboard/player/<%= p.username %>"><%= p.username %></a> - <%= p.total_activity %> hrs</li>
+        <% }) %>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Next 3 Shifts</h2>
+      <ul>
+        <% upcomingShifts.forEach(s => { %>
+          <li><%= s.host %> at <%= s.time %></li>
+        <% }) %>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    const searchBar = document.getElementById('searchBar');
+    const searchResults = document.getElementById('searchResults');
+
+    searchBar.addEventListener('input', async () => {
+      const query = searchBar.value.trim();
+      if (!query) {
+        searchResults.innerHTML = '';
+        return;
+      }
+
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      searchResults.innerHTML = data.map(p =>
+        `<div><a href="/dashboard/player/${p.username}">${p.username}</a></div>`
+      ).join('');
+    });
+  </script>
+</body>
+</html>
