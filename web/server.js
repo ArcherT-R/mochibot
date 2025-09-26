@@ -1,6 +1,11 @@
 const express = require('express');
 const PORT = process.env.PORT || 3000;
 
+// Set server start time
+global.startTime = Date.now();
+global.requestsToday = 0;
+global.incidentsToday = 0;
+
 function startWebServer() {
   return new Promise(resolve => {
     const app = express();
@@ -36,7 +41,7 @@ function startWebServer() {
             h1 { margin-bottom: 10px; }
             .big { font-size: 22px; font-weight: bold; }
 
-            /* Mobile-friendly: stack vertically */
+            /* Mobile-friendly */
             @media (max-width: 600px) {
               .container {
                 flex-direction: column;
@@ -103,4 +108,3 @@ function startWebServer() {
 }
 
 module.exports = { startWebServer };
-
