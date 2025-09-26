@@ -1,52 +1,40 @@
 // startup.js
-const express = require("express");
-const path = require("path");
-const { Client, GatewayIntentBits } = require("discord.js");
-const client = require('./bot/client'); // this should initialize the bot
+const express = require('express');
+const path = require('path');
+const { startBot } = require('./bot/client'); // your bot
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.MessageContent,
-  ],
-});
+async function main() {
+  // Start the bot
+  const client = await startBot();
 
-const dashboardRoute = require("./web/routes/dashboard");
-const dashboardSearchRoute = require("./web/routes/dashboardSearch");
-const sessionsRoute = require("./endpoints/sessions");
-const sotwRoleRoute = require("./endpoints/sotw-role");
+  // Initialize Express
+  const app = express();
 
-const app = express();
+  // Views
+  app.set('views', path.join(__dirname, 'web/views'));
+  app.set('view engine', 'ejs');
 
-app.set("views", path.join(__dirname, "web/views"));
-app.set("view engine", "ejs");
-app.use(express.static(path.join(__dirname, "web/public")));
+  // Static files
+  app.use(express.static(path.join(__dirname, 'web/public')));
 
-// Routes that don't depend on Discord can be mounted immediately
-app.use("/dashboard/search", dashboardSearchRoute);
-app.use("/dashboard", dashboardRoute);
-app.use("/sotw-role", sotwRoleRoute); 
+  // Routes
+  const dashboardRoute = require('./web/routes/dashboard')(client); // pass client to dashboard
+  const dashboardSearchRoute = require('./web/routes/dashboardSearch');
+  const sessionsRoute = require('./endpoints/sessions')(client); // sessions endpoint
+  const sotwRoleRoute = require('./endpoints/sotw-role')(app, client); // sotw-role endpoint
 
-// Root route
-app.get("/", (req, res) => {
-  res.redirect("/dashboard");
-});
+  app.use('/dashboard/search', dashboardSearchRoute);
+  app.use('/dashboard', dashboardRoute);
+  app.use('/sessions', sessionsRoute);
+  // /sotw-role already mounted in the module
 
-const PORT = process.env.PORT || 3000;
+  // Root redirect
+  app.get('/', (req, res) => res.redirect('/dashboard'));
 
-// Start server only after Discord client is ready
-client.once("ready", () => {
-  console.log(`✅ Discord bot connected as ${client.user.tag}`);
+  // Start server
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`🌐 Dashboard running on port ${PORT}`));
+}
 
-  // Mount routes that depend on Discord after ready
-  app.use("/sessions", sessionsRoute(client));
-
-  app.listen(PORT, () => {
-    console.log(`🌐 Web dashboard running on port ${PORT}`);
-  });
-});
-
-client.login(process.env.DISCORD_TOKEN);
+main().catch(console.error);
 
