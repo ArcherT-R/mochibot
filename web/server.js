@@ -1,24 +1,31 @@
 const express = require("express");
 const path = require("path");
-const dashboardRoutes = require("./routes/dashboard");
-const dashboardSearchRoutes = require("./routes/dashboardSearch");
 
-function startWebServer() {
-  const app = express();
+// Import routes
+const dashboardRoute = require("./routes/dashboard");
+const dashboardSearchRoute = require("./routes/dashboardSearch");
+// const sessionsRoute = require("./routes/sessions"); // if needed
+// const sotwRoleRoute = require("./routes/sotw-role"); // if needed
 
-  app.use(express.json());
-  app.use(express.static(path.join(__dirname, "public")));
+const app = express();
 
-  // Set EJS
-  app.set("view engine", "ejs");
-  app.set("views", path.join(__dirname, "views"));
+// Views setup
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
 
-  // Dashboard routes
-  app.use("/dashboard", dashboardRoutes);
-  app.use("/dashboard/search", dashboardSearchRoutes);
+// Serve static files
+app.use(express.static(path.join(__dirname, "public")));
 
-  return app;
-}
+// Routes
+app.use("/dashboard/search", dashboardSearchRoute);
+app.use("/dashboard", dashboardRoute);
+// app.use("/sessions", sessionsRoute);
+// app.use("/sotw-role", sotwRoleRoute);
 
-module.exports = { startWebServer };
+// Start server on Render's port
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🌐 Web dashboard running on port ${PORT}`);
+});
 
+module.exports = app;
