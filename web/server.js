@@ -1,6 +1,8 @@
 // web/server.js
 const express = require('express');
 const path = require('path');
+const dashboardSearch = require("./routes/dashboard-search");
+app.use("/dashboard/search", dashboardSearch);
 
 function startWebServer() {
   return new Promise((resolve, reject) => {
