@@ -1,35 +1,27 @@
-// web/server.js
-const express = require('express');
-const path = require('path');
+const express = require("express");
+const path = require("path");
+const dashboardRouter = require("./routes/dashboard");
 const dashboardSearch = require("./routes/dashboard-search");
-app.use("/dashboard/search", dashboardSearch);
 
 function startWebServer() {
   return new Promise((resolve, reject) => {
-    try {
-      const app = express();
-      app.use(express.json());
-      app.use(express.urlencoded({ extended: true }));
+    const app = express();
+    const PORT = process.env.PORT || 3000;
 
-      // Serve static files (CSS, JS, images)
-      app.use(express.static(path.join(__dirname, 'public')));
+    app.set("view engine", "ejs");
+    app.set("views", path.join(__dirname, "views"));
+    app.use(express.static(path.join(__dirname, "public")));
 
-      // Example /dashboard route
-      app.get('/dashboard', (req, res) => {
-        res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
-      });
+    // Dashboard main page
+    app.use("/dashboard", dashboardRouter);
 
-      // Return app for endpoints registration
+    // Dashboard search endpoint
+    app.use("/dashboard/search", dashboardSearch);
+
+    app.listen(PORT, () => {
+      console.log(`🌐 Web dashboard running on http://localhost:${PORT}/dashboard`);
       resolve(app);
-
-      // Start server on environment PORT or 3000
-      const port = process.env.PORT || 3000;
-      app.listen(port, () => {
-        console.log(`🌐 Web dashboard running on http://localhost:${port}/dashboard`);
-      });
-    } catch (err) {
-      reject(err);
-    }
+    }).on("error", reject);
   });
 }
 
