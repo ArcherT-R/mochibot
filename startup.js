@@ -11,7 +11,7 @@ const client = new Client({
 // Import routes
 const dashboardRoute = require("./web/routes/dashboard");
 const dashboardSearchRoute = require("./web/routes/dashboardSearch");
-const sessionsRoute = require("./web/endpoints/sessions");
+const sessionsRoute = require("./endpoints/sessions");
 
 // Create Express app
 const app = express();
