@@ -1,34 +1,28 @@
-require('dotenv').config();
+const express = require('express');
 
-const { startBot } = require('./bot/client');
-const { startWebServer } = require('./web/server');
-const sotwRoleEndpoint = require('./endpoints/sotw-role');
-const sessionsEndpointFactory = require('./endpoints/sessions');
+function startWebServer() {
+  return new Promise(resolve => {
+    const app = express();
 
-async function main() {
-  try {
-    console.log('🚀 Starting MochiBot...');
+    // Middleware
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
-    // Start Discord bot
-    const client = await startBot();
-    console.log('✅ Discord bot connected as', client.user.tag);
+    // EJS templates
+    app.set('view engine', 'ejs');
+    app.set('views', __dirname + '/views');
 
-    // Start Express web server
-    const app = await startWebServer();
-    console.log('✅ Web server running');
+    // Example: add a simple root route
+    app.get('/', (req, res) => {
+      res.send('MochiBot Web Server Running');
+    });
 
-    // Register endpoints
-    sotwRoleEndpoint(app, client);
-    const sessionsEndpoint = sessionsEndpointFactory(client);
-    app.use('/sessions', sessionsEndpoint);
-
-    console.log('✅ All endpoints registered');
-    console.log('🎉 MochiBot is fully running!');
-  } catch (err) {
-    console.error('❌ Failed to start MochiBot:', err);
-    process.exit(1); // ensures Render sees the error
-  }
+    const PORT = process.env.PORT || 4000;
+    app.listen(PORT, () => {
+      console.log(`🌐 Web dashboard running on http://localhost:${PORT}/dashboard`);
+      resolve(app);
+    });
+  });
 }
 
-main();
-
+module.exports = { startWebServer };
