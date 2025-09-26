@@ -1,22 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Mochi Bar Dashboard</title>
   <link rel="stylesheet" href="/style.css">
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
-    header { background: #6c63ff; color: white; padding: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-    header h1 { margin: 0; }
-    .search-container { position: relative; }
-    #searchBar { padding: 8px; border-radius: 5px; border: none; width: 250px; }
-    #searchResults { position: absolute; top: 36px; left: 0; right: 0; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; z-index: 10; }
-    #searchResults div { padding: 8px; cursor: pointer; }
-    #searchResults div:hover { background: #eee; }
-    main { padding: 20px; display: flex; flex-wrap: wrap; gap: 50px; }
-    section { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); width: 300px; }
-    ul { list-style: none; padding-left: 0; }
-    li { margin-bottom: 8px; }
-  </style>
 </head>
 <body>
   <header>
@@ -28,23 +15,35 @@
   </header>
 
   <main>
+    <!-- Top 3 Most Active -->
     <section>
       <h2>Top 3 Most Active</h2>
       <ul>
-        <% topPlayers.forEach(p => { %>
-          <li>
-            <a href="/dashboard/player/<%= encodeURIComponent(p.username) %>"><%= p.username %></a> - <%= p.total_activity %> hrs
-          </li>
-        <% }) %>
+        <% if (topPlayers && topPlayers.length > 0) { %>
+          <% topPlayers.forEach(p => { %>
+            <li>
+              <a href="/dashboard/player/<%= p.username %>"><%= p.username %></a> - <%= p.total_activity %> hrs
+            </li>
+          <% }) %>
+        <% } else { %>
+          <li>No active players found.</li>
+        <% } %>
       </ul>
     </section>
 
+    <!-- Next 3 Shifts -->
     <section>
       <h2>Next 3 Shifts</h2>
       <ul>
-        <% upcomingShifts.forEach(s => { %>
-          <li><%= s.host %> at <%= new Date(s.time).toLocaleString() %></li>
-        <% }) %>
+        <% if (upcomingShifts && upcomingShifts.length > 0) { %>
+          <% upcomingShifts.forEach(s => { %>
+            <li>
+              <%= s.host %> at <%= s.time %>
+            </li>
+          <% }) %>
+        <% } else { %>
+          <li>No upcoming shifts scheduled.</li>
+        <% } %>
       </ul>
     </section>
   </main>
@@ -64,13 +63,12 @@
         const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
         const data = await res.json();
 
-        searchResults.innerHTML = data.map(p => `
-          <div>
-            <a href="/dashboard/player/${encodeURIComponent(p.username)}">${p.username}</a>
-          </div>
-        `).join('');
+        searchResults.innerHTML = data.length
+          ? data.map(p => `<div><a href="/dashboard/player/${p.username}">${p.username}</a></div>`).join('')
+          : '<div>No players found.</div>';
       } catch (err) {
-        console.error("Search failed:", err);
+        console.error('Search error:', err);
+        searchResults.innerHTML = '<div>Error fetching results.</div>';
       }
     });
   </script>
