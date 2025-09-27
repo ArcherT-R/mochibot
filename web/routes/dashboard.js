@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getAllPlayers, getPlayerByUsername, getUpcomingShifts } = require("../../endpoints/database");
+const { getAllPlayers, getPlayerByUsername } = require("../../endpoints/database");
 
 module.exports = () => {
 
@@ -9,13 +9,13 @@ module.exports = () => {
     try {
       const players = await getAllPlayers();
 
+      // Sort by weekly minutes (new session-based tracking)
       const topPlayers = [...players]
-        .sort((a, b) => (b.total_activity || 0) - (a.total_activity || 0))
+        .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
         .slice(0, 3);
 
-      const upcomingShifts = await getUpcomingShifts();
-
-      res.render("dashboard", { topPlayers, upcomingShifts });
+      // Pass to dashboard template
+      res.render("dashboard", { topPlayers });
     } catch (err) {
       console.error("Error loading dashboard:", err);
       res.status(500).send("Internal Server Error");
