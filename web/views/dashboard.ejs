@@ -36,7 +36,7 @@
         <% if (topPlayers && topPlayers.length > 0) { %>
           <% topPlayers.forEach(p => { %>
             <li>
-              <a href="/dashboard/player/<%= p.username %>"><%= p.username %></a> - <%= p.total_activity || 0 %> hrs
+              <a href="/dashboard/player/<%= p.username %>"><%= p.username %></a> - <%= p.total_activity || 0 %> mins
             </li>
           <% }) %>
         <% } else { %>
