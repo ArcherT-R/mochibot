@@ -1,78 +1,47 @@
-// endpoints/activity.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { createClient } = require("@supabase/supabase-js");
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Roblox will send: { roblox_id: 123456, minutes_played: 15 }
-router.post("/", async (req, res) => {
-  console.log("📩 Received body:", req.body);
-
-  if (!req.body) return res.status(400).json({ error: "No body provided" });
-
+router.post('/', async (req, res) => {
   const { roblox_id, minutes_played } = req.body;
-  if (!roblox_id || minutes_played == null) {
-    console.error("❌ Missing roblox_id or minutes_played");
-    return res.status(400).json({ error: "Missing roblox_id or minutes_played" });
+
+  console.log('Received activity:', req.body);
+
+  if (!roblox_id || !minutes_played) {
+    return res.status(400).json({ error: 'Missing roblox_id or minutes_played' });
   }
 
   try {
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    console.log("📅 Today's date:", today);
+    // 1️⃣ Fetch current total_activity
+    const { data: playerData, error: fetchError } = await supabase
+      .from('players')
+      .select('total_activity')
+      .eq('roblox_id', roblox_id)
+      .single();
 
-    // Check if a log for this user today already exists
-    const { data: existing, error: selectError } = await supabase
-      .from("activity_logs")
-      .select("*")
-      .eq("roblox_id", roblox_id)
-      .eq("date", today)
-      .limit(1);
+    if (fetchError) throw fetchError;
+    if (!playerData) return res.status(404).json({ error: 'Player not found' });
 
-    if (selectError) {
-      console.error("❌ Supabase select error:", selectError);
-      return res.status(500).json({ error: selectError.message });
-    }
+    console.log('Current total_activity:', playerData.total_activity);
 
-    if (existing && existing.length > 0) {
-      // Update existing row
-      const log = existing[0];
-      console.log("💡 Existing row found:", log);
+    // 2️⃣ Update total_activity
+    const { error: updateError } = await supabase
+      .from('players')
+      .update({
+        total_activity: (playerData.total_activity || 0) + minutes_played
+      })
+      .eq('roblox_id', roblox_id);
 
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .update({ minutes_played: log.minutes_played + Number(minutes_played) })
-        .eq("id", log.id);
+    if (updateError) throw updateError;
 
-      if (error) {
-        console.error("❌ Supabase update error:", error);
-        return res.status(500).json({ error: error.message });
-      }
+    console.log(`Updated player ${roblox_id} total_activity by ${minutes_played} minutes`);
 
-      console.log(`✅ Updated minutes_played for ${roblox_id}: +${minutes_played}`);
-      return res.json({ success: true, action: "updated", data });
-    } else {
-      // Insert new row
-      const { data, error } = await supabase.from("activity_logs").insert([
-        {
-          roblox_id,
-          date: today,
-          minutes_played: Number(minutes_played),
-          sessions_hosted: 0
-        },
-      ]);
-
-      if (error) {
-        console.error("❌ Supabase insert error:", error);
-        return res.status(500).json({ error: error.message });
-      }
-
-      console.log(`✅ Inserted new activity log for ${roblox_id}: ${minutes_played} minutes`);
-      return res.json({ success: true, action: "inserted", data });
-    }
+    res.json({ success: true });
   } catch (err) {
-    console.error("❌ Unexpected error:", err);
-    return res.status(500).json({ error: err.message });
+    console.error('Activity endpoint error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
