@@ -1,15 +1,16 @@
-// endpoints/database.js
 const { createClient } = require("@supabase/supabase-js");
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Get all players
+// -------------------------
+// Players
+// -------------------------
+
 async function getAllPlayers() {
   const { data, error } = await supabase.from("players").select("*");
   if (error) throw error;
   return data;
 }
 
-// Get player by username
 async function getPlayerByUsername(username) {
   const { data, error } = await supabase
     .from("players")
@@ -20,17 +21,6 @@ async function getPlayerByUsername(username) {
   return data;
 }
 
-// Search players for search bar
-async function searchPlayersByUsername(username) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("username, avatar_url, group_rank, weekly_minutes")
-    .ilike("username", `%${username}%`)
-    .limit(10);
-  if (error) throw error;
-  return data;
-}
-
 // Create player if not exists
 async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank }) {
   const { data: existing } = await supabase
@@ -38,28 +28,33 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
     .select("id")
     .eq("roblox_id", roblox_id)
     .single();
-
   if (existing) return existing;
 
   const { data, error } = await supabase
     .from("players")
-    .insert([{ roblox_id, username, avatar_url, group_rank }])
+    .insert([{ roblox_id, username, avatar_url, group_rank, weekly_minutes: 0 }])
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
 
-// Log a player session
+// -------------------------
+// Sessions / Activity
+// -------------------------
+
 async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
-  // Start of current week (Monday)
+  if (!roblox_id || !minutes_played || !session_start || !session_end) {
+    throw new Error("Missing data in logPlayerSession");
+  }
+
+  // Calculate current week start (Monday)
   const now = new Date();
   const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  weekStart.setHours(0,0,0,0);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
-  // Insert session
+  // 1️⃣ Insert session into player_activity
   const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
@@ -73,36 +68,26 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
     .single();
   if (insertErr) throw insertErr;
 
-  // Update player's weekly_minutes
-  const { data: player, error: selectErr } = await supabase
-    .from("players")
-    .select("weekly_minutes, last_week_minutes")
+  // 2️⃣ Calculate total minutes for this week
+  const { data: weeklySessions, error: weeklyErr } = await supabase
+    .from("player_activity")
+    .select("minutes_played")
     .eq("roblox_id", roblox_id)
-    .single();
-  if (selectErr) throw selectErr;
+    .eq("week_start", weekStart.toISOString())
+  if (weeklyErr) throw weeklyErr;
 
-  let weekly_minutes = player?.weekly_minutes || 0;
-  let last_week_minutes = player?.last_week_minutes || 0;
+  const totalWeekly = weeklySessions.reduce((sum, s) => sum + (s.minutes_played || 0), 0);
 
-  const currentWeekISO = weekStart.toISOString().slice(0,10); // YYYY-MM-DD
-
-  // Reset weekly_minutes if it's a new week
-  if (player.week_start?.toISOString().slice(0,10) !== currentWeekISO) {
-    last_week_minutes = weekly_minutes;
-    weekly_minutes = 0;
-  }
-
-  weekly_minutes += minutes_played;
-
-  const { data: updated, error: updateErr } = await supabase
+  // 3️⃣ Update weekly_minutes in players table
+  const { data: updatedPlayer, error: updateErr } = await supabase
     .from("players")
-    .update({ weekly_minutes, last_week_minutes })
+    .update({ weekly_minutes: totalWeekly })
     .eq("roblox_id", roblox_id)
     .select()
     .single();
   if (updateErr) throw updateErr;
 
-  return updated;
+  return updatedPlayer;
 }
 
 // Get all sessions for a player
@@ -116,10 +101,13 @@ async function getPlayerSessions(roblox_id) {
   return data;
 }
 
+// -------------------------
+// Exports
+// -------------------------
+
 module.exports = {
   getAllPlayers,
   getPlayerByUsername,
-  searchPlayersByUsername,
   createPlayerIfNotExists,
   logPlayerSession,
   getPlayerSessions
