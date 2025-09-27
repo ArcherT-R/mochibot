@@ -29,21 +29,19 @@ router.post("/join", async (req, res) => {
   }
 });
 
-// Log session endpoint
 router.post("/log-session", async (req, res) => {
   const { roblox_id, minutes_played, session_start, session_end } = req.body;
 
-  if (!roblox_id || !minutes_played || !session_start || !session_end)
+  if (roblox_id == null || minutes_played == null || session_start == null || session_end == null) {
     return res.status(400).json({ error: "Missing data" });
-
-  console.log("POST /activity/log-session", req.body);
+  }
 
   try {
     const session = await logPlayerSession(
       roblox_id,
-      minutes_played,
-      new Date(session_start * 1000),
-      new Date(session_end * 1000)
+      Number(minutes_played),
+      new Date(Number(session_start) * 1000),
+      new Date(Number(session_end) * 1000)
     );
     res.json(session);
   } catch (err) {
