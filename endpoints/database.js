@@ -9,9 +9,8 @@ async function getAllPlayers() {
   return data;
 }
 
-// Search players by username (partial, case-insensitive)
+// Search players by username locally (no Roblox API)
 async function searchPlayersByUsername(username) {
-  if (!username) return [];
   const { data, error } = await supabase
     .from("players")
     .select("username, avatar_url, group_rank, total_activity")
@@ -23,4 +22,3 @@ async function searchPlayersByUsername(username) {
 }
 
 module.exports = { getAllPlayers, searchPlayersByUsername };
-
