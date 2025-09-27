@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { createPlayerIfNotExists, logPlayerSession } = require("../../endpoints/database");
+const { createPlayerIfNotExists, logPlayerSession } = require("./database");
 
 // Player join endpoint
 router.post("/join", async (req, res) => {
