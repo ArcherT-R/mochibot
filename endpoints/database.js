@@ -53,8 +53,11 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
 
 // Log a player session
 async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
-  const weekStart = new Date();
-  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); // Monday
+  // Start of current week (Monday)
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  weekStart.setHours(0,0,0,0);
 
   // Insert session
   const { data: sessionData, error: insertErr } = await supabase
@@ -70,19 +73,30 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
     .single();
   if (insertErr) throw insertErr;
 
-  // Update weekly_minutes
+  // Update player's weekly_minutes
   const { data: player, error: selectErr } = await supabase
     .from("players")
-    .select("weekly_minutes")
+    .select("weekly_minutes, last_week_minutes")
     .eq("roblox_id", roblox_id)
     .single();
   if (selectErr) throw selectErr;
 
-  const newWeekly = (player?.weekly_minutes || 0) + minutes_played;
+  let weekly_minutes = player?.weekly_minutes || 0;
+  let last_week_minutes = player?.last_week_minutes || 0;
+
+  const currentWeekISO = weekStart.toISOString().slice(0,10); // YYYY-MM-DD
+
+  // Reset weekly_minutes if it's a new week
+  if (player.week_start?.toISOString().slice(0,10) !== currentWeekISO) {
+    last_week_minutes = weekly_minutes;
+    weekly_minutes = 0;
+  }
+
+  weekly_minutes += minutes_played;
 
   const { data: updated, error: updateErr } = await supabase
     .from("players")
-    .update({ weekly_minutes: newWeekly })
+    .update({ weekly_minutes, last_week_minutes })
     .eq("roblox_id", roblox_id)
     .select()
     .single();
