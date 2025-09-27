@@ -1,6 +1,5 @@
 // endpoints/database.js
 const { createClient } = require("@supabase/supabase-js");
-
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 // Get all players
@@ -10,22 +9,22 @@ async function getAllPlayers() {
   return data;
 }
 
-// Get a single player by username
+// Get player by username
 async function getPlayerByUsername(username) {
   const { data, error } = await supabase
     .from("players")
     .select("*")
     .eq("username", username)
     .single();
-  if (error && error.code !== "PGRST116") throw error; // not found
+  if (error && error.code !== "PGRST116") throw error;
   return data;
 }
 
-// Search players by username
+// Search players for search bar
 async function searchPlayersByUsername(username) {
   const { data, error } = await supabase
     .from("players")
-    .select("username, avatar_url, group_rank, total_activity")
+    .select("username, avatar_url, group_rank, weekly_minutes")
     .ilike("username", `%${username}%`)
     .limit(10);
   if (error) throw error;
@@ -52,75 +51,55 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
   return data;
 }
 
-// Log activity in minutes
-async function logPlayerActivity(roblox_id, minutes_played) {
+// Log a player session
+async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); // Monday
+
+  // Insert session
+  const { data: sessionData, error: insertErr } = await supabase
+    .from("player_activity")
+    .insert([{
+      roblox_id,
+      session_start,
+      session_end,
+      minutes_played,
+      week_start: weekStart
+    }])
+    .select()
+    .single();
+  if (insertErr) throw insertErr;
+
+  // Update weekly_minutes
   const { data: player, error: selectErr } = await supabase
     .from("players")
-    .select("total_activity")
+    .select("weekly_minutes")
     .eq("roblox_id", roblox_id)
     .single();
-
   if (selectErr) throw selectErr;
 
-  const newTotal = (player?.total_activity || 0) + minutes_played;
+  const newWeekly = (player?.weekly_minutes || 0) + minutes_played;
 
-  const { data, error } = await supabase
+  const { data: updated, error: updateErr } = await supabase
     .from("players")
-    .update({ total_activity: newTotal })
+    .update({ weekly_minutes: newWeekly })
     .eq("roblox_id", roblox_id)
     .select()
     .single();
+  if (updateErr) throw updateErr;
 
+  return updated;
+}
+
+// Get all sessions for a player
+async function getPlayerSessions(roblox_id) {
+  const { data, error } = await supabase
+    .from("player_activity")
+    .select("*")
+    .eq("roblox_id", roblox_id)
+    .order("session_start", { ascending: false });
   if (error) throw error;
   return data;
-}
-
-// Count shifts hosted
-async function getShiftsHosted(roblox_id) {
-  const { data, error } = await supabase
-    .from("shifts")
-    .select("id")
-    .or(`host.eq.${roblox_id},cohost_id.eq.${roblox_id}`); // host column instead of host_id
-
-  if (error) throw error;
-  return data.length;
-}
-
-// Get next 3 shifts
-async function getUpcomingShifts() {
-  const { data: shifts, error } = await supabase
-    .from("shifts")
-    .select("id, player_id, cohost_id, start_time, end_time")
-    .order("start_time", { ascending: true })
-    .limit(3);
-
-  if (error) throw error;
-
-  const shiftsWithHost = await Promise.all(shifts.map(async (shift) => {
-    const { data: host } = await supabase
-      .from("players")
-      .select("username")
-      .eq("roblox_id", shift.player_id) // use player_id as host
-      .single();
-
-    let cohostName = null;
-    if (shift.cohost_id) {
-      const { data: cohost } = await supabase
-        .from("players")
-        .select("username")
-        .eq("roblox_id", shift.cohost_id)
-        .single();
-      cohostName = cohost?.username || null;
-    }
-
-    return {
-      host: host?.username || "Unknown",
-      cohost: cohostName,
-      time: shift.start_time,
-    };
-  }));
-
-  return shiftsWithHost;
 }
 
 module.exports = {
@@ -128,7 +107,6 @@ module.exports = {
   getPlayerByUsername,
   searchPlayersByUsername,
   createPlayerIfNotExists,
-  logPlayerActivity,
-  getShiftsHosted,
-  getUpcomingShifts
+  logPlayerSession,
+  getPlayerSessions
 };
