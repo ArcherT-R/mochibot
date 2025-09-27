@@ -9,7 +9,7 @@ searchBar.addEventListener('input', async () => {
   }
 
   try {
-    const res = await fetch(`/dashboard/search/username=${encodeURIComponent(query)}`);
+    const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
     if (!res.ok) throw new Error('Failed to fetch search results');
     const data = await res.json();
 
@@ -36,3 +36,4 @@ searchBar.addEventListener('keydown', (e) => {
     }
   }
 });
+
