@@ -22,11 +22,13 @@ async function main() {
     const dashboardRoute = require('./web/routes/dashboard')(client);
     const dashboardSearchRoute = require('./web/routes/dashboardSearch');
     const sessionsRoute = require('./endpoints/sessions')(client);
+    const activityRoute = require('./endpoints/activity');
     require('./endpoints/sotw-role')(app, client); // mounted inside module
 
     app.use('/dashboard/search', dashboardSearchRoute);
     app.use('/dashboard', dashboardRoute);
     app.use('/sessions', sessionsRoute);
+    app.use('/activity', activityRoute);
 
     // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
