@@ -1,19 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title><%= player.username %> - Mochi Bar</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f6f8; }
+    header { background: #007acc; color: white; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    header a { color: white; text-decoration: none; font-weight: bold; }
+    header a:hover { text-decoration: underline; }
+
+    main { padding: 2rem; max-width: 800px; margin: auto; background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+
+    .player-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+    .avatar { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #007acc; }
+    .player-info { display: flex; flex-direction: column; }
+    .player-info span { font-weight: bold; margin-top: 0.2rem; }
+
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .stat { background: #f0f4f8; padding: 1rem; border-radius: 6px; text-align: center; }
+    .stat h3 { margin: 0 0 0.5rem 0; color: #007acc; }
+  </style>
 </head>
 <body>
   <header>
     <h1><%= player.username %></h1>
-    <a href="/dashboard">← Back to dashboard</a>
+    <a href="/dashboard">← Back to Dashboard</a>
   </header>
 
   <main>
-    <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
-    <p><strong>Total Activity:</strong> <%= player.total_activity %> hrs</p>
-    <p><strong>Shifts Hosted This Week:</strong> <%= player.shifts_hosted %></p>
+    <div class="player-header">
+      <img src="<%= player.avatar_url || '/default-avatar.png' %>" alt="Avatar" class="avatar">
+      <div class="player-info">
+        <span>Rank: <%= player.group_rank || 'N/A' %></span>
+        <span>Roblox ID: <%= player.roblox_id %></span>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <h3>Total Activity</h3>
+        <p><%= player.total_activity || 0 %> hrs</p>
+      </div>
+      <div class="stat">
+        <h3>Shifts Hosted</h3>
+        <p><%= player.shifts_hosted || 0 %></p>
+      </div>
+      <div class="stat">
+        <h3>Shifts Attended</h3>
+        <p><%= player.shifts_attended || 0 %></p>
+      </div>
+      <div class="stat">
+        <h3>Other Info</h3>
+        <p><%= player.other_info || '-' %></p>
+      </div>
+    </div>
   </main>
 </body>
 </html>
