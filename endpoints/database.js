@@ -1,8 +1,23 @@
-// endpoints/database.js (or similar)
+// endpoints/database.js
 const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Create player if they don’t exist
+async function getAllPlayers() {
+  const { data, error } = await supabase.from('players').select('*');
+  if (error) throw error;
+  return data;
+}
+
+async function searchPlayersByUsername(username) {
+  const { data, error } = await supabase
+    .from('players')
+    .select('roblox_id, username, avatar_url, group_rank, total_activity')
+    .ilike('username', `%${username}%`)
+    .limit(10);
+  if (error) throw error;
+  return data;
+}
+
 async function createPlayerIfNotExists(roblox_id, username) {
   const { data: existing } = await supabase
     .from('players')
@@ -15,7 +30,6 @@ async function createPlayerIfNotExists(roblox_id, username) {
   }
 }
 
-// Log activity (increment total_activity in minutes)
 async function logPlayerActivity(roblox_id, minutes) {
   const { data, error } = await supabase
     .from('players')
@@ -33,5 +47,9 @@ async function logPlayerActivity(roblox_id, minutes) {
     .eq('roblox_id', roblox_id);
 }
 
-module.exports = { createPlayerIfNotExists, logPlayerActivity };
-
+module.exports = {
+  getAllPlayers,
+  searchPlayersByUsername,
+  createPlayerIfNotExists,
+  logPlayerActivity,
+};
