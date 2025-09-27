@@ -75,12 +75,12 @@ async function logPlayerActivity(roblox_id, minutes_played) {
   return data;
 }
 
-// Count shifts hosted (host or cohost)
+// Count shifts hosted
 async function getShiftsHosted(roblox_id) {
   const { data, error } = await supabase
-    .from("shifts")  // was sessions
+    .from("shifts")
     .select("id")
-    .or(`host_id.eq.${roblox_id},cohost_id.eq.${roblox_id}`);
+    .or(`host.eq.${roblox_id},cohost_id.eq.${roblox_id}`); // host column instead of host_id
 
   if (error) throw error;
   return data.length;
@@ -89,8 +89,8 @@ async function getShiftsHosted(roblox_id) {
 // Get next 3 shifts
 async function getUpcomingShifts() {
   const { data: shifts, error } = await supabase
-    .from("shifts") // was sessions
-    .select("id, host_id, cohost_id, start_time, end_time")
+    .from("shifts")
+    .select("id, host, cohost_id, start_time, end_time")
     .order("start_time", { ascending: true })
     .limit(3);
 
@@ -100,11 +100,22 @@ async function getUpcomingShifts() {
     const { data: host } = await supabase
       .from("players")
       .select("username")
-      .eq("roblox_id", shift.host_id)
+      .eq("roblox_id", shift.host) // use 'host' instead of 'host_id'
       .single();
+
+    let cohostName = null;
+    if (shift.cohost_id) {
+      const { data: cohost } = await supabase
+        .from("players")
+        .select("username")
+        .eq("roblox_id", shift.cohost_id)
+        .single();
+      cohostName = cohost?.username || null;
+    }
+
     return {
       host: host?.username || "Unknown",
-      cohost: null, // or fetch cohost if needed
+      cohost: cohostName,
       time: shift.start_time,
     };
   }));
