@@ -19,7 +19,7 @@ searchBar.addEventListener('input', async () => {
     }
 
     searchResults.innerHTML = data.map(p =>
-      `<div class="search-result"><a href="/dashboard/player/${encodeURIComponent(p.username)}">${p.username}</a></div>`
+      `<div class="search-result"><a href="/dashboard/search?username=${encodeURIComponent(p.username)}">${p.username}</a></div>`
     ).join('');
   } catch (err) {
     console.error('Search error:', err);
