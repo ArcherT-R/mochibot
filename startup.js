@@ -6,7 +6,6 @@ const { startBot } = require('./bot/client');
 async function main() {
   try {
     const client = await startBot();
-
     const app = express();
 
     // Views
@@ -15,21 +14,21 @@ async function main() {
 
     // Static files
     app.use(express.static(path.join(__dirname, 'web/public')));
-    app.use(express.json()); // needed for POST /activity
+    app.use(express.json()); // needed for POST endpoints
 
     // Routes
     const dashboardRoute = require('./web/routes/dashboard')(client);
     const dashboardSearchRoute = require('./web/routes/dashboardSearch');
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
-    const sotwRole = require('./endpoints/sotw-role');
-    
+    const sotwRoleRoute = require('./endpoints/sotw-role')(client); // ✅ FIXED
+
     // Mount endpoints
     app.use('/dashboard/search', dashboardSearchRoute);
     app.use('/dashboard', dashboardRoute);
     app.use('/sessions', sessionsRoute);
     app.use('/activity', activityRoute);
-    app.use('/sotw-role', sotwRole);
+    app.use('/sotw-role', sotwRoleRoute); // ✅ FIXED
 
     // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
