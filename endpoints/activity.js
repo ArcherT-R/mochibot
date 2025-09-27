@@ -1,39 +1,53 @@
+// /endpoints/activity.js
 const express = require("express");
 const router = express.Router();
-const { createPlayerIfNotExists, logPlayerSession } = require("./database");
+const {
+  createPlayerIfNotExists,
+  logPlayerSession
+} = require("./database"); // <- must be at same level
 
 // Player join endpoint
 router.post("/join", async (req, res) => {
   const { roblox_id, username, avatar_url, group_rank } = req.body;
-  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
+
+  if (!roblox_id || !username)
+    return res.status(400).json({ error: "Missing data" });
+
+  console.log("POST /activity/join", req.body);
 
   try {
-    const player = await createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank });
-    console.log("✅ Player created/checked:", username);
+    const player = await createPlayerIfNotExists({
+      roblox_id,
+      username,
+      avatar_url,
+      group_rank
+    });
     res.json(player);
   } catch (err) {
-    console.error("❌ Failed to create player:", err);
+    console.error("Failed to create player:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Log a session
+// Log session endpoint
 router.post("/log-session", async (req, res) => {
   const { roblox_id, minutes_played, session_start, session_end } = req.body;
+
   if (!roblox_id || !minutes_played || !session_start || !session_end)
     return res.status(400).json({ error: "Missing data" });
+
+  console.log("POST /activity/log-session", req.body);
 
   try {
     const session = await logPlayerSession(
       roblox_id,
       minutes_played,
-      new Date(session_start),
-      new Date(session_end)
+      new Date(session_start * 1000),
+      new Date(session_end * 1000)
     );
-    console.log(`✅ Logged session for ${roblox_id}: ${minutes_played} minutes`);
     res.json(session);
   } catch (err) {
-    console.error("❌ Failed to log session:", err);
+    console.error("Failed to log session:", err);
     res.status(500).json({ error: err.message });
   }
 });
