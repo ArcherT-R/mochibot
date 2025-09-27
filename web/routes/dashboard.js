@@ -1,31 +1,27 @@
-// web/routes/dashboard.js
 const express = require("express");
 const router = express.Router();
-const axios = require("axios"); // for fetching /sessions
+const { getAllPlayers } = require("../../endpoints/database");
 
 module.exports = (client) => {
-  // Main dashboard
   router.get("/", async (req, res) => {
     try {
-      // Fetch players from DB
-      const { getAllPlayers } = require("../../endpoints/database");
       const players = await getAllPlayers();
 
       // Top 3 most active
-      const topPlayers = [...players].sort((a,b) => b.total_activity - a.total_activity).slice(0,3);
+      const topPlayers = [...players]
+        .sort((a, b) => (b.total_activity || 0) - (a.total_activity || 0))
+        .slice(0, 3);
 
-      // Fetch next 3 shifts from /sessions endpoint
-      const sessionsUrl = process.env.BASE_URL + "/sessions"; // make sure BASE_URL is set in .env
-      const { data: allSessions } = await axios.get(sessionsUrl);
-      const upcomingShifts = allSessions
-        .sort((a,b) => a.time - b.time)
-        .slice(0,3)
-        .map(s => ({
-          host: s.host,
+      // Next 3 shifts (using local shifts table)
+      const upcomingShifts = players
+        .flatMap(p => (p.shifts || []).map(s => ({
+          host: p.username,
+          time: new Date(s.start_time),
           cohost: s.cohost,
-          overseer: s.overseer,
-          time: new Date(s.time * 1000) // convert Unix timestamp to JS Date
-        }));
+          overseer: s.overseer
+        })))
+        .sort((a, b) => a.time - b.time)
+        .slice(0, 3);
 
       res.render("dashboard", { title: "Mochi Bar | Dashboard", topPlayers, upcomingShifts });
     } catch (err) {
@@ -36,4 +32,3 @@ module.exports = (client) => {
 
   return router;
 };
-
