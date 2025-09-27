@@ -1,16 +1,12 @@
-// endpoints/activity.js
 const express = require("express");
 const router = express.Router();
-const { createPlayerIfNotExists, logPlayerActivity } = require("./database");
+const { createPlayerIfNotExists, logPlayerSession } = require("./database");
 
-router.use(express.json());
-
-// Join endpoint - add player
 router.post("/join", async (req, res) => {
-  try {
-    const { roblox_id, username, avatar_url, group_rank } = req.body;
-    if (!roblox_id || !username) return res.status(400).json({ error: "Missing roblox_id or username" });
+  const { roblox_id, username, avatar_url, group_rank } = req.body;
+  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
 
+  try {
     const player = await createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank });
     res.json(player);
   } catch (err) {
@@ -19,19 +15,20 @@ router.post("/join", async (req, res) => {
   }
 });
 
-// Log endpoint - activity in minutes
-router.post("/log", async (req, res) => {
-  try {
-    const { roblox_id, minutes_played } = req.body;
-    if (!roblox_id || !minutes_played) return res.status(400).json({ error: "Missing roblox_id or minutes_played" });
+router.post("/log-session", async (req, res) => {
+  const { roblox_id, minutes_played, session_start, session_end } = req.body;
+  if (!roblox_id || !minutes_played || !session_start || !session_end)
+    return res.status(400).json({ error: "Missing data" });
 
-    const player = await logPlayerActivity(roblox_id, minutes_played);
-    res.json(player);
+  try {
+    const session = await logPlayerSession(roblox_id, minutes_played, new Date(session_start * 1000), new Date(session_end * 1000));
+    res.json(session);
   } catch (err) {
-    console.error("Failed to log activity:", err);
+    console.error("Failed to log session:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
 module.exports = router;
+
 
