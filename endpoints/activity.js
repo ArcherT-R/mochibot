@@ -1,39 +1,37 @@
 // endpoints/activity.js
 const express = require("express");
 const router = express.Router();
-const { createPlayerIfNotExists, logPlayerActivity } = require("./database"); // make sure the path is correct
-const bodyParser = require("body-parser");
+const { createPlayerIfNotExists, logPlayerActivity } = require("./database");
 
-router.use(bodyParser.json());
+router.use(express.json());
 
-// Endpoint to add player if not exists
+// Join endpoint - add player
 router.post("/join", async (req, res) => {
-  const { roblox_id, username, avatar_url, group_rank } = req.body;
-  if (!roblox_id || !username) return res.status(400).json({ error: "Missing required fields" });
-
   try {
+    const { roblox_id, username, avatar_url, group_rank } = req.body;
+    if (!roblox_id || !username) return res.status(400).json({ error: "Missing roblox_id or username" });
+
     const player = await createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank });
-    console.log("✅ Player created/verified:", username);
     res.json(player);
   } catch (err) {
     console.error("Failed to create player:", err);
-    res.status(500).json({ error: "Failed to create player" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Endpoint to log activity
+// Log endpoint - activity in minutes
 router.post("/log", async (req, res) => {
-  const { roblox_id, minutes_played } = req.body;
-  if (!roblox_id || !minutes_played) return res.status(400).json({ error: "Missing required fields" });
-
   try {
-    const updatedPlayer = await logPlayerActivity(roblox_id, minutes_played);
-    console.log("✅ Logged activity:", roblox_id, minutes_played, "minutes");
-    res.json(updatedPlayer);
+    const { roblox_id, minutes_played } = req.body;
+    if (!roblox_id || !minutes_played) return res.status(400).json({ error: "Missing roblox_id or minutes_played" });
+
+    const player = await logPlayerActivity(roblox_id, minutes_played);
+    res.json(player);
   } catch (err) {
     console.error("Failed to log activity:", err);
-    res.status(500).json({ error: "Failed to log activity" });
+    res.status(500).json({ error: err.message });
   }
 });
 
 module.exports = router;
+
