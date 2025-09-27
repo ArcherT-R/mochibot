@@ -1,63 +1,92 @@
-<div class="search-container">
-  <input type="text" id="searchBar" placeholder="Search players...">
-  <div id="searchResults"></div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mochi Bar Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Mochi Bar Dashboard</h1>
 
-<script>
-  const searchBar = document.getElementById('searchBar');
-  const searchResults = document.getElementById('searchResults');
+    <!-- Search Bar -->
+    <div class="search-container">
+      <input type="text" id="searchBar" placeholder="Search players...">
+      <div id="searchResults"></div>
+    </div>
+  </header>
 
-  searchBar.addEventListener('input', async () => {
-    const query = searchBar.value.trim();
-    if (!query) {
-      searchResults.innerHTML = '';
-      return;
-    }
+  <main>
+    <!-- Top 3 Most Active Players -->
+    <section>
+      <h2>Top 3 Most Active Players</h2>
+      <ul>
+        <% if (topPlayers && topPlayers.length > 0) { %>
+          <% topPlayers.forEach(p => { %>
+            <li>
+              <a href="/dashboard/player/<%= p.username %>"><%= p.username %></a> - <%= p.total_activity || 0 %> hrs
+            </li>
+          <% }) %>
+        <% } else { %>
+          <li>No active players found.</li>
+        <% } %>
+      </ul>
+    </section>
 
-    try {
-      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
-      const data = await res.json();
+    <!-- Next 3 Shifts -->
+    <section>
+      <h2>Next 3 Shifts</h2>
+      <ul>
+        <% if (upcomingShifts && upcomingShifts.length > 0) { %>
+          <% upcomingShifts.forEach(shift => { %>
+            <li>
+              Host: <%= shift.host %> 
+              <% if (shift.cohost) { %> Cohost: <%= shift.cohost %> <% } %>
+              Time: <%= new Date(shift.time).toLocaleString() %>
+            </li>
+          <% }) %>
+        <% } else { %>
+          <li>No upcoming shifts.</li>
+        <% } %>
+      </ul>
+    </section>
+  </main>
 
-      if (!data.length) {
-        searchResults.innerHTML = '<div>No players found.</div>';
+  <script>
+    const searchBar = document.getElementById('searchBar');
+    const searchResults = document.getElementById('searchResults');
+
+    searchBar.addEventListener('input', async () => {
+      const query = searchBar.value.trim();
+      if (!query) {
+        searchResults.innerHTML = '';
         return;
       }
 
-      searchResults.innerHTML = data.map(p => `
-        <div class="search-result">
-          <img src="${p.avatar_url || '/default-avatar.png'}" alt="${p.username}" class="avatar">
-          <div class="player-info">
-            <a href="/dashboard/player/${p.username}">${p.username}</a>
-            ${p.group_rank ? `<span>Rank: ${p.group_rank}</span>` : ''}
+      try {
+        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+        const data = await res.json();
+
+        if (!data.length) {
+          searchResults.innerHTML = '<div>No players found.</div>';
+          return;
+        }
+
+        searchResults.innerHTML = data.map(p => `
+          <div class="search-result">
+            <img src="${p.avatar_url || '/default-avatar.png'}" alt="${p.username}" class="avatar">
+            <div class="player-info">
+              <a href="/dashboard/player/${p.username}">${p.username}</a>
+              ${p.group_rank ? `<span>Rank: ${p.group_rank}</span>` : ''}
+            </div>
           </div>
-        </div>
-      `).join('');
+        `).join('');
 
-    } catch (err) {
-      console.error('Search error:', err);
-      searchResults.innerHTML = '<div>Error fetching results.</div>';
-    }
-  });
-</script>
-
-<style>
-  .search-result {
-    display: flex;
-    align-items: center;
-    padding: 4px 0;
-  }
-  .search-result img.avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    margin-right: 8px;
-  }
-  .player-info a {
-    font-weight: bold;
-    margin-right: 6px;
-  }
-  .player-info span {
-    color: #666;
-    font-size: 0.85em;
-  }
-</style>
+      } catch (err) {
+        console.error('Search error:', err);
+        searchResults.innerHTML = '<div>Error fetching results.</div>';
+      }
+    });
+  </script>
+</body>
+</html>
