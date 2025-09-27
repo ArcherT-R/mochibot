@@ -11,16 +11,21 @@
     header a { color: white; text-decoration: none; font-weight: bold; }
     header a:hover { text-decoration: underline; }
 
-    main { padding: 2rem; max-width: 800px; margin: auto; background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    main { padding: 2rem; max-width: 900px; margin: auto; background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 
     .player-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
-    .avatar { width: 80px; height: 80px; border-radius: 50%; border: 2px solid #007acc; }
+    .avatar { width: 100px; height: 100px; border-radius: 50%; border: 2px solid #007acc; }
     .player-info { display: flex; flex-direction: column; }
     .player-info span { font-weight: bold; margin-top: 0.2rem; }
 
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .stat { background: #f0f4f8; padding: 1rem; border-radius: 6px; text-align: center; }
     .stat h3 { margin: 0 0 0.5rem 0; color: #007acc; }
+
+    .sessions { margin-top: 2rem; }
+    .sessions h2 { color: #007acc; margin-bottom: 1rem; }
+    .sessions ul { list-style: none; padding-left: 0; }
+    .sessions li { background: #eef2f7; margin-bottom: 0.5rem; padding: 0.5rem 1rem; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -33,7 +38,7 @@
     <div class="player-header">
       <img src="<%= player.avatar_url || '/default-avatar.png' %>" alt="Avatar" class="avatar">
       <div class="player-info">
-        <span>Rank: <%= player.group_rank || 'N/A' %></span>
+        <span>Rank: <%= player.group_rank_name || 'N/A' %></span>
         <span>Roblox ID: <%= player.roblox_id %></span>
       </div>
     </div>
@@ -41,7 +46,11 @@
     <div class="stats">
       <div class="stat">
         <h3>Total Activity</h3>
-        <p><%= player.total_activity || 0 %> minutes</p> <!-- changed from hrs to minutes -->
+        <p><%= player.total_activity || 0 %> minutes</p>
+      </div>
+      <div class="stat">
+        <h3>Weekly Activity</h3>
+        <p><%= player.weekly_activity || 0 %> minutes</p>
       </div>
       <div class="stat">
         <h3>Shifts Hosted</h3>
@@ -51,10 +60,23 @@
         <h3>Shifts Attended</h3>
         <p><%= player.shifts_attended || 0 %></p>
       </div>
-      <div class="stat">
-        <h3>Other Info</h3>
-        <p><%= player.other_info || '-' %></p>
-      </div>
+    </div>
+
+    <div class="sessions">
+      <h2>Session Logs</h2>
+      <% if (player.sessions && player.sessions.length > 0) { %>
+        <ul>
+          <% player.sessions.forEach(session => { %>
+            <li>
+              Started: <%= new Date(session.start_time).toLocaleString() %> | 
+              Ended: <%= new Date(session.end_time).toLocaleString() %> | 
+              Duration: <%= session.minutes_played %> minutes
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p>No session logs available.</p>
+      <% } %>
     </div>
   </main>
 </body>
