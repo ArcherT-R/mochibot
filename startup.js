@@ -22,15 +22,14 @@ async function main() {
     const dashboardSearchRoute = require('./web/routes/dashboardSearch');
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
+    const sotwRole = require('./endpoints/sotw-role');
     
     // Mount endpoints
     app.use('/dashboard/search', dashboardSearchRoute);
     app.use('/dashboard', dashboardRoute);
     app.use('/sessions', sessionsRoute);
     app.use('/activity', activityRoute);
-
-    // SOTW Role mounted inside module
-    require('./endpoints/sotw-role')(app, client);
+    app.use('/sotw-role', sotwRole);
 
     // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
