@@ -1,87 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Mochi Bar Dashboard</title>
-  <link rel="stylesheet" href="/style.css">
-</head>
-<body>
-  <header>
-    <h1>Mochi Bar</h1>
-    <div class="search-container">
-      <input type="text" id="searchBar" placeholder="Search players...">
-      <div id="searchResults"></div>
-    </div>
-  </header>
+<div class="search-container">
+  <input type="text" id="searchBar" placeholder="Search players...">
+  <div id="searchResults"></div>
+</div>
 
-  <main>
-    <!-- Top 3 Most Active -->
-    <section>
-      <h2>Top 3 Most Active</h2>
-      <ul>
-        <% if (topPlayers && topPlayers.length > 0) { %>
-          <% topPlayers.forEach(p => { %>
-            <li>
-              <a href="/dashboard/player/<%= p.username %>"><%= p.username %></a> - <%= p.total_activity %> hrs
-            </li>
-          <% }) %>
-        <% } else { %>
-          <li>No active players found.</li>
-        <% } %>
-      </ul>
-    </section>
+<script>
+  const searchBar = document.getElementById('searchBar');
+  const searchResults = document.getElementById('searchResults');
 
-    <!-- Next 3 Shifts -->
-    <section>
-      <h2>Next 3 Shifts</h2>
-      <% if (upcomingShifts && upcomingShifts.length > 0) { %>
-        <ul>
-          <% upcomingShifts.forEach(shift => { %>
-            <li>
-              Host: <%= shift.host %>
-              <% if (shift.cohost) { %> Cohost: <%= shift.cohost %> <% } %>
-              <% if (shift.overseer) { %> Overseer: <%= shift.overseer %> <% } %>
-              Time: <span class="shift-time" data-timestamp="<%= shift.time.getTime() %>"></span>
-            </li>
-          <% }) %>
-        </ul>
-      <% } else { %>
-        <p>No upcoming shifts.</p>
-      <% } %>
-    </section>
-  </main>
+  searchBar.addEventListener('input', async () => {
+    const query = searchBar.value.trim();
+    if (!query) {
+      searchResults.innerHTML = '';
+      return;
+    }
 
-  <script>
-    const searchBar = document.getElementById('searchBar');
-    const searchResults = document.getElementById('searchResults');
+    try {
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+      const data = await res.json();
 
-    // Search functionality
-    searchBar.addEventListener('input', async () => {
-      const query = searchBar.value.trim();
-      if (!query) {
-        searchResults.innerHTML = '';
+      if (!data.length) {
+        searchResults.innerHTML = '<div>No players found.</div>';
         return;
       }
 
-      try {
-        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
-        const data = await res.json();
+      searchResults.innerHTML = data.map(p => `
+        <div class="search-result">
+          <img src="${p.avatar_url || '/default-avatar.png'}" alt="${p.username}" class="avatar">
+          <div class="player-info">
+            <a href="/dashboard/player/${p.username}">${p.username}</a>
+            ${p.group_rank ? `<span>Rank: ${p.group_rank}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
 
-        searchResults.innerHTML = data.length
-          ? data.map(p => `<div><a href="/dashboard/player/${p.username}">${p.username}</a></div>`).join('')
-          : '<div>No players found.</div>';
-      } catch (err) {
-        console.error('Search error:', err);
-        searchResults.innerHTML = '<div>Error fetching results.</div>';
-      }
-    });
+    } catch (err) {
+      console.error('Search error:', err);
+      searchResults.innerHTML = '<div>Error fetching results.</div>';
+    }
+  });
+</script>
 
-    // Convert timestamps to human-readable
-    document.querySelectorAll('.shift-time').forEach(span => {
-      const timestamp = parseInt(span.dataset.timestamp, 10);
-      const date = new Date(timestamp);
-      span.textContent = date.toLocaleString(); // You can customize format here
-    });
-  </script>
-</body>
-</html>
+<style>
+  .search-result {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+  }
+  .search-result img.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  .player-info a {
+    font-weight: bold;
+    margin-right: 6px;
+  }
+  .player-info span {
+    color: #666;
+    font-size: 0.85em;
+  }
+</style>
