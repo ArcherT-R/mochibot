@@ -90,7 +90,7 @@ async function getShiftsHosted(roblox_id) {
 async function getUpcomingShifts() {
   const { data: shifts, error } = await supabase
     .from("shifts")
-    .select("id, host, cohost_id, start_time, end_time")
+    .select("id, player_id, cohost_id, start_time, end_time")
     .order("start_time", { ascending: true })
     .limit(3);
 
@@ -100,7 +100,7 @@ async function getUpcomingShifts() {
     const { data: host } = await supabase
       .from("players")
       .select("username")
-      .eq("roblox_id", shift.host) // use 'host' instead of 'host_id'
+      .eq("roblox_id", shift.player_id) // use player_id as host
       .single();
 
     let cohostName = null;
