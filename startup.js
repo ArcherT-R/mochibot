@@ -5,10 +5,8 @@ const { startBot } = require('./bot/client');
 
 async function main() {
   try {
-    // Start the bot
     const client = await startBot();
 
-    // Initialize Express
     const app = express();
 
     // Views
@@ -17,18 +15,22 @@ async function main() {
 
     // Static files
     app.use(express.static(path.join(__dirname, 'web/public')));
+    app.use(express.json()); // needed for POST /activity
 
     // Routes
     const dashboardRoute = require('./web/routes/dashboard')(client);
     const dashboardSearchRoute = require('./web/routes/dashboardSearch');
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
-    require('./endpoints/sotw-role')(app, client); // mounted inside module
-
+    
+    // Mount endpoints
     app.use('/dashboard/search', dashboardSearchRoute);
     app.use('/dashboard', dashboardRoute);
     app.use('/sessions', sessionsRoute);
     app.use('/activity', activityRoute);
+
+    // SOTW Role mounted inside module
+    require('./endpoints/sotw-role')(app, client);
 
     // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
@@ -45,5 +47,4 @@ async function main() {
 }
 
 main();
-
 
