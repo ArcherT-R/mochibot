@@ -3,9 +3,16 @@ const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
+// ----------------------------
+// Players
+// ----------------------------
+
 // Get all players
 async function getAllPlayers() {
-  const { data, error } = await supabase.from("players").select("*");
+  const { data, error } = await supabase
+    .from("players")
+    .select("id, username, roblox_id, avatar_url, group_rank, total_activity, shifts_hosted, shifts_attended")
+    .order("total_activity", { ascending: false });
   if (error) throw error;
   return data;
 }
@@ -32,21 +39,35 @@ async function searchPlayersByUsername(username) {
   return data;
 }
 
-// Create a player if not exists
-async function createPlayerIfNotExists({ roblox_id, username }) {
-  // Check if exists
+// Create player if not exists, or update avatar & group rank
+async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank }) {
+  // Check if player exists
   const { data: existing } = await supabase
     .from("players")
-    .select("id")
+    .select("*")
     .eq("roblox_id", roblox_id)
     .single();
 
-  if (existing) return existing;
+  if (existing) {
+    // Update avatar/group_rank if changed
+    const updates = {};
+    if (avatar_url && avatar_url !== existing.avatar_url) updates.avatar_url = avatar_url;
+    if (group_rank && group_rank !== existing.group_rank) updates.group_rank = group_rank;
 
-  // Create new player
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabase
+        .from("players")
+        .update(updates)
+        .eq("roblox_id", roblox_id);
+      if (error) throw error;
+    }
+    return { ...existing, ...updates };
+  }
+
+  // Insert new player
   const { data, error } = await supabase
     .from("players")
-    .insert([{ roblox_id, username }])
+    .insert([{ roblox_id, username, avatar_url, group_rank, total_activity: 0, shifts_hosted: 0, shifts_attended: 0 }])
     .select()
     .single();
 
@@ -78,32 +99,46 @@ async function logPlayerActivity(roblox_id, minutes_played) {
   return data;
 }
 
-// Get next 3 shifts
+// ----------------------------
+// Shifts
+// ----------------------------
+
+// Get next 3 upcoming shifts
 async function getUpcomingShifts() {
   const { data: shifts, error } = await supabase
     .from("shifts")
-    .select("id, player_id, start_time, end_time")
+    .select("id, player_id, cohost_id, start_time, end_time")
     .order("start_time", { ascending: true })
     .limit(3);
 
   if (error) throw error;
 
-  // Add host username for each shift
-  const shiftsWithHost = await Promise.all(shifts.map(async (shift) => {
-    const { data: player } = await supabase
+  // Add host/cohost username
+  const shiftsWithUsers = await Promise.all(shifts.map(async (shift) => {
+    const { data: host } = await supabase
       .from("players")
       .select("username")
       .eq("id", shift.player_id)
       .single();
 
+    let cohostUsername = null;
+    if (shift.cohost_id) {
+      const { data: cohost } = await supabase
+        .from("players")
+        .select("username")
+        .eq("id", shift.cohost_id)
+        .single();
+      cohostUsername = cohost?.username || null;
+    }
+
     return {
-      host: player?.username || "Unknown",
+      host: host?.username || "Unknown",
+      cohost: cohostUsername,
       time: shift.start_time,
-      cohost: null, // Add cohost if tracked
     };
   }));
 
-  return shiftsWithHost;
+  return shiftsWithUsers;
 }
 
 module.exports = {
