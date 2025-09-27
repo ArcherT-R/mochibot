@@ -1,47 +1,64 @@
-// endpoints/activity.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { createClient } = require("@supabase/supabase-js");
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// POST /activity
-router.post("/", async (req, res) => {
+// --- Middleware to ensure JSON parsing ---
+router.use(express.json());
+
+router.post('/', async (req, res) => {
+  console.log('💡 /activity endpoint called');
+
   const { roblox_id, username, minutes_played } = req.body;
-  if (!roblox_id || !minutes_played) return res.status(400).send("Invalid data");
+
+  console.log('📥 Received body:', req.body);
+
+  if (!roblox_id || !username || minutes_played == null) {
+    console.warn('⚠ Missing fields in request body');
+    return res.status(400).json({ error: 'Missing roblox_id, username, or minutes_played' });
+  }
 
   try {
-    // Find player
-    const { data: playerData } = await supabase
-      .from("players")
-      .select("*")
-      .eq("roblox_id", roblox_id)
-      .single();
+    // Insert or update activity log for today
+    const today = new Date().toISOString().split('T')[0];
 
-    let playerId;
-    if (!playerData) {
-      // Add new player if doesn't exist
-      const { data: newPlayer } = await supabase
-        .from("players")
-        .insert({ roblox_id, username })
-        .select()
-        .single();
-      playerId = newPlayer.id;
+    // Check if an entry already exists for this Roblox ID today
+    const { data: existing, error: selectError } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('roblox_id', roblox_id)
+      .eq('date', today)
+      .limit(1);
+
+    if (selectError) throw selectError;
+
+    if (existing && existing.length > 0) {
+      // Update existing entry
+      const log = existing[0];
+      const { error: updateError } = await supabase
+        .from('activity_logs')
+        .update({ minutes_played: log.minutes_played + minutes_played })
+        .eq('id', log.id);
+
+      if (updateError) throw updateError;
+
+      console.log(`🔄 Updated activity for ${username} (+${minutes_played} mins)`);
     } else {
-      playerId = playerData.id;
+      // Insert new entry
+      const { error: insertError } = await supabase.from('activity_logs').insert([
+        { roblox_id, date: today, minutes_played }
+      ]);
+
+      if (insertError) throw insertError;
+
+      console.log(`➕ Inserted new activity for ${username} (${minutes_played} mins)`);
     }
 
-    // Add activity record
-    await supabase.from("activity").insert({
-      player_id: playerId,
-      date: new Date(),
-      minutes_played: Math.round(minutes_played)
-    });
-
-    res.send("OK");
+    res.json({ success: true });
   } catch (err) {
-    console.error("Failed to log activity:", err);
-    res.status(500).send("Error");
+    console.error('❌ Error logging activity:', err);
+    res.status(500).json({ error: 'Failed to log activity' });
   }
 });
 
