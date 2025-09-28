@@ -1,43 +1,41 @@
 const express = require("express");
 const router = express.Router();
-const {
-  getAllPlayers,
-  getPlayerByUsername,
-  getPlayerSessions,
-} = require("../../endpoints/database");
+const { getAllPlayers, getPlayerByUsername, getPlayerSessions } = require("../../endpoints/database");
 
-// Main dashboard
-router.get("/", async (req, res) => {
-  try {
-    const players = await getAllPlayers();
+module.exports = () => {
+  // Main dashboard
+  router.get("/", async (req, res) => {
+    try {
+      const players = await getAllPlayers();
 
-    // Top 3 players by weekly minutes
-    const topPlayers = [...players]
-      .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
-      .slice(0, 3);
+      // Top 3 players by weekly minutes
+      const topPlayers = [...players]
+        .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
+        .slice(0, 3);
 
-    res.render("dashboard", { players, topPlayers }); // Pass both lists
-  } catch (err) {
-    console.error("Error loading dashboard:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
+      res.render("dashboard", { players, topPlayers }); // ✅ send both
+    } catch (err) {
+      console.error("Error loading dashboard:", err);
+      res.status(500).send("Internal Server Error");
+    }
+  });
 
-// Player profile
-router.get("/player/:username", async (req, res) => {
-  try {
-    const username = req.params.username;
-    const player = await getPlayerByUsername(username);
-    if (!player) return res.status(404).send("Player not found");
+  // Player profile
+  router.get("/player/:username", async (req, res) => {
+    try {
+      const username = req.params.username;
+      const player = await getPlayerByUsername(username);
+      if (!player) return res.status(404).send("Player not found");
 
-    // Fetch player sessions
-    const sessions = await getPlayerSessions(player.roblox_id);
+      // Fetch player sessions
+      const sessions = await getPlayerSessions(player.roblox_id); // ✅ make sure this function exists and is exported
 
-    res.render("player", { player, sessions });
-  } catch (err) {
-    console.error("Error loading player:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
+      res.render("player", { player, sessions });
+    } catch (err) {
+      console.error("Error loading player:", err);
+      res.status(500).send("Internal Server Error");
+    }
+  });
 
-module.exports = router;
+  return router;
+};
