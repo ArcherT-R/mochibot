@@ -1,57 +1,93 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Mochi Bar Dashboard</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
-    header { background: #007acc; color: white; padding: 1rem; display: flex; flex-direction: column; align-items: center; }
-    h1 { margin: 0 0 0.5rem 0; }
-    .search-container { width: 300px; }
-    #searchBar { width: 100%; padding: 0.5rem; border-radius: 4px; border: none; }
-    main { padding: 2rem; }
-    section { margin-bottom: 2rem; background: white; padding: 1rem; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    ul { list-style: none; padding-left: 0; }
-    li { padding: 0.3rem 0; }
-    a { color: #007acc; text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    #suggestions {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+      z-index: 1000;
+    }
+
+    #suggestions li {
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    #suggestions li:hover {
+      background-color: #f0f0f0;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Mochi Bar Dashboard</h1>
-
-    <!-- Search Bar -->
-    <div class="search-container">
-      <input type="text" id="searchBar" placeholder="Search players...">
-    </div>
-  </header>
-
   <h1>Dashboard</h1>
 
-<h1>Dashboard</h1>
+  <!-- Search Box -->
+  <div style="position: relative; width: 300px;">
+    <input type="text" id="playerSearch" placeholder="Search player..." autocomplete="off" style="width: 100%; padding: 8px;">
+    <ul id="suggestions"></ul>
+  </div>
 
-<h2>Top 3 Players (Weekly Minutes)</h2>
-<ul>
-  <% topPlayers.forEach(p => { %>
-    <li>
-      <img src="<%= p.avatar_url %>" width="50" height="50">
-      <%= p.username %> - <%= p.weekly_minutes || 0 %> mins
-    </li>
-  <% }) %>
-</ul>
+  <!-- Top Players -->
+  <h2>Top Players</h2>
+  <ul>
+    <% topPlayers.forEach(player => { %>
+      <li><%= player.username %> - Weekly Minutes: <%= player.weekly_minutes || 0 %></li>
+    <% }) %>
+  </ul>
 
   <script>
-    // Simple search bar redirect
-    const searchBar = document.getElementById('searchBar');
+    const input = document.getElementById("playerSearch");
+    const suggestions = document.getElementById("suggestions");
 
-    searchBar.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const username = searchBar.value.trim();
-        if (username) {
-          window.location.href = `/dashboard/player/${encodeURIComponent(username)}`;
+    input.addEventListener("input", async () => {
+      const query = input.value.trim();
+      if (!query) {
+        suggestions.style.display = "none";
+        suggestions.innerHTML = "";
+        return;
+      }
+
+      try {
+        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+        const data = await res.json();
+
+        if (data.length === 0) {
+          suggestions.style.display = "none";
+          suggestions.innerHTML = "";
+          return;
         }
+
+        suggestions.innerHTML = "";
+        data.forEach(player => {
+          const li = document.createElement("li");
+          li.textContent = player.username;
+          li.addEventListener("click", () => {
+            window.location.href = `/dashboard/player/${player.username}`;
+          });
+          suggestions.appendChild(li);
+        });
+        suggestions.style.display = "block";
+      } catch (err) {
+        console.error("Error fetching suggestions:", err);
+      }
+    });
+
+    // Hide suggestions if clicked outside
+    document.addEventListener("click", (e) => {
+      if (!input.contains(e.target)) {
+        suggestions.style.display = "none";
       }
     });
   </script>
