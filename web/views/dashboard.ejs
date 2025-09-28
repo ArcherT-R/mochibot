@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mochi Bar Dashboard</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      background-color: #f5f7fa;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
     }
 
-    /* Blue top bar */
-    .top-bar {
-      background-color: #1e40af;
-      color: white;
+    header {
+      background-color: #6cb4ee;
+      color: black;
       padding: 20px;
       text-align: center;
       font-size: 24px;
@@ -21,99 +21,120 @@
     }
 
     .container {
+      padding: 20px;
       max-width: 1200px;
-      margin: 20px auto;
-      padding: 0 20px;
+      margin: auto;
     }
 
-    /* Search bar */
-    .search-bar {
+    .search-box {
+      position: relative;
       margin-bottom: 20px;
-      display: flex;
-      justify-content: center;
     }
 
-    .search-bar input {
+    input[type="text"] {
       width: 100%;
-      max-width: 400px;
       padding: 10px;
       font-size: 16px;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid #ccc;
     }
 
-    /* Player boxes */
-    .players-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-    }
-
-    .player-box {
+    .suggestions {
+      position: absolute;
+      top: 45px;
+      width: 100%;
       background: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-      text-align: center;
-      transition: transform 0.2s;
+      border: 1px solid #ccc;
+      border-radius: 0 0 8px 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
     }
 
-    .player-box:hover {
-      transform: translateY(-5px);
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: background 0.2s;
     }
 
-    .player-box img {
+    .suggestion-item:hover {
+      background-color: #e2f0ff;
+    }
+
+    .suggestion-item img {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .suggestion-item span {
+      font-weight: bold;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 5px;
+    }
+
+    .player-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .player-card {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      width: 150px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .player-card img {
       width: 100px;
       height: 100px;
-      margin-bottom: 10px;
-    }
-
-    .player-box h3 {
-      margin: 5px 0;
-      font-size: 18px;
-    }
-
-    .player-box p {
-      margin: 3px 0;
-      color: #555;
+      border-radius: 50%;
+      margin-bottom: 5px;
     }
   </style>
 </head>
 <body>
-  <div class="top-bar">Dashboard</div>
+  <header>Mochi Bar Dashboard</header>
+
   <div class="container">
-    <!-- Search Bar -->
-    <div class="search-bar">
-      <input type="text" id="playerSearch" placeholder="Search players...">
+    <div class="search-box">
+      <input type="text" id="playerSearch" placeholder="Search players..." />
+      <div id="suggestions" class="suggestions"></div>
     </div>
 
-    <!-- Top Players -->
-    <h2>Top Players</h2>
-    <div class="players-grid" id="topPlayers">
-      <% topPlayers.forEach(player => { %>
-        <div class="player-box">
-          <img src="<%= player.avatar_url %>" alt="<%= player.username %>">
-          <h3><a href="/dashboard/player/<%= player.username %>"><%= player.username %></a></h3>
-          <p>Rank: <%= player.group_rank %></p>
-          <p>Weekly Minutes: <%= player.weekly_minutes %></p>
-        </div>
-      <% }) %>
+    <h2>All Players</h2>
+    <div class="player-list" id="playerList">
+      <% if (players && players.length > 0) { %>
+        <% players.forEach(player => { %>
+          <div class="player-card">
+            <img src="<%= player.avatar_url %>" alt="Avatar" />
+            <div><%= player.username %></div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <div>No players found.</div>
+      <% } %>
     </div>
-
-    <!-- Search Results -->
-    <h2>Search Results</h2>
-    <div class="players-grid" id="searchResults"></div>
   </div>
 
   <script>
-    const searchInput = document.getElementById('playerSearch');
-    const resultsDiv = document.getElementById('searchResults');
+    const input = document.getElementById("playerSearch");
+    const suggestionsBox = document.getElementById("suggestions");
 
-    searchInput.addEventListener('input', async () => {
-      const query = searchInput.value.trim();
+    input.addEventListener("input", async () => {
+      const query = input.value.trim();
       if (!query) {
-        resultsDiv.innerHTML = '';
+        suggestionsBox.innerHTML = "";
         return;
       }
 
@@ -121,17 +142,21 @@
         const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
         const players = await res.json();
 
-        resultsDiv.innerHTML = players.map(player => `
-          <div class="player-box">
-            <img src="${player.avatar_url}" alt="${player.username}">
-            <h3><a href="/dashboard/player/${player.username}">${player.username}</a></h3>
-            <p>Rank: ${player.group_rank}</p>
-            <p>Weekly Minutes: ${player.weekly_minutes}</p>
+        suggestionsBox.innerHTML = players.map(p => `
+          <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+            <img src="${p.avatar_url}" alt="Avatar" />
+            <span>${p.username}</span>
           </div>
-        `).join('');
+        `).join("");
 
       } catch (err) {
-        console.error('Search error:', err);
+        console.error("Search error:", err);
+      }
+    });
+
+    document.addEventListener("click", e => {
+      if (!input.contains(e.target)) {
+        suggestionsBox.innerHTML = "";
       }
     });
   </script>
