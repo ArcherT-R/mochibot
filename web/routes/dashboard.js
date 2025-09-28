@@ -8,12 +8,12 @@ module.exports = () => {
     try {
       const players = await getAllPlayers();
 
-      // Top 3 players by weekly minutes
+      // Top 3 active this week
       const topPlayers = [...players]
         .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
         .slice(0, 3);
 
-      res.render("dashboard", { players, topPlayers }); // ✅ send both
+      res.render("dashboard", { players, topPlayers }); // pass players AND topPlayers
     } catch (err) {
       console.error("Error loading dashboard:", err);
       res.status(500).send("Internal Server Error");
@@ -27,10 +27,10 @@ module.exports = () => {
       const player = await getPlayerByUsername(username);
       if (!player) return res.status(404).send("Player not found");
 
-      // Fetch player sessions
-      const sessions = await getPlayerSessions(player.roblox_id); // ✅ make sure this function exists and is exported
+      // Fetch sessions from DB
+      const sessions = await getPlayerSessions(player.roblox_id);
 
-      res.render("player", { player, sessions });
+      res.render("player", { player, sessions }); // send player + sessions
     } catch (err) {
       console.error("Error loading player:", err);
       res.status(500).send("Internal Server Error");
