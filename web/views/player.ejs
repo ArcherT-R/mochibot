@@ -2,84 +2,112 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title><%= player.username %> Profile</title>
+  <title><%= player.username %> - Profile</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f6f8;
       margin: 0;
+      background-color: #f5f7fa;
     }
+
     .top-bar {
-      background-color: #1E90FF;
+      background-color: #1e40af;
       color: white;
-      padding: 15px 20px;
-      font-size: 1.5em;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
     }
+
     .container {
-      max-width: 800px;
+      max-width: 900px;
       margin: 20px auto;
       padding: 0 20px;
     }
+
     .player-header {
       display: flex;
       align-items: center;
       gap: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
       background: white;
       padding: 15px;
       border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
     }
+
     .player-header img {
       border-radius: 50%;
+      width: 120px;
+      height: 120px;
     }
-    .player-header div {
-      flex: 1;
+
+    .player-header h2 {
+      margin: 0;
     }
-    .sessions {
-      margin-top: 20px;
+
+    .stats-box {
       background: white;
       padding: 15px;
       border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
-    .sessions h2 {
+
+    .stats-box h3 {
       margin-top: 0;
     }
-    .session-item {
+
+    ul.session-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    ul.session-list li {
+      background: #f0f4ff;
+      margin-bottom: 10px;
       padding: 10px;
-      border-bottom: 1px solid #eee;
+      border-radius: 8px;
       display: flex;
       justify-content: space-between;
+      font-size: 14px;
     }
-    .session-item:last-child {
-      border-bottom: none;
+
+    ul.session-list li span {
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div class="top-bar">Player Profile</div>
+  <div class="top-bar"><%= player.username %> - Profile</div>
+
   <div class="container">
+    <!-- Player Header -->
     <div class="player-header">
-      <img src="https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=<%= player.roblox_id %>&size=150x150&format=Png&isCircular=true" alt="<%= player.username %>">
+      <img src="<%= player.avatar_url %>" alt="<%= player.username %>">
       <div>
-        <h1><%= player.username %></h1>
+        <h2><%= player.username %></h2>
         <p>Group Rank: <%= player.group_rank %></p>
         <p>Weekly Minutes: <%= player.weekly_minutes %></p>
       </div>
     </div>
 
-    <div class="sessions">
-      <h2>Sessions</h2>
+    <!-- Played Sessions -->
+    <div class="stats-box">
+      <h3>Played Sessions</h3>
       <% if (sessions && sessions.length > 0) { %>
-        <% sessions.forEach(s => { %>
-          <div class="session-item">
-            <span><%= new Date(s.session_start).toLocaleString() %> → <%= new Date(s.session_end).toLocaleString() %></span>
-            <span><%= s.minutes_played %> mins</span>
-          </div>
-        <% }) %>
+        <ul class="session-list">
+          <% sessions.forEach(s => { %>
+            <li>
+              <span><%= new Date(s.session_start).toLocaleString() %></span>
+              <span>→</span>
+              <span><%= new Date(s.session_end).toLocaleString() %></span>
+              <span>(<%= s.minutes_played %> min)</span>
+            </li>
+          <% }) %>
+        </ul>
       <% } else { %>
-        <p>No sessions logged yet.</p>
+        <p>No sessions recorded.</p>
       <% } %>
     </div>
   </div>
