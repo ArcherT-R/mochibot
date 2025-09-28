@@ -17,18 +17,18 @@ async function main() {
     app.use(express.json()); // needed for POST endpoints
 
     // Routes
-    const dashboardRoute = require('./web/routes/dashboard')(client);
+    const dashboardRoute = require('./web/routes/dashboard'); // router exported directly
     const dashboardSearchRoute = require('./web/routes/dashboardSearch');
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
-    const sotwRoleRoute = require('./endpoints/sotw-role')(client); // ✅ FIXED
+    const sotwRoleRoute = require('./endpoints/sotw-role')(client);
 
     // Mount endpoints
     app.use('/dashboard/search', dashboardSearchRoute);
-    app.use('/dashboard', dashboardRoute);
+    app.use("/dashboard", dashboardRoute);
     app.use('/sessions', sessionsRoute);
     app.use('/activity', activityRoute);
-    app.use('/sotw-role', sotwRoleRoute); // ✅ FIXED
+    app.use('/sotw-role', sotwRoleRoute);
 
     // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
