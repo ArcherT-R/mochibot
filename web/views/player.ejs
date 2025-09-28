@@ -2,59 +2,84 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title><%= player.username %> - Player Profile</title>
-  <link rel="stylesheet" href="/styles.css">
+  <title><%= player.username %></title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f0f2f5; }
-    header { background-color: #007BFF; color: white; padding: 20px; text-align: center; }
-    h1 { margin: 0; }
-    .container { padding: 20px; max-width: 800px; margin: auto; }
-    .box { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
-    .player-info { display: flex; align-items: center; gap: 20px; }
-    .player-info img { border-radius: 50%; width: 100px; height: 100px; }
-    .player-info ul { list-style: none; padding: 0; margin: 0; }
-    .player-info li { margin: 5px 0; }
-    .sessions ul { list-style: none; padding: 0; margin: 0; }
-    .sessions li { padding: 10px; border-bottom: 1px solid #eee; }
-    .sessions li:last-child { border-bottom: none; }
-    a { text-decoration: none; color: #007BFF; }
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: #f0f2f5;
+    }
+    header {
+      background: #1e40af;
+      color: white;
+      padding: 1rem 2rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .card {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .player-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .player-header img {
+      border-radius: 50%;
+      width: 100px;
+      height: 100px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    ul {
+      padding-left: 1.2rem;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Player Profile: <%= player.username %></h1>
-  </header>
-
+  <header><%= player.username %> Profile</header>
   <div class="container">
-    <!-- Player Info -->
-    <div class="box player-info">
-      <img src="<%= player.avatar_url %>" alt="<%= player.username %>">
-      <ul>
-        <li><strong>Username:</strong> <%= player.username %></li>
-        <li><strong>Group Rank:</strong> <%= player.group_rank || 'N/A' %></li>
-        <li><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %> min</li>
-      </ul>
+    <div class="card player-header">
+      <img src="https://tr.rbxcdn.com/<%= player.roblox_id %>/150/150/AvatarHeadshot.png" alt="<%= player.username %>">
+      <div>
+        <div><strong>Username:</strong> <%= player.username %></div>
+        <div><strong>Group Rank:</strong> <%= player.group_rank %></div>
+        <div><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %></div>
+      </div>
     </div>
 
-    <!-- Player Sessions -->
-    <div class="box sessions">
-      <h2>Played Sessions</h2>
-      <% if (sessions && sessions.length > 0) { %>
-        <ul>
+    <div class="card">
+      <h2>Play Sessions</h2>
+      <ul>
+        <% if (sessions && sessions.length > 0) { %>
           <% sessions.forEach(s => { %>
             <li>
               <strong>Start:</strong> <%= new Date(s.session_start).toLocaleString() %> <br>
               <strong>End:</strong> <%= new Date(s.session_end).toLocaleString() %> <br>
-              <strong>Duration:</strong> <%= s.minutes_played %> min
+              <strong>Duration:</strong> <%= s.minutes_played %> minute<%= s.minutes_played !== 1 ? 's' : '' %>
             </li>
           <% }) %>
-        </ul>
-      <% } else { %>
-        <p>No sessions recorded.</p>
-      <% } %>
+        <% } else { %>
+          <li>No sessions yet.</li>
+        <% } %>
+      </ul>
     </div>
-
-    <a href="/dashboard">← Back to Dashboard</a>
   </div>
 </body>
 </html>
