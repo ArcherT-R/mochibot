@@ -80,10 +80,11 @@
       padding-bottom: 5px;
     }
 
-    .player-list {
+    .player-list, .top-players-list {
       display: flex;
       flex-wrap: wrap;
       gap: 15px;
+      margin-bottom: 30px;
     }
 
     .player-card {
@@ -107,11 +108,29 @@
   <header>Mochi Bar Dashboard</header>
 
   <div class="container">
+    <!-- Search -->
     <div class="search-box">
       <input type="text" id="playerSearch" placeholder="Search players..." />
       <div id="suggestions" class="suggestions"></div>
     </div>
 
+    <!-- Top 3 Active This Week -->
+    <h2>Top 3 Active This Week</h2>
+    <div class="top-players-list">
+      <% if (topPlayers && topPlayers.length > 0) { %>
+        <% topPlayers.forEach(player => { %>
+          <div class="player-card">
+            <img src="<%= player.avatar_url %>" alt="Avatar" />
+            <div><%= player.username %></div>
+            <div><%= player.weekly_minutes %> min</div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <div>No active players yet.</div>
+      <% } %>
+    </div>
+
+    <!-- All Players -->
     <h2>All Players</h2>
     <div class="player-list" id="playerList">
       <% if (players && players.length > 0) { %>
@@ -119,6 +138,7 @@
           <div class="player-card">
             <img src="<%= player.avatar_url %>" alt="Avatar" />
             <div><%= player.username %></div>
+            <div><%= player.weekly_minutes %> min</div>
           </div>
         <% }) %>
       <% } else { %>
@@ -148,7 +168,6 @@
             <span>${p.username}</span>
           </div>
         `).join("");
-
       } catch (err) {
         console.error("Search error:", err);
       }
