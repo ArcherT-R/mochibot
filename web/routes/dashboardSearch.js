@@ -3,11 +3,14 @@ const router = express.Router();
 const { searchPlayersByUsername } = require("../../endpoints/database");
 
 router.get("/", async (req, res) => {
-  const { username } = req.query;
-  if (!username || username.length < 1) return res.json([]); // ignore empty queries
+  let { username } = req.query;
+  if (!username || username.length < 1) return res.json([]);
+
+  // Force lowercase for consistent matching
+  username = username.toLowerCase();
 
   try {
-    // Search players with partial match
+    // Search players in Supabase (ilike is already case-insensitive)
     const players = await searchPlayersByUsername(username);
 
     // Map results into suggestion objects
@@ -26,3 +29,4 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+
