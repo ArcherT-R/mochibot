@@ -13,13 +13,14 @@ async function getAllPlayers() {
   return data;
 }
 
-async function getPlayerByUsername(username) {
+/ Search players by username (case-insensitive)
+async function searchPlayersByUsername(username) {
   const { data, error } = await supabase
     .from("players")
-    .select("*")
-    .eq("username", username)
-    .single();
-  if (error && error.code !== "PGRST116") throw error;
+    .select("username, avatar_url, group_rank, weekly_minutes")
+    .ilike("username", `%${username}%`)
+    .limit(10);
+  if (error) throw error;
   return data;
 }
 
