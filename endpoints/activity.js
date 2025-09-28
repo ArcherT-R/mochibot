@@ -1,11 +1,40 @@
 // /endpoints/activity.js
 const express = require("express");
 const router = express.Router();
-const { createPlayerIfNotExists, logPlayerSession } = require("./database");
 const fetch = require("node-fetch");
+const { createPlayerIfNotExists, logPlayerSession } = require("./database");
 
 const GROUP_ID = 35807738; // your Roblox group ID
 
+// ---------------------------
+// Player Join Endpoint
+// ---------------------------
+router.post("/join", async (req, res) => {
+  const { roblox_id, username, avatar_url, group_rank } = req.body;
+
+  if (!roblox_id || !username) {
+    return res.status(400).json({ error: "Missing roblox_id or username" });
+  }
+
+  try {
+    const player = await createPlayerIfNotExists({
+      roblox_id,
+      username,
+      avatar_url: avatar_url || "",
+      group_rank: group_rank || "Guest",
+    });
+
+    console.log(`✅ Player ensured in DB: ${username} (${roblox_id})`);
+    res.json(player);
+  } catch (err) {
+    console.error("❌ Failed to ensure player:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------
+// Log Session Endpoint
+// ---------------------------
 router.post("/log-session", async (req, res) => {
   const { roblox_id, minutes_played, session_start, session_end } = req.body;
 
@@ -37,7 +66,7 @@ router.post("/log-session", async (req, res) => {
       roblox_id,
       username,
       avatar_url: avatarUrl,
-      group_rank: groupRank
+      group_rank: groupRank,
     });
 
     // Log session
