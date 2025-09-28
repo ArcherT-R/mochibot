@@ -30,6 +30,8 @@
 
   <h1>Dashboard</h1>
 
+<h1>Dashboard</h1>
+
 <h2>Top 3 Players (Weekly Minutes)</h2>
 <ul>
   <% topPlayers.forEach(p => { %>
@@ -38,19 +40,6 @@
       <%= p.username %> - <%= p.weekly_minutes || 0 %> mins
     </li>
   <% }) %>
-</ul>
-
-<h2>Next 3 Shifts</h2>
-<ul>
-  <% if (upcomingShifts && upcomingShifts.length > 0) { %>
-    <% upcomingShifts.forEach(s => { %>
-      <li>
-        Host: <%= s.host %> | Time: <%= new Date(s.time).toLocaleString() %>
-      </li>
-    <% }) %>
-  <% } else { %>
-    <li>No upcoming shifts</li>
-  <% } %>
 </ul>
 
   <script>
