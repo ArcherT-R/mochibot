@@ -1,40 +1,10 @@
-// endpoints/database.js
 const { createClient } = require("@supabase/supabase-js");
-
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 // -------------------------
 // Players
 // -------------------------
 
-async function getAllPlayers() {
-  const { data, error } = await supabase.from("players").select("*");
-  if (error) throw error;
-  return data;
-}
-
-async function getPlayerByUsername(username) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("*")
-    .eq("username", username)
-    .single();
-  if (error && error.code !== "PGRST116") throw error;
-  return data;
-}
-
-// Search players by username (case-insensitive)
-async function searchPlayersByUsername(username) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("username, avatar_url, group_rank, weekly_minutes")
-    .ilike("username", `%${username}%`)
-    .limit(10);
-  if (error) throw error;
-  return data;
-}
-
-// Create player if not exists
 async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank }) {
   const { data: existing } = await supabase
     .from("players")
@@ -53,22 +23,18 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
   return data;
 }
 
-// -------------------------
-// Sessions / Activity
-// -------------------------
-
 async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
-  if (!roblox_id || !minutes_played || !session_start || !session_end) {
+  if (!roblox_id || minutes_played == null || !session_start || !session_end) {
     throw new Error("Missing data in logPlayerSession");
   }
 
-  // Calculate current week start (Monday 00:00)
+  // Current week start (Monday)
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
-  // Insert session into player_activity
+  // Insert session
   const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
@@ -82,7 +48,7 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
     .single();
   if (insertErr) throw insertErr;
 
-  // Aggregate total minutes for this week
+  // Aggregate weekly minutes
   const { data: weeklySessions, error: weeklyErr } = await supabase
     .from("player_activity")
     .select("minutes_played")
@@ -92,7 +58,7 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
 
   const totalWeekly = weeklySessions.reduce((sum, s) => sum + (s.minutes_played || 0), 0);
 
-  // Update weekly_minutes in players table
+  // Update player
   const { data: updatedPlayer, error: updateErr } = await supabase
     .from("players")
     .update({ weekly_minutes: totalWeekly })
@@ -104,26 +70,37 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
   return updatedPlayer;
 }
 
-// Get all sessions for a player
-async function getPlayerSessions(roblox_id) {
+async function getPlayerByUsername(username) {
   const { data, error } = await supabase
-    .from("player_activity")
+    .from("players")
     .select("*")
-    .eq("roblox_id", roblox_id)
-    .order("session_start", { ascending: false });
+    .eq("username", username)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+async function searchPlayersByUsername(username) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("username, avatar_url, group_rank, weekly_minutes")
+    .ilike("username", `%${username}%`)
+    .limit(10);
   if (error) throw error;
   return data;
 }
 
-// -------------------------
-// Exports
-// -------------------------
+async function getAllPlayers() {
+  const { data, error } = await supabase.from("players").select("*");
+  if (error) throw error;
+  return data;
+}
 
 module.exports = {
-  getAllPlayers,
-  getPlayerByUsername,
-  searchPlayersByUsername,
   createPlayerIfNotExists,
   logPlayerSession,
-  getPlayerSessions
+  getPlayerByUsername,
+  searchPlayersByUsername,
+  getAllPlayers
 };
+
