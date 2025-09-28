@@ -1,114 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title><%= player.username %> - Profile</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= player.username %> — Mochi Bar Database</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      background-color: #f5f7fa;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background-color: #f2f2f2;
     }
 
-    .top-bar {
-      background-color: #1e40af;
-      color: white;
+    /* Header */
+    header {
+      background-color: #58b4f7;
       padding: 20px;
       text-align: center;
-      font-size: 24px;
-      font-weight: bold;
     }
-
-    .container {
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 0 20px;
-    }
-
-    .player-header {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 30px;
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-    }
-
-    .player-header img {
-      border-radius: 50%;
-      width: 120px;
-      height: 120px;
-    }
-
-    .player-header h2 {
+    header h1 {
       margin: 0;
-    }
-
-    .stats-box {
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-
-    .stats-box h3 {
-      margin-top: 0;
-    }
-
-    ul.session-list {
-      list-style: none;
-      padding: 0;
-    }
-
-    ul.session-list li {
-      background: #f0f4ff;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-    }
-
-    ul.session-list li span {
+      font-size: 2rem;
+      color: black;
       font-weight: bold;
+    }
+
+    /* Main layout */
+    .container {
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    /* Box styles */
+    .box {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 15px;
+    }
+
+    .box h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+    }
+
+    /* Profile column */
+    .avatar {
+      width: 100%;
+      aspect-ratio: 1/1;
+      background-color: #ddd;
+      border-radius: 10px;
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* Activity + Shifts sections */
+    .divider {
+      height: 1px;
+      background-color: black;
+      margin: 10px 0;
+    }
+
+    .session-box {
+      background-color: #f9f9f9;
+      border-radius: 6px;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+
+    .session-box p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .scrollable {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 1000px) {
+      .container {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="top-bar"><%= player.username %> - Profile</div>
+  <!-- Header -->
+  <header>
+    <h1>Mochi Bar Database</h1>
+  </header>
 
+  <!-- Main content -->
   <div class="container">
-    <!-- Player Header -->
-    <div class="player-header">
-      <img src="<%= player.avatar_url %>" alt="<%= player.username %>">
-      <div>
-        <h2><%= player.username %></h2>
-        <p>Group Rank: <%= player.group_rank %></p>
-        <p>Weekly Minutes: <%= player.weekly_minutes %></p>
+    <!-- Column 1: User Profile -->
+    <div class="column">
+      <div class="box">
+        <h2>Username</h2>
+        <div class="avatar" style="background-image: url('<%= player.avatar_url %>');"></div>
+      </div>
+
+      <div class="box">
+        <h2>Group Rank</h2>
+        <p><%= player.group_rank || "Guest" %></p>
+      </div>
+
+      <div class="box">
+        <h2>Notes</h2>
+        <p>No notes available yet.</p>
       </div>
     </div>
 
-    <!-- Played Sessions -->
-    <div class="stats-box">
-      <h3>Played Sessions</h3>
-      <% if (sessions && sessions.length > 0) { %>
-        <ul class="session-list">
-          <% sessions.forEach(s => { %>
-            <li>
-              <span><%= new Date(s.session_start).toLocaleString() %></span>
-              <span>→</span>
-              <span><%= new Date(s.session_end).toLocaleString() %></span>
-              <span>(<%= s.minutes_played %> min)</span>
-            </li>
-          <% }) %>
-        </ul>
-      <% } else { %>
-        <p>No sessions recorded.</p>
-      <% } %>
+    <!-- Column 2: In-game Activity -->
+    <div class="column">
+      <div class="box">
+        <h2>Ongoing Session?</h2>
+        <p><%= player.ongoing_session ? "Yes" : "No" %></p>
+        <div class="divider"></div>
+        <div class="scrollable">
+          <% if (sessions.length > 0) { %>
+            <% sessions.forEach(session => { %>
+              <div class="session-box">
+                <p><strong>Start:</strong> <%= new Date(session.session_start).toLocaleString() %></p>
+                <p><strong>End:</strong> <%= new Date(session.session_end).toLocaleString() %></p>
+                <p><strong>Minutes:</strong> <%= session.minutes_played %></p>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <p>No past sessions found.</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 3: Shift Information -->
+    <div class="column">
+      <div class="box">
+        <h2>Shift Attended</h2>
+        <p>0</p>
+      </div>
+
+      <div class="box">
+        <h2>Shift Hosted</h2>
+        <div class="divider"></div>
+        <div class="scrollable">
+          <div class="session-box">
+            <p>Co/Host Shift Placeholder</p>
+          </div>
+          <div class="session-box">
+            <p>Co/Host Shift Placeholder</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </body>
