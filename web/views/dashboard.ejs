@@ -6,113 +6,134 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f6f8;
       margin: 0;
+      background-color: #f5f7fa;
     }
+
+    /* Blue top bar */
     .top-bar {
-      background-color: #1E90FF;
+      background-color: #1e40af;
       color: white;
-      padding: 15px 20px;
-      font-size: 1.5em;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
     }
+
     .container {
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 20px auto;
       padding: 0 20px;
     }
+
+    /* Search bar */
     .search-bar {
       margin-bottom: 20px;
       display: flex;
+      justify-content: center;
     }
+
     .search-bar input {
-      flex: 1;
+      width: 100%;
+      max-width: 400px;
       padding: 10px;
-      font-size: 1em;
-      border-radius: 5px 0 0 5px;
+      font-size: 16px;
+      border-radius: 6px;
       border: 1px solid #ccc;
     }
-    .search-bar button {
-      padding: 10px 15px;
-      border: none;
-      background-color: #1E90FF;
-      color: white;
-      font-size: 1em;
-      cursor: pointer;
-      border-radius: 0 5px 5px 0;
-    }
+
+    /* Player boxes */
     .players-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 20px;
     }
-    .player-card {
+
+    .player-box {
       background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
       text-align: center;
       transition: transform 0.2s;
     }
-    .player-card:hover {
+
+    .player-box:hover {
       transform: translateY(-5px);
     }
-    .player-card img {
+
+    .player-box img {
       border-radius: 50%;
+      width: 100px;
+      height: 100px;
       margin-bottom: 10px;
     }
-    .player-card h3 {
-      margin: 10px 0 5px 0;
-      font-size: 1.2em;
+
+    .player-box h3 {
+      margin: 5px 0;
+      font-size: 18px;
     }
-    .player-card p {
-      margin: 2px 0;
-      font-size: 0.95em;
+
+    .player-box p {
+      margin: 3px 0;
+      color: #555;
     }
   </style>
 </head>
 <body>
-  <div class="top-bar">Player Dashboard</div>
+  <div class="top-bar">Dashboard</div>
   <div class="container">
-
-    <!-- Search bar -->
+    <!-- Search Bar -->
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search players by username...">
-      <button onclick="performSearch()">Search</button>
+      <input type="text" id="playerSearch" placeholder="Search players...">
     </div>
 
-    <!-- Players grid -->
-    <div class="players-grid" id="playersGrid">
+    <!-- Top Players -->
+    <h2>Top Players</h2>
+    <div class="players-grid" id="topPlayers">
       <% topPlayers.forEach(player => { %>
-        <div class="player-card">
-          <img src="https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=<%= player.roblox_id %>&size=150x150&format=Png&isCircular=true" alt="<%= player.username %>">
+        <div class="player-box">
+          <img src="<%= player.avatar_url %>" alt="<%= player.username %>">
           <h3><a href="/dashboard/player/<%= player.username %>"><%= player.username %></a></h3>
           <p>Rank: <%= player.group_rank %></p>
           <p>Weekly Minutes: <%= player.weekly_minutes %></p>
         </div>
       <% }) %>
     </div>
+
+    <!-- Search Results -->
+    <h2>Search Results</h2>
+    <div class="players-grid" id="searchResults"></div>
   </div>
 
   <script>
-    async function performSearch() {
-      const query = document.getElementById('searchInput').value;
-      if (!query) return;
-      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
-      const players = await res.json();
-      const grid = document.getElementById('playersGrid');
-      grid.innerHTML = '';
-      players.forEach(player => {
-        const div = document.createElement('div');
-        div.className = 'player-card';
-        div.innerHTML = `
-          <img src="https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${player.roblox_id}&size=150x150&format=Png&isCircular=true" alt="${player.username}">
-          <h3><a href="/dashboard/player/${player.username}">${player.username}</a></h3>
-          <p>Rank: ${player.group_rank}</p>
-          <p>Weekly Minutes: ${player.weekly_minutes}</p>
-        `;
-        grid.appendChild(div);
-      });
-    }
+    const searchInput = document.getElementById('playerSearch');
+    const resultsDiv = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', async () => {
+      const query = searchInput.value.trim();
+      if (!query) {
+        resultsDiv.innerHTML = '';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+        const players = await res.json();
+
+        resultsDiv.innerHTML = players.map(player => `
+          <div class="player-box">
+            <img src="${player.avatar_url}" alt="${player.username}">
+            <h3><a href="/dashboard/player/${player.username}">${player.username}</a></h3>
+            <p>Rank: ${player.group_rank}</p>
+            <p>Weekly Minutes: ${player.weekly_minutes}</p>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error('Search error:', err);
+      }
+    });
   </script>
 </body>
 </html>
