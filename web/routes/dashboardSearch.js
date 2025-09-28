@@ -4,11 +4,21 @@ const { searchPlayersByUsername } = require("../../endpoints/database");
 
 router.get("/", async (req, res) => {
   const { username } = req.query;
-  if (!username) return res.json([]);
+  if (!username || username.length < 1) return res.json([]); // ignore empty queries
 
   try {
-    const players = await searchPlayersByUsername(username); // query Supabase only
-    res.json(players);
+    // Search players with partial match
+    const players = await searchPlayersByUsername(username);
+
+    // Map results into suggestion objects
+    const suggestions = players.map(player => ({
+      username: player.username,
+      avatar: player.avatar_url,
+      groupRank: player.group_rank,
+      weeklyMinutes: player.weekly_minutes
+    }));
+
+    res.json(suggestions);
   } catch (err) {
     console.error("Dashboard search error:", err);
     res.status(500).json([]);
@@ -16,4 +26,3 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
-
