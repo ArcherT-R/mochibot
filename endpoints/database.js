@@ -44,50 +44,43 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
 // -------------------------
 
 async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
-  if (!roblox_id || !minutes_played || !session_start || !session_end) {
-    throw new Error("Missing data in logPlayerSession");
-  }
+    if (!roblox_id || !minutes_played || !session_start || !session_end) {
+        throw new Error("Missing data in logPlayerSession");
+    }
 
-  // Calculate current week start (Monday)
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); // Monday
 
-  // 1️⃣ Insert session into player_activity
-  const { data: sessionData, error: insertErr } = await supabase
-    .from("player_activity")
-    .insert([{
-      roblox_id,
-      session_start,
-      session_end,
-      minutes_played,
-      week_start: weekStart
-    }])
-    .select()
-    .single();
-  if (insertErr) throw insertErr;
+    // Insert session
+    const { data: sessionData, error: insertErr } = await supabase
+        .from("player_activity")
+        .insert([{ roblox_id, session_start, session_end, minutes_played, week_start }])
+        .select()
+        .single();
+    if (insertErr) throw insertErr;
 
-  // 2️⃣ Calculate total minutes for this week
-  const { data: weeklySessions, error: weeklyErr } = await supabase
-    .from("player_activity")
-    .select("minutes_played")
-    .eq("roblox_id", roblox_id)
-    .eq("week_start", weekStart.toISOString())
-  if (weeklyErr) throw weeklyErr;
+    // Sum minutes for current week
+    const { data: weeklySessions, error: weeklyErr } = await supabase
+        .from("player_activity")
+        .select("minutes_played")
+        .gte("week_start", weekStart.toISOString())
+        .lt("week_start", new Date(weekStart.getTime() + 7*24*60*60*1000).toISOString());
+    if (weeklyErr) throw weeklyErr;
 
-  const totalWeekly = weeklySessions.reduce((sum, s) => sum + (s.minutes_played || 0), 0);
+    const totalWeekly = weeklySessions.reduce((sum, s) => sum + (s.minutes_played || 0), 0);
 
-  // 3️⃣ Update weekly_minutes in players table
-  const { data: updatedPlayer, error: updateErr } = await supabase
-    .from("players")
-    .update({ weekly_minutes: totalWeekly })
-    .eq("roblox_id", roblox_id)
-    .select()
-    .single();
-  if (updateErr) throw updateErr;
+    // Update weekly_minutes
+    const { data: updatedPlayer, error: updateErr } = await supabase
+        .from("players")
+        .update({ weekly_minutes: totalWeekly })
+        .eq("roblox_id", roblox_id)
+        .select()
+        .single();
+    if (updateErr) throw updateErr;
 
-  return updatedPlayer;
+    return updatedPlayer;
 }
 
 // Get all sessions for a player
