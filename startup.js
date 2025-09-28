@@ -17,7 +17,7 @@ async function main() {
     app.use(express.json()); // needed for POST endpoints
 
     // Routes
-    const dashboardRoute = require('./web/routes/dashboard'); // router exported directly
+    const dashboardRoute = require('./web/routes/dashboard')(); // ✅ CALL the exported function
     const dashboardSearchRoute = require('./web/routes/dashboardSearch');
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
