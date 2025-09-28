@@ -13,7 +13,17 @@ async function getAllPlayers() {
   return data;
 }
 
-/ Search players by username (case-insensitive)
+async function getPlayerByUsername(username) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("username", username)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+// Search players by username (case-insensitive)
 async function searchPlayersByUsername(username) {
   const { data, error } = await supabase
     .from("players")
@@ -52,13 +62,13 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
     throw new Error("Missing data in logPlayerSession");
   }
 
-  // 1️⃣ Calculate current week start (Monday 00:00)
+  // Calculate current week start (Monday 00:00)
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
-  // 2️⃣ Insert session into player_activity
+  // Insert session into player_activity
   const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
@@ -72,7 +82,7 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
     .single();
   if (insertErr) throw insertErr;
 
-  // 3️⃣ Aggregate total minutes for this week
+  // Aggregate total minutes for this week
   const { data: weeklySessions, error: weeklyErr } = await supabase
     .from("player_activity")
     .select("minutes_played")
@@ -82,7 +92,7 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
 
   const totalWeekly = weeklySessions.reduce((sum, s) => sum + (s.minutes_played || 0), 0);
 
-  // 4️⃣ Update weekly_minutes in players table
+  // Update weekly_minutes in players table
   const { data: updatedPlayer, error: updateErr } = await supabase
     .from("players")
     .update({ weekly_minutes: totalWeekly })
@@ -112,6 +122,7 @@ async function getPlayerSessions(roblox_id) {
 module.exports = {
   getAllPlayers,
   getPlayerByUsername,
+  searchPlayersByUsername,
   createPlayerIfNotExists,
   logPlayerSession,
   getPlayerSessions
