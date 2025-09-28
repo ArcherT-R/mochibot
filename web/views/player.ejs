@@ -1,106 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= player.username %> - Mochi Bar Database</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-    }
-
-    header {
-      background-color: #6cb4ee;
-      color: black;
-      padding: 20px;
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-    }
-
-    .container {
-      display: flex;
-      padding: 20px;
-      gap: 20px;
-    }
-
-    .column {
-      background-color: white;
-      flex: 1;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .column h2 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      border-bottom: 2px solid #000;
-      padding-bottom: 5px;
-    }
-
-    .box {
-      background-color: #f9f9f9;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-
-    .avatar {
-      width: 100%;
-      height: auto;
-      border-radius: 8px;
-      margin-bottom: 10px;
-    }
-
-    .session-item {
-      margin-bottom: 5px;
-      padding: 5px;
-      background-color: #e2f0ff;
-      border-radius: 4px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= player.username %> - Mochi Bar</title>
+<style>
+  body { font-family: Arial; background: #f0f0f0; margin:0; padding:0; }
+  header { background: #6cb4ee; padding: 20px; text-align:center; font-size:24px; font-weight:bold; }
+  .container { max-width: 1200px; margin:auto; padding:20px; display:flex; gap:20px; }
+  .column { background:white; padding:15px; border-radius:8px; flex:1; }
+  .column h3 { margin-top:0; border-bottom:2px solid #000; padding-bottom:5px; }
+  .avatar { width:150px; height:150px; border-radius:50%; margin-bottom:10px; }
+  .box { background:#e9e9e9; padding:10px; border-radius:6px; margin-bottom:10px; }
+  .session-box { background:#f5f5f5; padding:8px; border-radius:6px; margin-bottom:6px; }
+</style>
 </head>
 <body>
-  <header>Mochi Bar Database</header>
-  <div class="container">
-    <!-- Column 1: Profile -->
-    <div class="column">
-      <h2>Profile</h2>
-      <div class="box">Username: <%= player.username %></div>
-      <img class="avatar" src="<%= player.avatar_url %>" alt="Avatar" />
-      <div class="box">Group Rank: <%= player.group_rank %></div>
-      <div class="box">Weekly Minutes: <%= player.weekly_minutes %></div>
-    </div>
 
-    <!-- Column 2: Activity -->
-    <div class="column">
-      <h2>Sessions</h2>
-      <% if (player.sessions && player.sessions.length > 0) { %>
-        <% player.sessions.forEach(s => { %>
-          <div class="session-item">
-            <strong>Start:</strong> <%= new Date(s.session_start).toLocaleString() %><br />
-            <strong>End:</strong> <%= new Date(s.session_end).toLocaleString() %><br />
-            <strong>Minutes:</strong> <%= s.minutes_played %>
-          </div>
-        <% }) %>
-      <% } else { %>
-        <div class="box">No sessions recorded.</div>
-      <% } %>
-    </div>
+<header>Mochi Bar - <%= player.username %></header>
 
-    <!-- Column 3: Shifts -->
-    <div class="column">
-      <h2>Shifts</h2>
-      <div class="box">Shift Attended</div>
-      <div class="box">Shift Hosted</div>
-      <hr />
-      <div class="box">Co/Host of Shift</div>
-      <div class="box">Co/Host of Shift</div>
-    </div>
+<div class="container">
+
+  <!-- Column 1: Profile -->
+  <div class="column">
+    <h3>Profile</h3>
+    <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar">
+    <div class="box"><strong>Username:</strong> <%= player.username %></div>
+    <div class="box"><strong>Group Rank:</strong> <%= player.group_rank %></div>
+    <div class="box"><strong>Notes:</strong> ...</div>
   </div>
+
+  <!-- Column 2: Sessions -->
+  <div class="column">
+    <h3>Sessions</h3>
+    <% if (sessions && sessions.length > 0) { %>
+      <% sessions.forEach(s => { %>
+        <div class="session-box">
+          <strong>Start:</strong> <%= new Date(s.session_start).toLocaleString() %><br>
+          <strong>End:</strong> <%= new Date(s.session_end).toLocaleString() %><br>
+          <strong>Minutes Played:</strong> <%= s.minutes_played %>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <div class="session-box">No sessions found.</div>
+    <% } %>
+  </div>
+
+  <!-- Column 3: Shifts -->
+  <div class="column">
+    <h3>Shifts</h3>
+    <div class="box">Shift Attended: ...</div>
+    <div class="box">Shift Hosted: ...</div>
+  </div>
+
+</div>
+
 </body>
 </html>
