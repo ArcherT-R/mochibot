@@ -1,19 +1,43 @@
-<h1><%= player.username %>'s Profile</h1>
-<img src="<%= player.avatar_url %>" width="100" height="100">
-<p>Group Rank: <%= player.group_rank %></p>
-<p>Weekly Minutes: <%= player.weekly_minutes || 0 %></p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= player.username %> - Player Profile</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Player Profile: <%= player.username %></h1>
+  </header>
 
-<h2>Sessions</h2>
-<ul>
-  <% if (sessions && sessions.length > 0) { %>
-    <% sessions.forEach(s => { %>
-      <li>
-        <%= new Date(s.session_start).toLocaleString() %> - 
-        <%= new Date(s.session_end).toLocaleString() %> :
-        <%= s.minutes_played %> mins
-      </li>
-    <% }) %>
-  <% } else { %>
-    <li>No sessions logged</li>
-  <% } %>
-</ul>
+  <section>
+    <div class="player-info">
+      <img src="<%= player.avatar_url %>" alt="<%= player.username %>" width="100" height="100">
+      <ul>
+        <li><strong>Username:</strong> <%= player.username %></li>
+        <li><strong>Group Rank:</strong> <%= player.group_rank || 'No rank' %></li>
+        <li><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %> min</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sessions</h2>
+    <ul>
+      <% if (sessions && sessions.length > 0) { %>
+        <% sessions.forEach(s => { %>
+          <li>
+            <strong>Start:</strong> <%= new Date(s.session_start).toLocaleString() %> |
+            <strong>End:</strong> <%= new Date(s.session_end).toLocaleString() %> |
+            <strong>Minutes Played:</strong> <%= s.minutes_played %>
+          </li>
+        <% }) %>
+      <% } else { %>
+        <li>No sessions recorded.</li>
+      <% } %>
+    </ul>
+  </section>
+
+  <a href="/dashboard">← Back to Dashboard</a>
+</body>
+</html>
