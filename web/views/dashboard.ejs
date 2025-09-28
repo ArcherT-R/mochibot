@@ -1,95 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Dashboard</title>
-  <style>
-    #suggestions {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ccc;
-      max-height: 200px;
-      overflow-y: auto;
-      display: none;
-      z-index: 1000;
-    }
-
-    #suggestions li {
-      padding: 5px 10px;
-      cursor: pointer;
-    }
-
-    #suggestions li:hover {
-      background-color: #f0f0f0;
-    }
-  </style>
-</head>
-<body>
-  <h1>Dashboard</h1>
-
-  <!-- Search Box -->
-  <div style="position: relative; width: 300px;">
-    <input type="text" id="playerSearch" placeholder="Search player..." autocomplete="off" style="width: 100%; padding: 8px;">
-    <ul id="suggestions"></ul>
-  </div>
-
-  <!-- Top Players -->
-  <h2>Top Players</h2>
-  <ul>
-    <% topPlayers.forEach(player => { %>
-      <li><%= player.username %> - Weekly Minutes: <%= player.weekly_minutes || 0 %></li>
-    <% }) %>
-  </ul>
-
+  <link rel="stylesheet" href="/styles.css">
   <script>
-    const input = document.getElementById("playerSearch");
-    const suggestions = document.getElementById("suggestions");
+    async function searchPlayers() {
+      const input = document.getElementById('player-search').value.trim();
+      const resultsContainer = document.getElementById('search-results');
+      resultsContainer.innerHTML = '';
 
-    input.addEventListener("input", async () => {
-      const query = input.value.trim();
-      if (!query) {
-        suggestions.style.display = "none";
-        suggestions.innerHTML = "";
-        return;
-      }
+      if (!input) return;
 
       try {
-        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
-        const data = await res.json();
+        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(input)}`);
+        const players = await res.json();
 
-        if (data.length === 0) {
-          suggestions.style.display = "none";
-          suggestions.innerHTML = "";
+        if (players.length === 0) {
+          resultsContainer.innerHTML = '<li>No results found</li>';
           return;
         }
 
-        suggestions.innerHTML = "";
-        data.forEach(player => {
-          const li = document.createElement("li");
-          li.textContent = player.username;
-          li.addEventListener("click", () => {
-            window.location.href = `/dashboard/player/${player.username}`;
-          });
-          suggestions.appendChild(li);
+        players.forEach(p => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <a href="/dashboard/player/${p.username}">
+              <img src="${p.avatar_url}" alt="${p.username}" width="30" height="30">
+              ${p.username} (${p.group_rank || 'No rank'})
+            </a>
+          `;
+          resultsContainer.appendChild(li);
         });
-        suggestions.style.display = "block";
       } catch (err) {
-        console.error("Error fetching suggestions:", err);
+        console.error('Search error:', err);
+        resultsContainer.innerHTML = '<li>Error fetching results</li>';
       }
-    });
-
-    // Hide suggestions if clicked outside
-    document.addEventListener("click", (e) => {
-      if (!input.contains(e.target)) {
-        suggestions.style.display = "none";
-      }
-    });
+    }
   </script>
+</head>
+<body>
+  <header>
+    <h1>Dashboard</h1>
+  </header>
+
+  <section>
+    <h2>Top Players</h2>
+    <ul>
+      <% if (topPlayers && topPlayers.length > 0) { %>
+        <% topPlayers.forEach(player => { %>
+          <li>
+            <a href="/dashboard/player/<%= player.username %>">
+              <img src="<%= player.avatar_url %>" alt="<%= player.username %>" width="50" height="50">
+              <strong><%= player.username %></strong> - <%= player.weekly_minutes || 0 %> min this week
+            </a>
+          </li>
+        <% }) %>
+      <% } else { %>
+        <li>No players to display</li>
+      <% } %>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Search Players</h2>
+    <input
+      type="text"
+      id="player-search"
+      placeholder="Search by username..."
+      oninput="searchPlayers()"
+      autocomplete="off"
+    >
+    <ul id="search-results"></ul>
+  </section>
 </body>
 </html>
