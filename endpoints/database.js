@@ -32,20 +32,21 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
   return data;
 }
 
-// ✅ Log a play session
+// endpoints/database.js
+
 async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
   if (!roblox_id || minutes_played == null || !session_start || !session_end) {
     throw new Error("Missing data in logPlayerSession");
   }
 
-  // Calculate week start (Monday 00:00)
+  // 1️⃣ Calculate current week start (Monday 00:00)
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
-  // Insert session
-  const { error: insertErr } = await supabase
+  // 2️⃣ Insert new session record into player_activity
+  const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
       roblox_id,
@@ -53,33 +54,34 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
       session_end,
       minutes_played,
       week_start: weekStart
-    }]);
-
+    }])
+    .select()
+    .single();
   if (insertErr) throw insertErr;
 
-  // Aggregate weekly minutes
+  // 3️⃣ Calculate the new total weekly minutes
   const { data: weeklySessions, error: weeklyErr } = await supabase
     .from("player_activity")
     .select("minutes_played")
     .eq("roblox_id", roblox_id)
     .gte("week_start", weekStart.toISOString());
-
   if (weeklyErr) throw weeklyErr;
 
-  const totalWeekly = weeklySessions.reduce(
+  const totalWeekly = (weeklySessions || []).reduce(
     (sum, s) => sum + (s.minutes_played || 0),
     0
   );
 
-  // Update player weekly minutes
+  // 4️⃣ Update the player's weekly_minutes in the players table
   const { data: updatedPlayer, error: updateErr } = await supabase
     .from("players")
     .update({ weekly_minutes: totalWeekly })
     .eq("roblox_id", roblox_id)
     .select()
     .single();
-
   if (updateErr) throw updateErr;
+
+  // 5️⃣ Return the updated player row (including weekly_minutes)
   return updatedPlayer;
 }
 
