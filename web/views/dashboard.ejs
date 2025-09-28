@@ -4,73 +4,37 @@
   <meta charset="UTF-8">
   <title>Dashboard</title>
   <link rel="stylesheet" href="/styles.css">
-  <script>
-    async function searchPlayers() {
-      const input = document.getElementById('player-search').value.trim();
-      const resultsContainer = document.getElementById('search-results');
-      resultsContainer.innerHTML = '';
-
-      if (!input) return;
-
-      try {
-        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(input)}`);
-        const players = await res.json();
-
-        if (players.length === 0) {
-          resultsContainer.innerHTML = '<li>No results found</li>';
-          return;
-        }
-
-        players.forEach(p => {
-          const li = document.createElement('li');
-          li.innerHTML = `
-            <a href="/dashboard/player/${p.username}">
-              <img src="${p.avatar_url}" alt="${p.username}" width="30" height="30">
-              ${p.username} (${p.group_rank || 'No rank'})
-            </a>
-          `;
-          resultsContainer.appendChild(li);
-        });
-      } catch (err) {
-        console.error('Search error:', err);
-        resultsContainer.innerHTML = '<li>Error fetching results</li>';
-      }
-    }
-  </script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f0f2f5; }
+    header { background-color: #007BFF; color: white; padding: 20px; text-align: center; }
+    h1 { margin: 0; }
+    .container { padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+    .card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 20px; width: 250px; text-align: center; }
+    .card img { border-radius: 50%; margin-bottom: 10px; }
+    .card h3 { margin: 10px 0 5px 0; }
+    .card p { margin: 5px 0; }
+    a { text-decoration: none; color: #007BFF; }
+  </style>
 </head>
 <body>
   <header>
-    <h1>Dashboard</h1>
+    <h1>Player Dashboard</h1>
   </header>
 
-  <section>
-    <h2>Top Players</h2>
-    <ul>
-      <% if (topPlayers && topPlayers.length > 0) { %>
-        <% topPlayers.forEach(player => { %>
-          <li>
-            <a href="/dashboard/player/<%= player.username %>">
-              <img src="<%= player.avatar_url %>" alt="<%= player.username %>" width="50" height="50">
-              <strong><%= player.username %></strong> - <%= player.weekly_minutes || 0 %> min this week
-            </a>
-          </li>
-        <% }) %>
-      <% } else { %>
-        <li>No players to display</li>
-      <% } %>
-    </ul>
-  </section>
-
-  <section>
-    <h2>Search Players</h2>
-    <input
-      type="text"
-      id="player-search"
-      placeholder="Search by username..."
-      oninput="searchPlayers()"
-      autocomplete="off"
-    >
-    <ul id="search-results"></ul>
-  </section>
+  <div class="container">
+    <% if (topPlayers && topPlayers.length > 0) { %>
+      <% topPlayers.forEach(player => { %>
+        <div class="card">
+          <img src="<%= player.avatar_url %>" alt="<%= player.username %>" width="80" height="80">
+          <h3><%= player.username %></h3>
+          <p><strong>Rank:</strong> <%= player.group_rank || 'N/A' %></p>
+          <p><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %> min</p>
+          <a href="/dashboard/player/<%= player.username %>">View Profile</a>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <p>No players to display.</p>
+    <% } %>
+  </div>
 </body>
 </html>
