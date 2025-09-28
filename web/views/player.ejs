@@ -1,168 +1,156 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+  <title>Mochi Bar Database - Player</title>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title><%= player.username %> — Mochi Bar Database</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      background-color: #f2f2f2;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
     }
 
     /* Header */
     header {
-      background-color: #58b4f7;
+      background-color: #5bc0de;
       padding: 20px;
       text-align: center;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 2rem;
       color: black;
+      font-size: 2rem;
       font-weight: bold;
     }
 
-    /* Main layout */
+    /* Grid Layout */
     .container {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
       padding: 20px;
       max-width: 1400px;
       margin: 0 auto;
+      box-sizing: border-box;
     }
 
+    /* Column Sections */
     .column {
-      flex: 1;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      align-items: center;
+      min-height: 600px; /* ensures all columns look even */
     }
 
-    /* Box styles */
-    .box {
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 15px;
-    }
-
-    .box h2 {
-      margin-top: 0;
-      font-size: 1.1rem;
-      margin-bottom: 10px;
-    }
-
-    /* Profile column */
-    .avatar {
+    .section {
       width: 100%;
-      aspect-ratio: 1/1;
-      background-color: #ddd;
-      border-radius: 10px;
-      background-size: cover;
-      background-position: center;
+      background-color: #f7f7f7;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 15px;
+      box-sizing: border-box;
     }
 
-    /* Activity + Shifts sections */
-    .divider {
-      height: 1px;
-      background-color: black;
+    .section img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 10px;
+      background-color: #ddd;
+    }
+
+    .section h3 {
+      margin: 5px 0;
+      font-size: 1.1rem;
+    }
+
+    hr {
+      width: 100%;
+      border: none;
+      border-top: 2px solid black;
       margin: 10px 0;
     }
 
-    .session-box {
-      background-color: #f9f9f9;
-      border-radius: 6px;
-      padding: 10px;
-      border: 1px solid #ddd;
-    }
-
-    .session-box p {
-      margin: 0;
-      font-size: 0.9rem;
-    }
-
-    .scrollable {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
+    /* Responsive */
     @media (max-width: 1000px) {
       .container {
-        flex-direction: column;
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
+
   <header>
-    <h1>Mochi Bar Database</h1>
+    Mochi Bar Database
   </header>
 
-  <!-- Main content -->
   <div class="container">
     <!-- Column 1: User Profile -->
     <div class="column">
-      <div class="box">
-        <h2>Username</h2>
-        <div class="avatar" style="background-image: url('<%= player.avatar_url %>');"></div>
+      <div class="section">
+        <h3>Username</h3>
+        <img src="<%= player.avatar_url || '' %>" alt="Avatar" />
       </div>
 
-      <div class="box">
-        <h2>Group Rank</h2>
-        <p><%= player.group_rank || "Guest" %></p>
+      <div class="section">
+        <h3>Group Rank</h3>
+        <p><%= player.group_rank || 'Guest' %></p>
       </div>
 
-      <div class="box">
-        <h2>Notes</h2>
-        <p>No notes available yet.</p>
+      <div class="section">
+        <h3>Notes</h3>
+        <p>No notes available.</p>
       </div>
     </div>
 
     <!-- Column 2: In-game Activity -->
     <div class="column">
-      <div class="box">
-        <h2>Ongoing Session?</h2>
-        <p><%= player.ongoing_session ? "Yes" : "No" %></p>
-        <div class="divider"></div>
-        <div class="scrollable">
-          <% if (sessions.length > 0) { %>
-            <% sessions.forEach(session => { %>
-              <div class="session-box">
-                <p><strong>Start:</strong> <%= new Date(session.session_start).toLocaleString() %></p>
-                <p><strong>End:</strong> <%= new Date(session.session_end).toLocaleString() %></p>
-                <p><strong>Minutes:</strong> <%= session.minutes_played %></p>
-              </div>
-            <% }) %>
-          <% } else { %>
-            <p>No past sessions found.</p>
-          <% } %>
-        </div>
+      <div class="section">
+        <h3>Ongoing session? If so put here</h3>
       </div>
+
+      <hr>
+
+      <% if (player.sessions && player.sessions.length > 0) { %>
+        <% player.sessions.forEach(session => { %>
+          <div class="section">
+            <h3>Past session</h3>
+            <p><%= new Date(session.start).toLocaleString() %> → <%= new Date(session.end).toLocaleString() %></p>
+            <p><strong><%= session.minutes_played %> minutes</strong></p>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <div class="section">
+          <p>No past sessions recorded.</p>
+        </div>
+      <% } %>
     </div>
 
     <!-- Column 3: Shift Information -->
     <div class="column">
-      <div class="box">
-        <h2>Shift Attended</h2>
+      <div class="section">
+        <h3>Shift Attended</h3>
         <p>0</p>
       </div>
 
-      <div class="box">
-        <h2>Shift Hosted</h2>
-        <div class="divider"></div>
-        <div class="scrollable">
-          <div class="session-box">
-            <p>Co/Host Shift Placeholder</p>
-          </div>
-          <div class="session-box">
-            <p>Co/Host Shift Placeholder</p>
-          </div>
-        </div>
+      <div class="section">
+        <h3>Shift Hosted</h3>
+        <p>0</p>
+      </div>
+
+      <hr>
+
+      <div class="section">
+        <h3>Shift Co/Host</h3>
+        <p>No hosted shifts found.</p>
       </div>
     </div>
   </div>
+
 </body>
 </html>
