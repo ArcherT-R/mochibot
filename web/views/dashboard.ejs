@@ -9,6 +9,15 @@
     header { background-color: #007BFF; color: white; padding: 20px; text-align: center; }
     h1 { margin: 0; }
     .container { padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+
+    /* Search */
+    .search-box { width: 100%; max-width: 400px; margin: 20px auto; position: relative; }
+    .search-box input { width: 100%; padding: 10px 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+    .suggestions { position: absolute; top: 45px; width: 100%; background: white; border: 1px solid #ccc; border-radius: 5px; max-height: 200px; overflow-y: auto; z-index: 100; }
+    .suggestion-item { padding: 10px; cursor: pointer; }
+    .suggestion-item:hover { background-color: #f0f0f0; }
+
+    /* Player Cards */
     .card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 20px; width: 250px; text-align: center; }
     .card img { border-radius: 50%; margin-bottom: 10px; }
     .card h3 { margin: 10px 0 5px 0; }
@@ -21,7 +30,13 @@
     <h1>Player Dashboard</h1>
   </header>
 
-  <div class="container">
+  <!-- Search Box -->
+  <div class="search-box">
+    <input type="text" id="player-search" placeholder="Search players...">
+    <div class="suggestions" id="suggestions" style="display:none;"></div>
+  </div>
+
+  <div class="container" id="player-container">
     <% if (topPlayers && topPlayers.length > 0) { %>
       <% topPlayers.forEach(player => { %>
         <div class="card">
@@ -36,5 +51,51 @@
       <p>No players to display.</p>
     <% } %>
   </div>
+
+  <script>
+    const searchInput = document.getElementById('player-search');
+    const suggestionsBox = document.getElementById('suggestions');
+    const container = document.getElementById('player-container');
+
+    searchInput.addEventListener('input', async () => {
+      const query = searchInput.value.trim();
+      if (!query) {
+        suggestionsBox.style.display = 'none';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+        const players = await res.json();
+
+        suggestionsBox.innerHTML = '';
+        if (players.length > 0) {
+          players.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.textContent = p.username;
+            div.addEventListener('click', () => {
+              window.location.href = `/dashboard/player/${p.username}`;
+            });
+            suggestionsBox.appendChild(div);
+          });
+          suggestionsBox.style.display = 'block';
+        } else {
+          suggestionsBox.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Search error:', err);
+        suggestionsBox.style.display = 'none';
+      }
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.search-box')) {
+        suggestionsBox.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
+
