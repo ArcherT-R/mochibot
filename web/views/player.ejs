@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Mochi Bar Database - Player</title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= player.username %> - Mochi Bar Database</title>
   <style>
     body {
       margin: 0;
@@ -11,146 +11,96 @@
       background-color: #f0f0f0;
     }
 
-    /* Header */
     header {
-      background-color: #5bc0de;
+      background-color: #6cb4ee;
+      color: black;
       padding: 20px;
       text-align: center;
-      color: black;
-      font-size: 2rem;
+      font-size: 24px;
       font-weight: bold;
     }
 
-    /* Grid Layout */
     .container {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      display: flex;
       padding: 20px;
-      max-width: 1400px;
-      margin: 0 auto;
-      box-sizing: border-box;
+      gap: 20px;
     }
 
-    /* Column Sections */
     .column {
       background-color: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 600px; /* ensures all columns look even */
-    }
-
-    .section {
-      width: 100%;
-      background-color: #f7f7f7;
-      border: 1px solid #ccc;
+      flex: 1;
+      padding: 15px;
       border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .column h2 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 5px;
+    }
+
+    .box {
+      background-color: #f9f9f9;
       padding: 10px;
-      text-align: center;
-      margin-bottom: 15px;
-      box-sizing: border-box;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    .section img {
-      width: 150px;
-      height: 150px;
-      object-fit: cover;
-      border-radius: 10px;
-      background-color: #ddd;
-    }
-
-    .section h3 {
-      margin: 5px 0;
-      font-size: 1.1rem;
-    }
-
-    hr {
+    .avatar {
       width: 100%;
-      border: none;
-      border-top: 2px solid black;
-      margin: 10px 0;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 10px;
     }
 
-    /* Responsive */
-    @media (max-width: 1000px) {
-      .container {
-        grid-template-columns: 1fr;
-      }
+    .session-item {
+      margin-bottom: 5px;
+      padding: 5px;
+      background-color: #e2f0ff;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-
-  <header>
-    Mochi Bar Database
-  </header>
-
+  <header>Mochi Bar Database</header>
   <div class="container">
-    <!-- Column 1: User Profile -->
+    <!-- Column 1: Profile -->
     <div class="column">
-      <div class="section">
-        <h3>Username</h3>
-        <img src="<%= player.avatar_url || '' %>" alt="Avatar" />
-      </div>
-
-      <div class="section">
-        <h3>Group Rank</h3>
-        <p><%= player.group_rank || 'Guest' %></p>
-      </div>
-
-      <div class="section">
-        <h3>Notes</h3>
-        <p>No notes available.</p>
-      </div>
+      <h2>Profile</h2>
+      <div class="box">Username: <%= player.username %></div>
+      <img class="avatar" src="<%= player.avatar_url %>" alt="Avatar" />
+      <div class="box">Group Rank: <%= player.group_rank %></div>
+      <div class="box">Weekly Minutes: <%= player.weekly_minutes %></div>
     </div>
 
-    <!-- Column 2: In-game Activity -->
+    <!-- Column 2: Activity -->
     <div class="column">
-      <div class="section">
-        <h3>Ongoing session? If so put here</h3>
-      </div>
-
-      <hr>
-
+      <h2>Sessions</h2>
       <% if (player.sessions && player.sessions.length > 0) { %>
-        <% player.sessions.forEach(session => { %>
-          <div class="section">
-            <h3>Past session</h3>
-            <p><%= new Date(session.start).toLocaleString() %> → <%= new Date(session.end).toLocaleString() %></p>
-            <p><strong><%= session.minutes_played %> minutes</strong></p>
+        <% player.sessions.forEach(s => { %>
+          <div class="session-item">
+            <strong>Start:</strong> <%= new Date(s.session_start).toLocaleString() %><br />
+            <strong>End:</strong> <%= new Date(s.session_end).toLocaleString() %><br />
+            <strong>Minutes:</strong> <%= s.minutes_played %>
           </div>
         <% }) %>
       <% } else { %>
-        <div class="section">
-          <p>No past sessions recorded.</p>
-        </div>
+        <div class="box">No sessions recorded.</div>
       <% } %>
     </div>
 
-    <!-- Column 3: Shift Information -->
+    <!-- Column 3: Shifts -->
     <div class="column">
-      <div class="section">
-        <h3>Shift Attended</h3>
-        <p>0</p>
-      </div>
-
-      <div class="section">
-        <h3>Shift Hosted</h3>
-        <p>0</p>
-      </div>
-
-      <hr>
-
-      <div class="section">
-        <h3>Shift Co/Host</h3>
-        <p>No hosted shifts found.</p>
-      </div>
+      <h2>Shifts</h2>
+      <div class="box">Shift Attended</div>
+      <div class="box">Shift Hosted</div>
+      <hr />
+      <div class="box">Co/Host of Shift</div>
+      <div class="box">Co/Host of Shift</div>
     </div>
   </div>
-
 </body>
 </html>
