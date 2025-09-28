@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getAllPlayers, getUpcomingShifts } = require("../../endpoints/database");
+const { getAllPlayers } = require("../../endpoints/database");
 
 module.exports = () => {
   router.get("/", async (req, res) => {
@@ -12,9 +12,7 @@ module.exports = () => {
         .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
         .slice(0, 3);
 
-      const upcomingShifts = await getUpcomingShifts();
-
-      res.render("dashboard", { topPlayers, upcomingShifts });
+      res.render("dashboard", { topPlayers });
     } catch (err) {
       console.error("Error loading dashboard:", err);
       res.status(500).send("Internal Server Error");
