@@ -81,7 +81,7 @@
     <!-- Top Players -->
     <% topPlayers.forEach(player => { %>
       <div class="card">
-        <img src="https://tr.rbxcdn.com/<%= player.roblox_id %>/150/150/AvatarHeadshot.png" width="80" height="80" alt="<%= player.username %>">
+        <img src="https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=<%= player.roblox_id %>&size=150x150&format=Png&isCircular=true" alt="<%= player.username %>">
         <div class="player-name"><%= player.username %></div>
         <div>Group Rank: <%= player.group_rank %></div>
         <div>Minutes This Week: <%= player.weekly_minutes || 0 %></div>
