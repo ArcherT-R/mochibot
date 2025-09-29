@@ -8,40 +8,38 @@
 <style>
   body {
     font-family: 'Roboto', sans-serif;
-    background: #f0f0f0; /* Changed background to match mockups */
+    background: #ffffff; /* Original White Background */
     margin: 0;
     padding: 0;
-    color: #333; /* Darker text */
+    color: #000;
   }
 
   header {
-    background: #6cb4ee; /* Changed header to match mockups */
+    background: #42b4ff; /* Original Blue Header */
     color: black;
     font-weight: 700;
-    font-size: 38px; /* Adjusted size */
-    padding: 25px 20px; /* Adjusted padding */
+    font-size: 48px;
+    padding: 25px 40px;
     text-align: left;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Added subtle shadow */
+    border-bottom: 2px solid #b267f7; /* Original Purple Border */
   }
 
   .container {
-    max-width: 1100px; /* Adjusted max width */
+    max-width: 1400px; /* Original Max Width */
     margin: 30px auto;
     display: flex;
     justify-content: space-between;
-    gap: 25px; /* Adjusted gap */
+    gap: 40px; /* Original Gap */
     padding: 0 20px;
     flex-wrap: wrap;
   }
 
   .column {
-    background: #e0e0e0; /* Main grey column container background */
+    background: #e0e0e0; /* Original Column Background */
     flex: 1;
-    min-width: 280px; /* Adjusted min width */
-    padding: 15px; /* Adjusted padding */
+    min-width: 300px;
+    padding: 20px;
     box-sizing: border-box;
-    border-radius: 4px; /* Added border radius */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .column h3 {
@@ -49,18 +47,16 @@
     font-size: 22px;
     font-weight: 700;
     margin: 0 0 15px;
-    color: #333;
   }
 
   .avatar-container {
-    background: #c0c0c0; /* Darker grey block */
+    background: #c0c0c0; /* Original Avatar Block Background */
     width: 100%;
     height: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 15px;
-    border-radius: 4px;
   }
 
   .avatar {
@@ -68,33 +64,19 @@
     height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #6cb4ee; /* Changed border color */
+    border: 3px solid #42b4ff; /* Original Blue Border */
   }
 
   .content-block {
-    background: #c0c0c0; /* Darker grey block */
-    padding: 12px 15px; /* Adjusted padding */
-    text-align: left; /* Changed to left align for data blocks */
+    background: #c0c0c0; /* Original Content Block Background */
+    padding: 10px;
+    text-align: center;
     font-size: 16px;
     margin-bottom: 15px;
-    font-weight: bold; /* Bold main text */
+    font-weight: 500;
     word-wrap: break-word;
-    border-radius: 4px;
-    color: #000;
   }
-    /* Style for the detail text inside the content block */
-    .content-block span {
-        font-weight: normal;
-        display: block;
-        margin-top: 2px;
-        font-size: 0.9em;
-    }
-    .content-block p {
-        margin: 0;
-        font-weight: normal;
-        font-size: 1em;
-    }
-    
+
   .content-block.clickable:hover {
     background: #b6b6b6;
     cursor: pointer;
@@ -112,10 +94,10 @@
     padding-right: 5px;
   }
     
-    /* NEW: Shift specific styles */
+    /* NEW: Styles for the dynamically added shift blocks */
     .shift-role-indicator {
         font-weight: bold;
-        color: #6cb4ee; /* Blue highlight */
+        color: #42b4ff; /* Using original header blue for highlight */
         display: block;
         margin-bottom: 5px;
     }
@@ -130,14 +112,51 @@
         padding-right: 10px;
     }
 
+  /* Modal Styling */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+  }
 
-  /* Modal Styling (kept simple) */
-  .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-  .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 400px; border-radius: 6px; }
-  .modal-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 10px; }
-  .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
-  .close:hover { color: black; }
-  #live-time { font-weight: 700; color: #28a745; }
+  .modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 400px;
+    border-radius: 6px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .close:hover {
+    color: black;
+  }
+
+  #live-time {
+    font-weight: 700;
+    color: #28a745;
+  }
 </style>
 </head>
 <body>
@@ -151,9 +170,9 @@
     <div class="avatar-container">
       <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar" onerror="this.src='https://placehold.co/120x120/e0e6f0/5f6c7b?text=Error';">
     </div>
-    <div class="content-block" style="text-align: center;"><strong><%= player.username %></strong></div>
-    <div class="content-block"><strong>Group Rank:</strong> <span><%= player.group_rank %></span></div>
-    <div class="content-block"><strong>Notes:</strong> <span><%= player.notes || 'No notes available.' %></span></div>
+    <div class="content-block"><strong><%= player.username %></strong></div>
+    <div class="content-block"><strong>Group Rank:</strong> <%= player.group_rank %></div>
+    <div class="content-block"><strong>Notes:</strong> <%= player.notes || 'No notes available.' %></div>
   </div>
 
     <div class="column">
@@ -163,14 +182,14 @@
        const startTimeString = ongoingSession.session_start_time;
        const startTime = startTimeString ? new Date(startTimeString).getTime() : Date.now();
     %>
-      <div class="content-block" id="ongoing-session-box" style="text-align: center;">
+      <div class="content-block" id="ongoing-session-box">
         <strong>Ongoing session? If so put here</strong><br>
         <span style="font-weight: normal;">Start: <%= new Date(startTime).toLocaleTimeString() %></span><br>
         <div style="margin-top: 5px;">Time: <span id="live-time">00:00:00</span></div>
         <input type="hidden" id="session-start-time" value="<%= startTime %>">
       </div>
     <% } else { %>
-      <div class="content-block" style="text-align: center;">No ongoing session</div>
+      <div class="content-block">No ongoing session</div>
     <% } %>
 
     <hr>
@@ -184,7 +203,7 @@
           </div>
         <% }) %>
       <% } else { %>
-        <div class="content-block" style="text-align: center;">No past sessions.</div>
+        <div class="content-block">No past sessions.</div>
       <% } %>
     </div>
   </div>
@@ -192,16 +211,16 @@
     <div class="column">
     <h3>Shifts</h3>
     <div class="content-block">
-      <strong>Shift Attended:</strong> <span><%= shifts.attended || 0 %></span>
+      <strong>Shift Attended:</strong> <%= shifts.attended || 0 %>
     </div>
     <div class="content-block">
-      <strong>Shift Hosted:</strong> <span><%= shifts.hosted || 0 %></span>
+      <strong>Shift Hosted:</strong> <%= shifts.hosted || 0 %>
     </div>
     <hr>
     
     <div id="upcoming-shifts-container">
         <div id="upcoming-shifts-list">
-            <div class="content-block" style="text-align: center; font-weight: normal;">Loading scheduled shifts...</div>
+            <div class="content-block">Loading scheduled shifts...</div>
         </div>
     </div>
   </div>
@@ -227,6 +246,7 @@
   const allSessions = JSON.parse('<%- JSON.stringify(sessions || []) %>');
   const modal = document.getElementById('sessionModal');
   const playerUsername = "<%= player.username %>";
+  // Normalize the player's username (remove spaces, lowercase) for consistent comparison with Discord data
   const normalizedPlayerName = playerUsername.replace(/\s/g, '').toLowerCase();
 
 
@@ -282,15 +302,15 @@
 
     async function loadPlayerShiftsFromDiscord() {
         const upcomingList = document.getElementById('upcoming-shifts-list');
-        upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal;">Fetching Discord data...</div>';
+        upcomingList.innerHTML = '<div class="content-block">Fetching Discord data...</div>';
 
         try {
-            // Fetch all upcoming shifts from your backend endpoint
+            // This assumes your server has a route '/sessions' that returns ALL upcoming shifts
             const response = await fetch('/sessions');
             const sessions = await response.json();
 
             if (sessions.error) {
-                upcomingList.innerHTML = `<div class="content-block" style="color: red; text-align: center; font-weight: normal;">Error: ${sessions.error}</div>`;
+                upcomingList.innerHTML = `<div class="content-block" style="color: red;">Error: ${sessions.error}</div>`;
                 return;
             }
 
@@ -310,7 +330,7 @@
                 .sort((a, b) => a.time - b.time); 
 
             if (upcomingShifts.length === 0) {
-                upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal;">No upcoming shifts scheduled.</div>';
+                upcomingList.innerHTML = '<div class="content-block">No upcoming shifts scheduled.</div>';
             } else {
                 upcomingList.innerHTML = '';
                 upcomingShifts.forEach(session => {
@@ -331,7 +351,7 @@
 
         } catch (error) {
             console.error("Error loading player shifts from Discord:", error);
-            upcomingList.innerHTML = '<div class="content-block" style="color: red; text-align: center; font-weight: normal;">Failed to load scheduled shifts.</div>';
+            upcomingList.innerHTML = '<div class="content-block" style="color: red;">Failed to load scheduled shifts.</div>';
         }
     }
 
