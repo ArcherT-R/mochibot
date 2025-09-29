@@ -87,6 +87,11 @@ router.post("/log-session", async (req, res) => {
   }
 });
 
+// routes/activity.js
+const express = require("express");
+const router = express.Router();
+const { logPlayerLive } = require("../endpoints/database");
+
 // POST /activity/live
 router.post("/live", async (req, res) => {
   try {
@@ -94,7 +99,7 @@ router.post("/live", async (req, res) => {
     if (!roblox_id || !username || current_minutes == null)
       return res.status(400).json({ error: "Missing parameters" });
 
-    // Save/update live session info in DB
+    // Upsert: insert new if not exists, else update
     await logPlayerLive(roblox_id, username, current_minutes);
 
     res.status(200).json({ success: true });
