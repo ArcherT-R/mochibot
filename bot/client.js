@@ -124,9 +124,16 @@ async function startBot() {
     
     // Function to handle failure and reset
     const handleFailure = async (reason) => {
-        // --- MODIFIED: ONLY REACT, DO NOT DELETE ---
-        await message.react('❌').catch(console.error); 
-
+        // --- GRACEFUL REACTION HANDLING ---
+        try {
+            await message.react('❌');
+        } catch (error) {
+            // Ignore 'Unknown Message' (10008) error, as the message was likely deleted by a user/mod.
+            if (error.code !== 10008) {
+                console.error("Error reacting to counting fail:", error);
+            }
+        }
+        
         // Reset the game state
         game.currentNumber = 0;
         game.lastUserId = null;
@@ -158,7 +165,14 @@ async function startBot() {
     await client.saveBotData();
     
     // React with a checkmark to the correct message
-    await message.react('✅').catch(console.error);
+    // --- GRACEFUL REACTION HANDLING ---
+    try {
+        await message.react('✅');
+    } catch (error) {
+        if (error.code !== 10008) {
+            console.error("Error reacting to successful count:", error);
+        }
+    }
   });
   // --- END NEW LOGIC ---
 
