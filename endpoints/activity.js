@@ -87,6 +87,23 @@ router.post("/log-session", async (req, res) => {
   }
 });
 
+// POST /activity/live
+router.post("/live", async (req, res) => {
+  try {
+    const { roblox_id, username, current_minutes } = req.body;
+    if (!roblox_id || !username || current_minutes == null)
+      return res.status(400).json({ error: "Missing parameters" });
+
+    // Save/update live session info in DB
+    await logPlayerLive(roblox_id, username, current_minutes);
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Error updating live session:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // ---------------------------
 // Start Live Session
 // ---------------------------
