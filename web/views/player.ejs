@@ -1,127 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title><%= player.username %> – Player Profile</title>
-  <link rel="stylesheet" href="/styles.css" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f8f8f8;
-    }
-
-    h1 {
-      margin-bottom: 10px;
-    }
-
-    .ongoing-box {
-      background: #e7f7e7;
-      border: 1px solid #3cb371;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 8px;
-    }
-
-    .divider {
-      border-top: 2px solid #ccc;
-      margin: 25px 0;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 8px;
-    }
-
-    th {
-      background: #f0f0f0;
-      font-weight: bold;
-    }
-
-    tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mochi Bar Database - <%= user.username %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --primary-blue: #5b9dff;
+            --light-blue: #e8f1ff;
+            --dark-text: #2c3e50;
+            --light-text: #5f6c7b;
+            --bg-color: #f7f9fc;
+            --card-bg: #ffffff;
+            --border-color: #e0e6f0;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            --border-radius: 12px;
+        }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--dark-text); }
+        .header { background-color: var(--primary-blue); padding: 1.5rem 2rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header h1 { color: white; font-size: 2.5rem; font-weight: 700; }
+        .main-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; padding: 2rem; max-width: 1400px; margin: 0 auto; }
+        .column { background-color: var(--card-bg); border-radius: var(--border-radius); box-shadow: var(--shadow); padding: 1.5rem; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .column:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); }
+        .column-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); display: flex; align-items: center; }
+        .column-title svg { margin-right: 0.75rem; width: 24px; height: 24px; stroke-width: 2; color: var(--primary-blue); }
+        .data-card { background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; transition: background-color 0.2s ease; }
+        .data-card:last-child { margin-bottom: 0; }
+        .data-card:hover { background-color: var(--light-blue); }
+        .card-label { font-weight: 600; font-size: 0.9rem; color: var(--primary-blue); margin-bottom: 0.25rem; }
+        .card-content { font-size: 1rem; color: var(--dark-text); }
+        .card-content.placeholder { color: var(--light-text); font-style: italic; }
+        .user-profile { text-align: center; }
+        .avatar-placeholder { width: 120px; height: 120px; background-color: var(--light-blue); border: 2px dashed var(--primary-blue); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .avatar-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+        .username { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        hr.divider { border: none; height: 1px; background-color: var(--border-color); margin: 1.5rem 0; }
+    </style>
 </head>
 <body>
-  <h1>👤 <%= player.username %></h1>
-  <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
+    <header class="header">
+        <h1>Mochi Bar Database</h1>
+    </header>
 
-  <!-- Ongoing Session -->
-  <% if (ongoingSession) { %>
-    <div class="ongoing-box">
-      <strong>💫 Ongoing Session</strong><br>
-      <strong>Started:</strong> <%= new Date(ongoingSession.start).toLocaleString() %><br>
-      <strong>Current Duration:</strong> <span id="sessionTimer"></span>
-    </div>
+    <main class="main-container">
+        <!-- Profile -->
+        <section class="column">
+            <div class="user-profile">
+                <div class="avatar-placeholder">
+                   <img src="<%= user.avatarUrl %>" alt="<%= user.username %>'s Avatar" onerror="this.src='https://placehold.co/120x120/e0e6f0/5f6c7b?text=Error';">
+                </div>
+                <h2 class="username"><%= user.username %></h2>
+            </div>
+            <div class="data-card">
+                <p class="card-label">Group Rank</p>
+                <p class="card-content"><%= user.groupRank %></p>
+            </div>
+            <div class="data-card">
+                <p class="card-label">Notes</p>
+                <p class="card-content"><%= user.notes || 'No notes available.' %></p>
+            </div>
+        </section>
 
-    <script>
-      // Live timer
-      const startTime = new Date("<%= ongoingSession.start %>").getTime();
-      const timerEl = document.getElementById('sessionTimer');
+        <!-- In-game Activity -->
+        <section class="column">
+            <h3 class="column-title">
+                🕓 In-game Activity
+            </h3>
+            <div class="data-card">
+                <p class="card-label">Ongoing Session</p>
+                <p class="card-content <%= !activity.ongoingSession ? 'placeholder' : '' %>">
+                  <%= activity.ongoingSession || 'No active session.' %>
+                </p>
+            </div>
+            <hr class="divider">
+            <% if (activity.pastSessions && activity.pastSessions.length > 0) { %>
+                <% activity.pastSessions.forEach(session => { %>
+                    <div class="data-card">
+                        <p class="card-label">Past Session</p>
+                        <p class="card-content"><%= session.name %></p>
+                        <p class="card-content placeholder" style="font-size: 0.85rem;"><%= session.details %></p>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <p class="card-content placeholder">No past sessions recorded.</p>
+            <% } %>
+        </section>
 
-      function updateTimer() {
-        const now = Date.now();
-        const diff = now - startTime;
-
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-
-        timerEl.textContent = `${hours}h ${minutes}m ${seconds}s`;
-      }
-
-      updateTimer();
-      setInterval(updateTimer, 1000);
-    </script>
-
-    <div class="divider"></div>
-  <% } %>
-
-  <!-- Past Sessions -->
-  <h2>🕓 Past Sessions</h2>
-
-  <% if (sessions.length === 0) { %>
-    <p>No past sessions found.</p>
-  <% } else { %>
-    <table>
-      <thead>
-        <tr>
-          <th>Start</th>
-          <th>End</th>
-          <th>Duration</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% sessions.forEach(session => { %>
-          <tr>
-            <td><%= new Date(session.start).toLocaleString() %></td>
-            <td><%= session.end ? new Date(session.end).toLocaleString() : '—' %></td>
-            <td>
-              <% if (session.end) { 
-                const duration = new Date(session.end) - new Date(session.start);
-                const hrs = Math.floor(duration / 3600000);
-                const mins = Math.floor((duration % 3600000) / 60000);
-                const secs = Math.floor((duration % 60000) / 1000);
-              %>
-                <%= `${hrs}h ${mins}m ${secs}s` %>
-              <% } else { %>
-                —
-              <% } %>
-            </td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-  <% } %>
+        <!-- Shift Info -->
+        <section class="column">
+            <h3 class="column-title">
+                ☕ Shift Information
+            </h3>
+            <div class="data-card">
+                <p class="card-label">Shifts Attended</p>
+                <p class="card-content"><%= shifts.attended %></p>
+            </div>
+            <div class="data-card">
+                <p class="card-label">Shifts Hosted</p>
+                <p class="card-content"><%= shifts.hosted %></p>
+            </div>
+            <hr class="divider">
+            <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
+                <% shifts.coHosted.forEach(shift => { %>
+                    <div class="data-card">
+                        <p class="card-label">Co-Hosted Shift</p>
+                        <p class="card-content"><%= shift.name %><br>
+                           <span class="placeholder" style="font-size: 0.85rem;">with <%= shift.host %></span>
+                        </p>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <p class="card-content placeholder">No co-hosted shifts recorded.</p>
+            <% } %>
+        </section>
+    </main>
 </body>
 </html>
