@@ -87,11 +87,6 @@ router.post("/log-session", async (req, res) => {
   }
 });
 
-// routes/activity.js
-const express = require("express");
-const router = express.Router();
-const { logPlayerLive } = require("../endpoints/database");
-
 // POST /activity/live
 router.post("/live", async (req, res) => {
   try {
