@@ -158,12 +158,15 @@ async function getPlayerSessions(roblox_id) {
 async function logPlayerLive(roblox_id, username, current_minutes) {
   const { data, error } = await supabase
     .from("player_live")
-    .upsert({
-      roblox_id,
-      username,
-      current_minutes,
-      last_updated: new Date().toISOString()
-    }, { onConflict: ["roblox_id"] }); // ensures only one row per player
+    .upsert(
+      {
+        roblox_id,
+        username,
+        current_minutes,
+        last_updated: new Date().toISOString(),
+      },
+      { onConflict: ["roblox_id"] } // only one row per player
+    );
 
   if (error) throw error;
   return data;
@@ -180,5 +183,5 @@ module.exports = {
   getPlayerShifts,
   getOngoingSession,
   addPlayerShift,
-  logPlayerLive
+  logPlayerLive,
 };
