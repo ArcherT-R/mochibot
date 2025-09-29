@@ -6,7 +6,7 @@
   <title>Mochi Bar Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* Base Styles - Matching Screenshot Theme */
+    /* Base Styles - STRICTLY Matching Screenshot Theme */
     body {
       margin: 0;
       font-family: 'Roboto', sans-serif;
@@ -18,7 +18,7 @@
       background-color: #6cb4ee; /* Blue banner */
       color: black;
       padding: 25px 20px;
-      text-align: center;
+      text-align: left; /* Aligned left like the screenshot */
       font-size: 38px;
       font-weight: bold;
     }
@@ -35,7 +35,7 @@
 
     /* Column Styling - Grey Blocks */
     .column {
-        background: #e0e0e0; /* Grey background for blocks */
+        background: #e0e0e0; /* Main grey column background */
         padding: 15px;
         border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -50,7 +50,6 @@
         font-size: 22px;
         font-weight: bold;
         color: #333;
-        padding-bottom: 5px;
     }
     
     hr { 
@@ -59,32 +58,40 @@
         margin: 20px 0; 
     }
 
-    /* Search Block Styling */
-    .search-block, .list-block {
+    /* Content Block Styling (The C0C0C0 Blocks) */
+    .content-block {
       background: #c0c0c0; /* Darker grey block matching player blocks */
-      padding: 10px;
+      padding: 12px 15px;
       border-radius: 4px;
       margin-bottom: 15px;
       color: #000;
       font-weight: bold;
+      line-height: 1.4;
+      cursor: pointer;
+    }
+    .content-block span {
+        font-weight: normal;
+        display: block;
+        font-size: 0.9em;
+    }
+
+    /* Search Block Styling */
+    .search-block {
+      position: relative;
+      margin-bottom: 30px;
     }
 
     input[type="text"] {
       width: 100%;
       padding: 8px;
       font-size: 16px;
-      border: none; /* No border for the theme */
+      border: 1px solid #aaa;
       border-radius: 4px;
       box-sizing: border-box;
       background: white;
       font-weight: normal;
     }
     
-    .search-box {
-        position: relative;
-        margin-bottom: 10px;
-    }
-
     .suggestions {
       position: absolute;
       top: 100%;
@@ -102,7 +109,6 @@
       align-items: center;
       padding: 8px 10px;
       cursor: pointer;
-      transition: background 0.2s;
       border-bottom: 1px solid #eee;
       color: #333;
       font-weight: normal;
@@ -112,42 +118,7 @@
       background-color: #ddd;
     }
 
-    .suggestion-item img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    /* Shift/Session Specific Styles */
-    .shifts-scroll {
-        max-height: 500px;
-        overflow-y: auto;
-        padding-right: 10px;
-    }
-    
-    .shift-item {
-        background: #c0c0c0; /* Darker grey block for individual shifts */
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        color: #000;
-        font-weight: bold;
-    }
-    
-    .shift-time {
-        font-weight: bold;
-        color: #6cb4ee; /* Blue for time highlight */
-        margin-bottom: 5px;
-    }
-    .shift-details span {
-        font-weight: normal;
-        display: block;
-        margin-top: 5px;
-        font-size: 0.95em;
-    }
-    
-    /* Top Player Styles */
+    /* Top Player Styles */
     .top-players-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -162,8 +133,39 @@
         cursor: pointer;
         font-weight: bold;
         color: #000;
+        line-height: 1.3;
+    }
+    .player-card img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-bottom: 5px;
     }
 
+    /* Shift/Session Specific Styles */
+    .shifts-scroll {
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+    
+    .shift-item {
+        background: #c0c0c0; /* The main block colour */
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        color: #000;
+        font-weight: bold;
+        line-height: 1.4;
+    }
+    
+    .shift-time {
+        font-weight: bold;
+        color: #6cb4ee; /* Blue for time highlight */
+        display: block;
+        margin-bottom: 5px;
+    }
+    
   </style>
 </head>
 <body>
@@ -172,10 +174,10 @@
   <div class="container">
     
     <div class="column" style="flex: 2 1 600px;">
-        <h2>Upcoming Shifts (Discord)</h2>
+        <h2>Upcoming Shifts</h2>
         <div class="shifts-scroll">
             <div id="shiftsList">
-                <div class="shift-item" style="text-align: center;">Loading upcoming shifts...</div>
+                <div class="shift-item" style="text-align: center; font-weight: normal;">Loading upcoming shifts...</div>
             </div>
         </div>
     </div>
@@ -183,13 +185,11 @@
     <div class="column" style="flex: 1 1 300px;">
         
         <h2>Player Lookup</h2>
-        <div class="search-box">
-            <div class="search-block" style="padding: 5px 10px;">
-                <input type="text" id="playerSearch" placeholder="Search Roblox username..." />
-            </div>
-            <div id="suggestions" class="suggestions"></div>
+        <div class="search-block">
+            <input type="text" id="playerSearch" placeholder="Search Roblox username..." />
         </div>
-        
+        <div id="suggestions" class="suggestions"></div>
+
         <hr>
 
         <h2>Top Active This Week</h2>
@@ -197,13 +197,13 @@
           <% if (topPlayers && topPlayers.length > 0) { %>
             <% topPlayers.slice(0, 4).forEach(player => { %>
               <div class="player-card" onclick="window.location='/dashboard/player/<%= player.username %>'">
-                <img src="<%= player.avatar_url %>" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px;" />
+                <img src="<%= player.avatar_url %>" alt="Avatar" onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
                 <div><%= player.username %></div>
                 <div style="font-size: 0.8em; font-weight: normal;"><%= player.weekly_minutes %> min</div>
               </div>
             <% }) %>
           <% } else { %>
-            <div class="player-card" style="grid-column: span 2; font-weight: normal;">No active players data.</div>
+            <div class="content-block" style="grid-column: span 2; text-align: center; font-weight: normal;">No active players data.</div>
           <% } %>
         </div>
         
@@ -248,44 +248,38 @@
     // --- Shift Loading Logic ---
     
     function formatShiftTime(timestamp) {
-        // Discord timestamps are in seconds, convert to milliseconds
         const date = new Date(timestamp * 1000); 
         
         const dateString = date.toLocaleDateString(undefined, {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric'
+            weekday: 'short', month: 'short', day: 'numeric'
         });
         
         const timeString = date.toLocaleTimeString(undefined, { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            timeZoneName: 'short'
+            hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
         });
         
         return `${dateString} @ ${timeString}`;
     }
 
     async function loadShifts() {
-        shiftsList.innerHTML = '<div class="shift-item" style="text-align: center;">Fetching data from Discord...</div>';
+        shiftsList.innerHTML = '<div class="shift-item" style="text-align: center; font-weight: normal;">Fetching data from Discord...</div>';
 
         try {
             const response = await fetch('/sessions');
             const sessions = await response.json();
 
             if (sessions.error) {
-                shiftsList.innerHTML = `<div class="shift-item" style="color: red; text-align: center;">Error: ${sessions.error}</div>`;
+                shiftsList.innerHTML = `<div class="shift-item" style="color: red; text-align: center; font-weight: normal;">Error: ${sessions.error}</div>`;
                 return;
             }
 
-            // Filter for sessions that are in the future
             const nowSeconds = Math.floor(Date.now() / 1000);
             const upcomingSessions = sessions
                 .filter(s => s.time > nowSeconds)
                 .sort((a, b) => a.time - b.time); 
 
             if (upcomingSessions.length === 0) {
-                shiftsList.innerHTML = '<div class="shift-item" style="text-align: center;">No upcoming shifts are currently scheduled.</div>';
+                shiftsList.innerHTML = '<div class="shift-item" style="text-align: center; font-weight: normal;">No upcoming shifts are currently scheduled.</div>';
                 return;
             }
 
@@ -300,18 +294,16 @@
                 }
                 
                 shiftItem.innerHTML = `
-                    <div class="shift-time">${formatShiftTime(session.time)}</div>
-                    <div class="shift-details">
-                        <span>${participants}</span>
-                        ${session.overseer ? `<span>Overseer: ${session.overseer}</span>` : ''}
-                    </div>
+                    <span class="shift-time">${formatShiftTime(session.time)}</span>
+                    ${participants}
+                    ${session.overseer ? `<span>Overseer: ${session.overseer}</span>` : ''}
                 `;
                 shiftsList.appendChild(shiftItem);
             });
 
         } catch (error) {
             console.error("Error loading shifts:", error);
-            shiftsList.innerHTML = '<div class="shift-item" style="color: red; text-align: center;">Failed to load scheduled shifts.</div>';
+            shiftsList.innerHTML = '<div class="shift-item" style="color: red; text-align: center; font-weight: normal;">Failed to load scheduled shifts.</div>';
         }
     }
 
