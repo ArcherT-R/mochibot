@@ -21,21 +21,24 @@ module.exports = () => {
   });
 
   // Player profile
-  router.get("/player/:username", async (req, res) => {
-    try {
-      const username = req.params.username;
-      const player = await getPlayerByUsername(username);
-      if (!player) return res.status(404).send("Player not found");
+router.get("/player/:username", async (req, res) => {
+  try {
+    const username = req.params.username;
+    const player = await getPlayerByUsername(username);
+    if (!player) return res.status(404).send("Player not found");
 
-      // Fetch sessions from DB
-      const sessions = await getPlayerSessions(player.roblox_id);
+    // Fetch sessions from DB
+    const sessions = await getPlayerSessions(player.roblox_id);
 
-      res.render("player", { player, sessions }); // send player + sessions
-    } catch (err) {
-      console.error("Error loading player:", err);
-      res.status(500).send("Internal Server Error");
-    }
-  });
+    // TODO: In future, fetch real-time ongoing session data from your API or memory
+    const ongoingSession = null; // ✅ ensures variable is defined for EJS
+
+    res.render("player", { player, sessions, ongoingSession });
+  } catch (err) {
+    console.error("Error loading player:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
   return router;
 };
