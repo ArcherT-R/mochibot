@@ -4,109 +4,237 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mochi Bar - <%= player.username %></title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  /* Original CSS */
-  body { font-family: Arial, sans-serif; background: #f0f0f0; margin:0; padding:0; }
-  header { background: #6cb4ee; padding: 20px; text-align:center; font-size:24px; font-weight:bold; color: white; }
-  .container { max-width: 1200px; margin:auto; padding:20px; display:flex; gap:20px; flex-wrap: wrap; }
-  .column { background:white; padding:15px; border-radius:8px; flex:1; min-width:250px; box-sizing:border-box; }
-  .column h3 { margin-top:0; border-bottom:2px solid #000; padding-bottom:5px; }
-  .avatar { width:150px; height:150px; border-radius:50%; margin-bottom:10px; max-width:100%; }
-  .box { background:#e9e9e9; padding:10px; border-radius:6px; margin-bottom:10px; word-wrap: break-word; }
+    /* Base Styles - Adjusted for Aesthetic */
+    body { 
+        font-family: 'Roboto', sans-serif; 
+        background: #f0f2f5; /* Light grey background */
+        margin: 0; 
+        padding: 0; 
+        color: #333;
+    }
+    header { 
+        background: #6cb4ee; /* Blue banner */
+        padding: 25px 20px; 
+        text-align: center; 
+        font-size: 32px; /* Larger title */
+        font-weight: 700; 
+        color: white; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header-text {
+        font-size: 38px; /* Slightly larger for "Mochi Bar Database" */
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    }
+    .container { 
+        max-width: 1100px; /* Slightly narrower to match image */
+        margin: 30px auto; /* More vertical spacing */
+        padding: 20px; 
+        display: flex; 
+        gap: 25px; /* Increased gap between columns */
+        flex-wrap: wrap; 
+        align-items: flex-start; /* Align columns to the top */
+    }
 
-  /* Scrollable past sessions */
-  .sessions-scroll {
-    max-height: 300px;
-    overflow-y: auto;
-    padding-right: 5px;
-  }
+    /* Column Styling */
+    .column { 
+        background: #ffffff; 
+        padding: 25px; /* More padding */
+        border-radius: 10px; /* Softer corners */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Subtle shadow */
+        flex: 1; 
+        min-width: 280px; /* Slightly wider min-width */
+        box-sizing: border-box; 
+    }
+    .column h3 { 
+        margin-top: 0; 
+        margin-bottom: 20px; /* Space below title */
+        font-size: 22px; 
+        font-weight: 700; 
+        color: #555;
+        border-bottom: 2px solid #ddd; /* Lighter separator */
+        padding-bottom: 10px; 
+    }
 
-  /* Updated: Past session card styling for clickability */
-  .session-box { 
-    background:#f5f5f5; 
-    padding:8px; 
-    border-radius:6px; 
-    margin-bottom:6px; 
-    word-wrap: break-word; 
-    cursor: pointer; /* Indicates clickability */
-    transition: background 0.2s;
-  }
-  .session-box:hover {
-    background: #e0e0e0;
-  }
+    /* Profile Column Specifics */
+    .avatar-wrapper {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .avatar { 
+        width: 120px; /* Smaller avatar */
+        height: 120px; 
+        border-radius: 50%; 
+        border: 3px solid #6cb4ee; /* Blue border for avatar */
+        object-fit: cover;
+    }
 
-  /* New: Live Session Counter Style */
-  #live-time { font-size: 1.2em; font-weight: bold; color: #007bff; }
+    /* Generic Box Styling */
+    .box { 
+        background: #e9f0f7; /* Lighter, more aesthetic background for boxes */
+        padding: 12px 15px; /* More padding */
+        border-radius: 8px; /* Softer corners */
+        margin-bottom: 15px; /* More space between boxes */
+        word-wrap: break-word; 
+        font-size: 1.05em;
+        line-height: 1.4;
+        color: #444;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Inner shadow for depth */
+    }
+    .box strong { color: #222; }
 
-  /* New: Modal for Session Details */
-  .modal {
-    display: none; 
-    position: fixed; 
-    z-index: 10; 
-    left: 0; 
-    top: 0;
-    width: 100%; 
-    height: 100%; 
-    overflow: auto; 
-    background-color: rgba(0,0,0,0.4); 
-  }
-  .modal-content {
-    background-color: #fefefe;
-    margin: 10% auto; 
-    padding: 0;
-    border-radius: 10px;
-    width: 80%; 
-    max-width: 400px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    overflow: hidden;
-  }
-  .modal-header {
-    background-color: #6cb4ee; /* Blue banner */
-    color: white;
-    padding: 10px;
-    text-align: center;
-    font-weight: bold;
-    position: relative;
-    /* Ensures text is visible */
-    word-wrap: break-word; 
-  }
-  .modal-body { padding: 20px; }
-  .modal-body strong { display: inline-block; width: 100px; }
-  .close {
-    color: white;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    position: absolute;
-    right: 10px;
-    top: 5px;
-  }
-  .close:hover,
-  .close:focus {
-    color: #ccc;
-    text-decoration: none;
-    cursor: pointer;
-  }
+    /* Separators */
+    hr { 
+        border: none; 
+        border-top: 2px solid #ccc; /* Thicker, slightly darker HR */
+        margin: 25px 0; 
+    }
 
-  /* Responsive: stack columns on mobile (Original) */
-  @media (max-width: 768px) {
-    .container { flex-direction: column; gap:15px; padding:15px; }
-    .column { width: 100%; }
-    .avatar { width:100%; height:auto; }
-    .modal-content { width: 90%; margin: 20% auto; }
-  }
+    /* Sessions Column */
+    .ongoing-session-box {
+        background: #d4edda; /* Light green for ongoing session */
+        border: 1px solid #28a745; /* Green border */
+        color: #155724;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px;
+    }
+    #live-time { font-size: 1.4em; color: #155724; } /* Darker green for live time */
+
+    .sessions-scroll {
+        max-height: 320px; /* Slightly more height */
+        overflow-y: auto;
+        padding-right: 10px; /* More padding for scrollbar */
+    }
+    .sessions-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+    .sessions-scroll::-webkit-scrollbar-thumb {
+        background: #bbb;
+        border-radius: 4px;
+    }
+    .sessions-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    /* Past session card styling */
+    .session-box { 
+        background: #e9f0f7; /* Consistent box background */
+        border: 1px solid #cce5ff; /* Light blue border */
+        padding: 10px 15px; 
+        border-radius: 8px; 
+        margin-bottom: 10px; 
+        word-wrap: break-word; 
+        cursor: pointer; 
+        transition: background 0.2s, transform 0.2s;
+        font-size: 0.95em;
+    }
+    .session-box:hover {
+        background: #d4e3f4;
+        transform: translateY(-2px); /* Slight lift on hover */
+    }
+    .session-box strong { font-size: 1.1em; color: #007bff; }
+
+    /* Shifts Column */
+    .shift-box {
+        background: #e9f0f7; /* Consistent box background */
+        border: 1px solid #cce5ff; /* Light blue border */
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-size: 1.05em;
+        line-height: 1.4;
+    }
+    .shift-box strong { color: #007bff; }
+
+    /* Modal - Card for Past Session Details */
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; /* Higher z-index to be on top of everything */
+        left: 0; 
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.5); /* Darker overlay */
+        backdrop-filter: blur(5px); /* Blurred background */
+    }
+    .modal-content {
+        background-color: #ffffff;
+        margin: 10% auto; 
+        padding: 0;
+        border-radius: 12px; /* Softer corners */
+        width: 90%; 
+        max-width: 450px; /* Slightly larger card */
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3); /* More prominent shadow */
+        animation: fadeIn 0.3s ease-out; /* Fade-in animation */
+    }
+    .modal-header {
+        background-color: #6cb4ee; /* Blue banner */
+        color: white;
+        padding: 15px 20px; /* More padding */
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.3em;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        position: relative;
+    }
+    .modal-body { 
+        padding: 25px; /* More padding */
+        line-height: 1.6;
+        font-size: 1.05em;
+    }
+    .modal-body p { margin-bottom: 12px; }
+    .modal-body strong { display: inline-block; width: 130px; color: #444; } /* Adjusted width for labels */
+    .close {
+        color: white;
+        float: right;
+        font-size: 30px; /* Larger X */
+        font-weight: bold;
+        position: absolute;
+        right: 15px;
+        top: 10px;
+        line-height: 1;
+    }
+    .close:hover,
+    .close:focus {
+        color: #eee;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* Fade-in animation for modal */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .container { flex-direction: column; gap: 20px; padding: 15px; }
+        .column { width: 100%; min-width: unset; }
+        .avatar { width: 100px; height: 100px; }
+        header { font-size: 28px; padding: 20px 15px; }
+        .header-text { font-size: 32px; }
+        .modal-content { width: 95%; margin: 15% auto; }
+    }
 </style>
 </head>
 <body>
 
-<header>Mochi Bar - <%= player.username %></header>
+<header><span class="header-text">Mochi Bar Database</span></header>
 
 <div class="container">
 
     <div class="column">
-    <h3>Profile</h3>
-    <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar" onerror="this.src='https://placehold.co/150x150/e0e6f0/5f6c7b?text=Error';">
-    <div class="box"><strong>Username:</strong> <%= player.username %></div>
+    <h3>Username</h3>
+    <div class="avatar-wrapper">
+      <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar" onerror="this.src='https://placehold.co/120x120/e0e6f0/5f6c7b?text=Error';">
+    </div>
+    <div class="box"><strong><%= player.username %></strong></div>
     <div class="box"><strong>Group Rank:</strong> <%= player.group_rank %></div>
     <div class="box"><strong>Notes:</strong> <%= player.notes || 'No notes available.' %></div>
   </div>
@@ -117,24 +245,22 @@
         <% if (ongoingSession) { 
       const startTime = new Date(ongoingSession.start || Date.now()).getTime(); 
     %>
-      <div class="box" id="ongoing-session-box">
+      <div class="box ongoing-session-box" id="ongoing-session-box">
         <strong>🟢 ONGOING SESSION</strong><br>
-        <strong>Started:</strong> <%= new Date(startTime).toLocaleString() %><br>
-        <strong>Time in Game:</strong> <span id="live-time">00:00:00</span>
+        <span>Started: <%= new Date(startTime).toLocaleString() %></span><br>
+        <span>Time In Game: <span id="live-time">00:00:00</span></span>
         <input type="hidden" id="session-start-time" value="<%= startTime %>">
       </div>
     <% } else { %>
       <div class="box">No ongoing session</div>
     <% } %>
 
-    <hr>
-
-        <div class="sessions-scroll">
+    <hr>         <div class="sessions-scroll">
       <% if (sessions && sessions.length > 0) { %>
         <% sessions.slice(0,4).forEach((s, index) => { %>
           <div class="session-box" onclick="showSessionDetails(<%= index %>)">
-            <strong>Session <%= index + 1 %></strong><br>
-            <span>Minutes: <%= s.minutes_played %></span>
+            <strong>Past Session <%= index + 1 %></strong><br>
+            <span>Minutes Played: <%= s.minutes_played %></span>
           </div>
         <% }) %>
       <% } else { %>
@@ -145,22 +271,19 @@
 
     <div class="column">
     <h3>Shifts</h3>
-    <div class="box"><strong>Attended:</strong> <%= shifts.attended || 0 %></div>
+    <div class="box shift-box"><strong>Attended:</strong> <%= shifts.attended || 0 %></div>
+    <div class="box shift-box"><strong>Hosted:</strong> <%= shifts.hosted || 0 %></div>
     
-        <div class="box">
-        <strong>Hosted/Co-Hosted:</strong> 
-        <%= (shifts.hosted || 0) + (shifts.coHosted ? shifts.coHosted.length : 0) %>
-    </div>
-
-    <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
-      <hr>
-      <h4>Co-Hosted Details</h4>
+    <hr>     <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
+      <h4>Co-Hosted Shifts</h4>
       <% shifts.coHosted.forEach(c => { %>
-        <div class="box">
-          <strong>Event:</strong> <%= c.name %><br>
+        <div class="box shift-box">
+          <strong>Shift:</strong> <%= c.name %><br>
           <span>Host: <%= c.host %></span>
         </div>
       <% }) %>
+    <% } else { %>
+      <div class="box shift-box">No co-hosted shifts.</div>
     <% } %>
   </div>
 
@@ -170,10 +293,10 @@
   <div class="modal-content">
     <div class="modal-header">
       <span class="close" onclick="closeModal()">&times;</span>
-            <span id="modal-header-text"><%= player.username %> - <%= player.group_rank %></span>
+      <span id="modal-header-text"><%= player.username %> - <%= player.group_rank %></span>
     </div>
     <div class="modal-body">
-            <p><strong>Username:</strong> <%= player.username %></p>
+      <p><strong>Username:</strong> <%= player.username %></p>
       <p><strong>Time In Game:</strong> <span id="modal-minutes-played"></span> minutes</p>
       <p><strong>Session Start:</strong> <span id="modal-session-start"></span></p>
       <p><strong>Session End:</strong> <span id="modal-session-end"></span></p>
@@ -244,7 +367,7 @@
 
     // Close the modal if the user clicks anywhere outside of the modal content
     window.onclick = function(event) {
-        if (event.target == modal) {
+        if (event.target === modal) { // Use === for strict comparison
             closeModal();
         }
     }
