@@ -184,7 +184,7 @@ async function logPlayerLive(roblox_id, username, current_minutes) {
  * @description CRITICAL FIX: Deletes the player's row from the player_live table.
  * @param {string} roblox_id 
  */
-async function **deletePlayerLiveSession**(roblox_id) {
+async function deletePlayerLiveSession(roblox_id) {
   if (!roblox_id) throw new Error("Missing roblox_id for live session deletion");
 
   const { error } = await supabase
