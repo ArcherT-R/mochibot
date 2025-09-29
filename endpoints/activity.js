@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
-const { createPlayerIfNotExists, logPlayerSession } = require("./database");
+const { createPlayerIfNotExists, logPlayerSession, logPlayerLive } = require("./database");
 
 const GROUP_ID = 35807738; // your Roblox group ID
 
