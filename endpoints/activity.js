@@ -84,36 +84,45 @@ router.post("/live", async (req, res) => {
 });
 
 // ---------------------------
-// /start-session Endpoint (Player joins game, initiates live tracking) - FIXED
+// /start-session Endpoint (Player joins game, initiates live tracking) - FINAL FIX
 // ---------------------------
 router.post("/start-session", async (req, res) => {
-  const { roblox_id, username, avatar_url, group_rank } = req.body;
-  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
+  const { roblox_id, username, avatar_url, group_rank, session_start_time } = req.body;
+  if (!roblox_id || !username || !session_start_time) {
+    console.error("Missing required fields for /start-session:", req.body);
+    return res.status(400).json({ error: "Missing roblox_id, username, or session_start_time" });
+}
 
-  // Get the authoritative start time from the server/client request
-  // Note: If you passed session_start_time in the body from Roblox, use that.
-  // For simplicity and server authority, we use Date.now() here.
-  const startTime = req.body.session_start_time || Date.now(); 
+  // Use the Unix timestamp provided by the Roblox client
+  const startTime = Number(session_start_time); 
 
-  // 1. Update In-Memory Cache
+  // 1. Update In-Memory Cache (for /active route)
   activeSessions[roblox_id] = {
     roblox_id,
     username,
     avatar_url: avatar_url || "",
     group_rank: group_rank || "Guest",
-    session_start: startTime,
+    session_start: startTime, // Stored as Unix MS in memory
   };
   
-  // 2. Log to DB (CRITICAL: Includes the start time)
+  // 2. Log to DB (CRITICAL: Logs to player_live table)
   try {
+    // Current minutes is 0 on start, using startTime (Unix timestamp)
     await logPlayerLive(roblox_id, username, 0, startTime);
+    console.log(`🟢 Live session successfully started and logged to DB for: ${username}`);
+    res.json({ success: true });
+    
   } catch (err) {
-    console.error("❌ Failed to log session start to DB:", err);
-    // Continue even if DB fails; in-memory state allows the session to be logged later.
+    // If the database fails, log the error clearly and still respond success 
+    // to the Roblox client to prevent retries (though the dashboard will be broken)
+    console.error(`❌ FAILED to log session start to player_live for ${username}:`, err.message);
+    
+    // Check if the failure is critical (e.g., bad keys, wrong table name)
+    // If you respond 500, Roblox might retry, which might spam your server.
+    // If you respond 200, Roblox moves on, but the live session is not in the DB.
+    // For live session start, responding 200 is often safer to keep the game running.
+    res.status(200).json({ success: false, reason: "DB_FAILURE_LIVE_START" });
   }
-
-  console.log(`🟢 Live session started: ${username}`);
-  res.json({ success: true });
 });
 
 // ---------------------------
