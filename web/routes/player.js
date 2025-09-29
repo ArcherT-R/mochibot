@@ -10,31 +10,28 @@ module.exports = () => {
       if (!player) return res.status(404).send("Player not found");
 
       const sessions = await getPlayerSessions(player.roblox_id);
-      const shifts = await getPlayerShifts(player.roblox_id); // Optional if you track shifts
+      const shifts = await getPlayerShifts(player.roblox_id) || { attended: 0, hosted: 0, coHosted: [] };
 
-      // Ongoing session (for demonstration, null for now)
-      const ongoingSession = null; 
+      // Ongoing session (replace with real data if available)
+      const ongoingSession = null;
 
-      // Prepare activity for EJS
+      // Activity object for EJS
       const activity = {
-        ongoingSession: ongoingSession,
+        ongoingSession,
         pastSessions: sessions
-          .sort((a, b) => b.session_start - a.session_start) // latest first
-          .slice(0, 4) // last 4
+          .sort((a, b) => b.session_start - a.session_start)
+          .slice(0, 4)
           .map(s => ({
             name: `Session on ${new Date(s.session_start).toLocaleDateString()}`,
             details: `Minutes Played: ${s.minutes_played}`
           }))
       };
 
-      // Prepare shifts for EJS (if you have co-hosted or attended info)
-      const shiftsData = {
-        attended: shifts?.attended || 0,
-        hosted: shifts?.hosted || 0,
-        coHosted: shifts?.coHosted || []
-      };
-
-      res.render("player", { player, activity, shifts: shiftsData });
+      res.render("player", {
+        player,
+        activity,  // ✅ pass activity to EJS
+        shifts
+      });
     } catch (err) {
       console.error("Error loading player:", err);
       res.status(500).send("Internal Server Error");
