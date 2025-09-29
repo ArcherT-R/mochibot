@@ -39,7 +39,7 @@
         padding: 15px;
         border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        flex: 1 1 300px; /* Allows for 3 columns on wide screens, or two wider ones */
+        flex: 1 1 300px;
         min-width: 280px;
         box-sizing: border-box;
     }
@@ -67,8 +67,9 @@
       color: #000;
       font-weight: bold;
       line-height: 1.4;
-      cursor: pointer;
     }
+    .content-block:hover { cursor: pointer; opacity: 0.9; }
+    .content-block.no-hover:hover { cursor: default; opacity: 1; }
     .content-block span {
         font-weight: normal;
         display: block;
@@ -158,6 +159,7 @@
         font-weight: bold;
         line-height: 1.4;
     }
+    .shift-item:hover { cursor: default; opacity: 1; }
     
     .shift-time {
         font-weight: bold;
@@ -182,7 +184,7 @@
         <h2>Upcoming Shifts (Discord)</h2>
         <div class="shifts-scroll">
             <div id="shiftsList">
-                <div class="shift-item" style="text-align: center; font-weight: normal; cursor: default;">Loading upcoming shifts...</div>
+                <div class="shift-item content-block no-hover" style="text-align: center; font-weight: normal;">Loading upcoming shifts...</div>
             </div>
         </div>
     </div>
@@ -208,7 +210,7 @@
               </div>
             <% }) %>
           <% } else { %>
-            <div class="content-block" style="grid-column: span 2; text-align: center; font-weight: normal; cursor: default;">No active players data.</div>
+            <div class="content-block no-hover" style="grid-column: span 2; text-align: center; font-weight: normal; cursor: default;">No active players data.</div>
           <% } %>
         </div>
         
@@ -267,14 +269,14 @@
     }
 
     async function loadShifts() {
-        shiftsList.innerHTML = '<div class="shift-item" style="text-align: center; font-weight: normal; cursor: default;">Fetching data from Discord...</div>';
+        shiftsList.innerHTML = '<div class="shift-item content-block no-hover" style="text-align: center; font-weight: normal;">Fetching data from Discord...</div>';
 
         try {
             const response = await fetch('/sessions');
             const sessions = await response.json();
 
             if (sessions.error) {
-                shiftsList.innerHTML = `<div class="shift-item" style="color: red; text-align: center; font-weight: normal; cursor: default;">Error: ${sessions.error}</div>`;
+                shiftsList.innerHTML = `<div class="shift-item content-block no-hover" style="color: red; text-align: center; font-weight: normal;">Error: ${sessions.error}</div>`;
                 return;
             }
 
@@ -284,14 +286,15 @@
                 .sort((a, b) => a.time - b.time); 
 
             if (upcomingSessions.length === 0) {
-                shiftsList.innerHTML = '<div class="shift-item" style="text-align: center; font-weight: normal; cursor: default;">No upcoming shifts are currently scheduled.</div>';
+                shiftsList.innerHTML = '<div class="shift-item content-block no-hover" style="text-align: center; font-weight: normal;">No upcoming shifts are currently scheduled.</div>';
                 return;
             }
 
             shiftsList.innerHTML = '';
             upcomingSessions.forEach(session => {
                 const shiftItem = document.createElement('div');
-                shiftItem.className = 'shift-item';
+                // Use the shift-item class to maintain the block style
+                shiftItem.className = 'shift-item content-block no-hover'; 
                 
                 let participants = `Host: ${session.host}`;
                 if (session.cohost) {
@@ -308,7 +311,7 @@
 
         } catch (error) {
             console.error("Error loading shifts:", error);
-            shiftsList.innerHTML = '<div class="shift-item" style="color: red; text-align: center; font-weight: normal; cursor: default;">Failed to load scheduled shifts.</div>';
+            shiftsList.innerHTML = '<div class="shift-item content-block no-hover" style="color: red; text-align: center; font-weight: normal;">Failed to load scheduled shifts.</div>';
         }
     }
 
