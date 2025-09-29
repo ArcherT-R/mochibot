@@ -76,20 +76,28 @@ router.post("/live", async (req, res) => {
 });
 
 // ---------------------------
-// Start Live Session - OK
+// Start Live Session (UPDATED)
 // ---------------------------
 router.post("/start-session", async (req, res) => {
-  const { roblox_id, username, avatar_url, group_rank } = req.body;
-  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
-  activeSessions[roblox_id] = {
-    roblox_id,
-    username,
-    avatar_url: avatar_url || "",
-    group_rank: group_rank || "Guest",
-    session_start: Date.now(),
-  };
-  console.log(`🟢 Live session started: ${username}`);
-  res.json({ success: true });
+  const { roblox_id, username, avatar_url, group_rank } = req.body;
+  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
+
+  const startTime = Date.now(); // Capture the server-side start time
+
+  // Store in memory
+  activeSessions[roblox_id] = {
+    roblox_id,
+    username,
+    avatar_url: avatar_url || "",
+    group_rank: group_rank || "Guest",
+    session_start: startTime, // Stored in memory (for /active endpoint)
+  };
+
+  // Store in DB (CRITICAL: Assuming logPlayerLive is updated to accept startTime)
+  await logPlayerLive(roblox_id, username, 0, startTime); 
+
+  console.log(`🟢 Live session started: ${username}`);
+  res.json({ success: true });
 });
 
 // ---------------------------
