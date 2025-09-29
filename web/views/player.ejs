@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -6,221 +6,251 @@
 <title>Mochi Bar - <%= player.username %></title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <style>
-    /* Base Styles - Adjusted for Aesthetic */
-    body { 
-        font-family: 'Roboto', sans-serif; 
-        background: #f0f2f5; /* Light grey background */
-        margin: 0; 
-        padding: 0; 
-        color: #333;
-    }
-    header { 
-        background: #6cb4ee; /* Blue banner */
-        padding: 25px 20px; 
-        text-align: center; 
-        font-size: 32px; /* Larger title */
-        font-weight: 700; 
-        color: white; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .header-text {
-        font-size: 38px; /* Slightly larger for "Mochi Bar Database" */
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-    }
-    .container { 
-        max-width: 1100px; /* Slightly narrower to match image */
-        margin: 30px auto; /* More vertical spacing */
-        padding: 20px; 
-        display: flex; 
-        gap: 25px; /* Increased gap between columns */
-        flex-wrap: wrap; 
-        align-items: flex-start; /* Align columns to the top */
-    }
+    /* Base Styles - Adjusted for Aesthetic */
+    body { 
+        font-family: 'Roboto', sans-serif; 
+        background: #f0f2f5; /* Light grey background */
+        margin: 0; 
+        padding: 0; 
+        color: #333;
+    }
+    header { 
+        background: #6cb4ee; /* Blue banner */
+        padding: 25px 20px; 
+        text-align: center; 
+        font-size: 32px; /* Larger title */
+        font-weight: 700; 
+        color: white; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header-text {
+        font-size: 38px; /* Slightly larger for "Mochi Bar Database" */
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    }
+    .container { 
+        max-width: 1100px; /* Slightly narrower to match image */
+        margin: 30px auto; /* More vertical spacing */
+        padding: 20px; 
+        display: flex; 
+        gap: 25px; /* Increased gap between columns */
+        flex-wrap: wrap; 
+        align-items: flex-start; /* Align columns to the top */
+    }
 
-    /* Column Styling */
-    .column { 
-        background: #ffffff; 
-        padding: 25px; /* More padding */
-        border-radius: 10px; /* Softer corners */
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Subtle shadow */
-        flex: 1; 
-        min-width: 280px; /* Slightly wider min-width */
-        box-sizing: border-box; 
-    }
-    .column h3 { 
-        margin-top: 0; 
-        margin-bottom: 20px; /* Space below title */
-        font-size: 22px; 
-        font-weight: 700; 
-        color: #555;
-        border-bottom: 2px solid #ddd; /* Lighter separator */
-        padding-bottom: 10px; 
-    }
+    /* Column Styling */
+    .column { 
+        background: #ffffff; 
+        padding: 25px; /* More padding */
+        border-radius: 10px; /* Softer corners */
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Subtle shadow */
+        flex: 1; 
+        min-width: 280px; /* Slightly wider min-width */
+        box-sizing: border-box; 
+    }
+    .column h3 { 
+        margin-top: 0; 
+        margin-bottom: 20px; /* Space below title */
+        font-size: 22px; 
+        font-weight: 700; 
+        color: #555;
+        border-bottom: 2px solid #ddd; /* Lighter separator */
+        padding-bottom: 10px; 
+    }
 
-    /* Profile Column Specifics */
-    .avatar-wrapper {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-    .avatar { 
-        width: 120px; /* Smaller avatar */
-        height: 120px; 
-        border-radius: 50%; 
-        border: 3px solid #6cb4ee; /* Blue border for avatar */
-        object-fit: cover;
-    }
+    /* Profile Column Specifics */
+    .avatar-wrapper {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .avatar { 
+        width: 120px; /* Smaller avatar */
+        height: 120px; 
+        border-radius: 50%; 
+        border: 3px solid #6cb4ee; /* Blue border for avatar */
+        object-fit: cover;
+    }
 
-    /* Generic Box Styling */
-    .box { 
-        background: #e9f0f7; /* Lighter, more aesthetic background for boxes */
-        padding: 12px 15px; /* More padding */
-        border-radius: 8px; /* Softer corners */
-        margin-bottom: 15px; /* More space between boxes */
-        word-wrap: break-word; 
-        font-size: 1.05em;
-        line-height: 1.4;
-        color: #444;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Inner shadow for depth */
-    }
-    .box strong { color: #222; }
+    /* Generic Box Styling */
+    .box { 
+        background: #e9f0f7; /* Lighter, more aesthetic background for boxes */
+        padding: 12px 15px; /* More padding */
+        border-radius: 8px; /* Softer corners */
+        margin-bottom: 15px; /* More space between boxes */
+        word-wrap: break-word; 
+        font-size: 1.05em;
+        line-height: 1.4;
+        color: #444;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Inner shadow for depth */
+    }
+    .box strong { color: #222; }
 
-    /* Separators */
-    hr { 
-        border: none; 
-        border-top: 2px solid #ccc; /* Thicker, slightly darker HR */
-        margin: 25px 0; 
-    }
+    /* Separators */
+    hr { 
+        border: none; 
+        border-top: 2px solid #ccc; /* Thicker, slightly darker HR */
+        margin: 25px 0; 
+    }
 
-    /* Sessions Column */
-    .ongoing-session-box {
-        background: #d4edda; /* Light green for ongoing session */
-        border: 1px solid #28a745; /* Green border */
-        color: #155724;
+    /* Sessions Column */
+    .ongoing-session-box {
+        /* Cleaned up styling */
+        background: #fff3cd; /* Light warning yellow */
+        border: 2px solid #ffc107; /* Yellow border */
+        color: #856404;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    #live-time { font-size: 1.6em; color: #856404; } /* Darker yellow for live time */
+
+    .sessions-scroll {
+        max-height: 320px; /* Slightly more height */
+        overflow-y: auto;
+        padding-right: 10px; /* More padding for scrollbar */
+    }
+    .sessions-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+    .sessions-scroll::-webkit-scrollbar-thumb {
+        background: #bbb;
+        border-radius: 4px;
+    }
+    .sessions-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    /* Past session card styling */
+    .session-box { 
+        background: #e9f0f7; /* Consistent box background */
+        border: 1px solid #cce5ff; /* Light blue border */
+        padding: 10px 15px; 
+        border-radius: 8px; 
+        margin-bottom: 10px; 
+        word-wrap: break-word; 
+        cursor: pointer; 
+        transition: background 0.2s, transform 0.2s;
+        font-size: 0.95em;
+    }
+    .session-box:hover {
+        background: #d4e3f4;
+        transform: translateY(-2px); /* Slight lift on hover */
+    }
+    .session-box strong { font-size: 1.1em; color: #007bff; }
+
+    /* Shifts Column */
+    .shift-box {
+        background: #e9f0f7; /* Consistent box background */
+        border: 1px solid #cce5ff; /* Light blue border */
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-size: 1.05em;
+        line-height: 1.4;
+    }
+    .shift-box strong { color: #007bff; }
+    
+    /* Upcoming Shifts Section */
+    #upcoming-shifts-list {
+        max-height: 250px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+    .upcoming-shift-item {
+        background: #f7faff;
+        border: 1px solid #b3d4ff;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .upcoming-shift-item .time {
         font-weight: bold;
-        text-align: center;
-        padding: 15px;
+        color: #007bff;
     }
-    #live-time { font-size: 1.4em; color: #155724; } /* Darker green for live time */
-
-    .sessions-scroll {
-        max-height: 320px; /* Slightly more height */
-        overflow-y: auto;
-        padding-right: 10px; /* More padding for scrollbar */
-    }
-    .sessions-scroll::-webkit-scrollbar {
-        width: 8px;
+    .upcoming-shift-item .role {
+        font-style: italic;
+        color: #28a745;
     }
-    .sessions-scroll::-webkit-scrollbar-thumb {
-        background: #bbb;
-        border-radius: 4px;
-    }
-    .sessions-scroll::-webkit-scrollbar-track {
-        background: #f1f1f1;
+    .upcoming-shift-item .host-info {
+        font-size: 0.9em;
+        color: #666;
     }
 
-    /* Past session card styling */
-    .session-box { 
-        background: #e9f0f7; /* Consistent box background */
-        border: 1px solid #cce5ff; /* Light blue border */
-        padding: 10px 15px; 
-        border-radius: 8px; 
-        margin-bottom: 10px; 
-        word-wrap: break-word; 
-        cursor: pointer; 
-        transition: background 0.2s, transform 0.2s;
-        font-size: 0.95em;
-    }
-    .session-box:hover {
-        background: #d4e3f4;
-        transform: translateY(-2px); /* Slight lift on hover */
-    }
-    .session-box strong { font-size: 1.1em; color: #007bff; }
 
-    /* Shifts Column */
-    .shift-box {
-        background: #e9f0f7; /* Consistent box background */
-        border: 1px solid #cce5ff; /* Light blue border */
-        padding: 12px 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        font-size: 1.05em;
-        line-height: 1.4;
-    }
-    .shift-box strong { color: #007bff; }
+    /* Modal - Card for Past Session Details */
+    .modal {
+        display: none; 
+        position: fixed; 
+        z-index: 1000; /* Higher z-index to be on top of everything */
+        left: 0; 
+        top: 0;
+        width: 100%; 
+        height: 100%; 
+        overflow: auto; 
+        background-color: rgba(0,0,0,0.5); /* Darker overlay */
+        backdrop-filter: blur(5px); /* Blurred background */
+    }
+    .modal-content {
+        background-color: #ffffff;
+        margin: 10% auto; 
+        padding: 0;
+        border-radius: 12px; /* Softer corners */
+        width: 90%; 
+        max-width: 450px; /* Slightly larger card */
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3); /* More prominent shadow */
+        animation: fadeIn 0.3s ease-out; /* Fade-in animation */
+    }
+    .modal-header {
+        background-color: #6cb4ee; /* Blue banner */
+        color: white;
+        padding: 15px 20px; /* More padding */
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.3em;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        position: relative;
+    }
+    .modal-body { 
+        padding: 25px; /* More padding */
+        line-height: 1.6;
+        font-size: 1.05em;
+    }
+    .modal-body p { margin-bottom: 12px; }
+    .modal-body strong { display: inline-block; width: 130px; color: #444; } /* Adjusted width for labels */
+    .close {
+        color: white;
+        float: right;
+        font-size: 30px; /* Larger X */
+        font-weight: bold;
+        position: absolute;
+        right: 15px;
+        top: 10px;
+        line-height: 1;
+    }
+    .close:hover,
+    .close:focus {
+        color: #eee;
+        text-decoration: none;
+        cursor: pointer;
+    }
 
-    /* Modal - Card for Past Session Details */
-    .modal {
-        display: none; 
-        position: fixed; 
-        z-index: 1000; /* Higher z-index to be on top of everything */
-        left: 0; 
-        top: 0;
-        width: 100%; 
-        height: 100%; 
-        overflow: auto; 
-        background-color: rgba(0,0,0,0.5); /* Darker overlay */
-        backdrop-filter: blur(5px); /* Blurred background */
-    }
-    .modal-content {
-        background-color: #ffffff;
-        margin: 10% auto; 
-        padding: 0;
-        border-radius: 12px; /* Softer corners */
-        width: 90%; 
-        max-width: 450px; /* Slightly larger card */
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3); /* More prominent shadow */
-        animation: fadeIn 0.3s ease-out; /* Fade-in animation */
-    }
-    .modal-header {
-        background-color: #6cb4ee; /* Blue banner */
-        color: white;
-        padding: 15px 20px; /* More padding */
-        text-align: center;
-        font-weight: 700;
-        font-size: 1.3em;
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
-        position: relative;
-    }
-    .modal-body { 
-        padding: 25px; /* More padding */
-        line-height: 1.6;
-        font-size: 1.05em;
-    }
-    .modal-body p { margin-bottom: 12px; }
-    .modal-body strong { display: inline-block; width: 130px; color: #444; } /* Adjusted width for labels */
-    .close {
-        color: white;
-        float: right;
-        font-size: 30px; /* Larger X */
-        font-weight: bold;
-        position: absolute;
-        right: 15px;
-        top: 10px;
-        line-height: 1;
-    }
-    .close:hover,
-    .close:focus {
-        color: #eee;
-        text-decoration: none;
-        cursor: pointer;
-    }
+    /* Fade-in animation for modal */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
-    /* Fade-in animation for modal */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .container { flex-direction: column; gap: 20px; padding: 15px; }
-        .column { width: 100%; min-width: unset; }
-        .avatar { width: 100px; height: 100px; }
-        header { font-size: 28px; padding: 20px 15px; }
-        .header-text { font-size: 32px; }
-        .modal-content { width: 95%; margin: 15% auto; }
-    }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .container { flex-direction: column; gap: 20px; padding: 15px; }
+        .column { width: 100%; min-width: unset; }
+        .avatar { width: 100px; height: 100px; }
+        header { font-size: 28px; padding: 20px 15px; }
+        .header-text { font-size: 32px; }
+        .modal-content { width: 95%; margin: 15% auto; }
+    }
 </style>
 </head>
 <body>
@@ -242,15 +272,16 @@
     <div class="column">
     <h3>Sessions</h3>
 
-        <% if (ongoingSession) { 
-        // CRITICAL FIX: Use session_start_time if available, otherwise fall back to current time (Date.now())
-        const startTimeString = ongoingSession.session_start_time;
-        const startTime = startTimeString ? new Date(startTimeString).getTime() : Date.now();
+        <% if (ongoingSession) { 
+        // CRITICAL FIX: Use session_start_time if available, otherwise fall back to current time (Date.now())
+        // Convert from TIMESTAMPTZ string to numerical milliseconds for JavaScript
+        const startTimeString = ongoingSession.session_start_time;
+        const startTime = startTimeString ? new Date(startTimeString).getTime() : Date.now();
     %>
-      <div class="box ongoing-session-box" id="ongoing-session-box">
-        <strong>🟢 ONGOING SESSION</strong><br>
-        <span>Started: <%= new Date(startTime).toLocaleString() %></span><br>
-        <span>Time In Game: <span id="live-time">00:00:00</span></span>
+      <div class="ongoing-session-box" id="ongoing-session-box">
+        <strong>🟢 Currently In Game</strong><br>
+        <span style="font-size: 0.9em;">Started: <%= new Date(startTime).toLocaleTimeString() %></span><br>
+        <div id="live-time-wrapper" style="margin-top: 5px;">Time: <span id="live-time">00:00:00</span></div>
         <input type="hidden" id="session-start-time" value="<%= startTime %>">
       </div>
     <% } else { %>
@@ -258,12 +289,13 @@
     <% } %>
 
     <hr>
-    
+    
+    <h4>Past Sessions (Last 4)</h4>
         <div class="sessions-scroll">
       <% if (sessions && sessions.length > 0) { %>
         <% sessions.slice(0,4).forEach((s, index) => { %>
           <div class="session-box" onclick="showSessionDetails(<%= index %>)">
-            <strong>Past Session <%= index + 1 %></strong><br>
+            <strong>Session <%= index + 1 %></strong><br>
             <span>Minutes Played: <%= s.minutes_played %></span>
           </div>
         <% }) %>
@@ -276,11 +308,21 @@
     <div class="column">
     <h3>Shifts</h3>
     <div class="box shift-box"><strong>Attended:</strong> <%= shifts.attended || 0 %></div>
-    <div class="box shift-box"><strong>Hosted:</strong> <%= shifts.hosted || 0 %></div>
-    
+    <div class="box shift-box" id="hosted-shift-count-box">
+        <strong>Hosted:</strong> <span id="hosted-shift-count"><%= shifts.hosted || 0 %></span>
+    </div>
+    
     <hr>
+    
+    <h4>Upcoming Shifts (Next 3)</h4>
+    <div id="upcoming-shifts-list">
+        <p style="text-align: center;">Loading scheduled shifts...</p>
+    </div>
+    
+    <hr>
+    
     <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
-      <h4>Co-Hosted Shifts</h4>
+      <h4>Co-Hosted Shifts (Logged)</h4>
       <% shifts.coHosted.forEach(c => { %>
         <div class="box shift-box">
           <strong>Shift:</strong> <%= c.name %><br>
@@ -288,7 +330,7 @@
         </div>
       <% }) %>
     <% } else { %>
-      <div class="box shift-box">No co-hosted shifts.</div>
+      <div class="box shift-box">No co-hosted shifts logged.</div>
     <% } %>
   </div>
 
@@ -310,74 +352,195 @@
 </div>
 
 <script>
-    // Data passed from server (full sessions list)
-    const allSessions = JSON.parse('<%- JSON.stringify(sessions || []) %>');
-    const playerUsername = "<%= player.username %>";
-    const playerRank = "<%= player.group_rank %>";
-    const modal = document.getElementById('sessionModal');
+    // Data passed from server (full sessions list)
+    const allSessions = JSON.parse('<%- JSON.stringify(sessions || []) %>');
+    const playerUsername = "<%= player.username %>";
+    const playerRank = "<%= player.group_rank %>";
+    const modal = document.getElementById('sessionModal');
 
-    // Utility function to format milliseconds to HH:MM:SS
-    function formatTime(ms) {
-        let totalSeconds = Math.floor(ms / 1000);
-        let hours = Math.floor(totalSeconds / 3600);
-        let minutes = Math.floor((totalSeconds % 3600) / 60);
-        let seconds = totalSeconds % 60;
+    // Normalize username for reliable comparison with Discord usernames (case and space insensitive)
+    const normalizedPlayerName = playerUsername.replace(/\s/g, '').toLowerCase();
 
-        const pad = num => String(num).padStart(2, '0');
-        return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-    }
+    // Utility function to format milliseconds to HH:MM:SS
+    function formatTime(ms) {
+        let totalSeconds = Math.floor(ms / 1000);
+        let hours = Math.floor(totalSeconds / 3600);
+        let minutes = Math.floor((totalSeconds % 3600) / 60);
+        let seconds = totalSeconds % 60;
 
-    /* ----------------------------------
-     * 1. Live Counter Logic 
-     * ---------------------------------- */
-
-    const startTimeInput = document.getElementById('session-start-time');
-    if (startTimeInput) {
-        // Parse the timestamp passed from EJS
-        const startTimeMs = parseInt(startTimeInput.value);
+        const pad = num => String(num).padStart(2, '0');
+        return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+    
+    // Utility function for shift time formatting (local timezone)
+    function formatShiftTime(timestamp) {
+        // Discord timestamps are in seconds, convert to milliseconds
+        const date = new Date(timestamp * 1000); 
         
-        function updateLiveCounter() {
-            // Calculate elapsed time based on the database's start time
-            const elapsed = Date.now() - startTimeMs; 
-            document.getElementById('live-time').textContent = formatTime(elapsed);
-        }
-
-        updateLiveCounter();
-        setInterval(updateLiveCounter, 1000);
+        // Use the user's local timezone for conversion
+        const dateString = date.toLocaleDateString(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        const timeString = date.toLocaleTimeString(undefined, { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZoneName: 'short' // Show the user's timezone abbreviation
+        });
+        
+        return `${dateString} @ ${timeString}`;
     }
 
 
+    /* ----------------------------------
+     * 1. Live Counter Logic 
+     * ---------------------------------- */
+
+    const startTimeInput = document.getElementById('session-start-time');
+    if (startTimeInput) {
+        // Parse the timestamp passed from EJS
+        const startTimeMs = parseInt(startTimeInput.value);
+        
+        function updateLiveCounter() {
+            // Calculate elapsed time based on the database's start time
+            const elapsed = Date.now() - startTimeMs; 
+            document.getElementById('live-time').textContent = formatTime(elapsed);
+        }
+
+        updateLiveCounter();
+        setInterval(updateLiveCounter, 1000);
+    }
+
+
+    /* ----------------------------------
+     * 2. Modal/Clickable Session Logic
+     * ---------------------------------- */
+
+    function showSessionDetails(index) {
+        const session = allSessions[index];
+        if (!session) return;
+
+        // Set Header (Blue banner content)
+        const headerText = `${playerUsername} - ${playerRank}`;
+        document.getElementById('modal-header-text').textContent = headerText;
+
+        // Set Body Content
+        document.getElementById('modal-minutes-played').textContent = session.minutes_played;
+        // Format session start/end using user's local timezone
+        document.getElementById('modal-session-start').textContent = new Date(session.session_start * 1000).toLocaleString();
+        document.getElementById('modal-session-end').textContent = new Date(session.session_end * 1000).toLocaleString();
+
+        // Show Modal
+        modal.style.display = "block";
+    }
+
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    // Close the modal if the user clicks anywhere outside of the modal content
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+    
+    
     /* ----------------------------------
-     * 2. Modal/Clickable Session Logic
+     * 3. Discord Shift Integration Logic (NEW)
      * ---------------------------------- */
+    
+    async function loadPlayerShiftsFromDiscord() {
+        const upcomingList = document.getElementById('upcoming-shifts-list');
+        const hostedCountSpan = document.getElementById('hosted-shift-count');
+        
+        upcomingList.innerHTML = '<p style="text-align: center;">Fetching Discord session data...</p>';
 
-    function showSessionDetails(index) {
-        const session = allSessions[index];
-        if (!session) return;
+        try {
+            const response = await fetch('/sessions');
+            const sessions = await response.json();
 
-        // Set Header (Blue banner content)
-        const headerText = `${playerUsername} - ${playerRank}`;
-        document.getElementById('modal-header-text').textContent = headerText;
+            if (sessions.error) {
+                upcomingList.innerHTML = `<p style="color: red; text-align: center;">Error: ${sessions.error}</p>`;
+                return;
+            }
 
-        // Set Body Content
-        document.getElementById('modal-minutes-played').textContent = session.minutes_played;
-        document.getElementById('modal-session-start').textContent = new Date(session.session_start).toLocaleString();
-        document.getElementById('modal-session-end').textContent = new Date(session.session_end).toLocaleString();
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            // Get the current hosted count from the EJS initial value
+            let hostedCount = Number(hostedCountSpan.textContent || 0); 
+            
+            const playerShifts = sessions.filter(session => {
+                // Normalize session host/cohost names for case and space-insensitive comparison
+                const normalizedHost = session.host ? session.host.replace(/\s/g, '').toLowerCase() : '';
+                const normalizedCohost = session.cohost ? session.cohost.replace(/\s/g, '').toLowerCase() : '';
+                
+                const isHost = normalizedHost === normalizedPlayerName;
+                const isCohost = normalizedCohost === normalizedPlayerName;
+                
+                if (isHost || isCohost) {
+                    // This is a shift the player was involved in
+                    
+                    // If the session has already passed, count it as a hosted shift
+                    if (session.time < nowSeconds) {
+                        hostedCount++; // Increment count (we assume the DB only stores manually logged shifts)
+                        return false; // Don't display past shifts in "Upcoming"
+                    }
+                    
+                    // Keep upcoming shifts
+                    return true;
+                }
+                
+                return false;
+            });
+            
+            // Update the total hosted count (DB data + passed Discord sessions)
+            hostedCountSpan.textContent = hostedCount;
 
-        // Show Modal
-        modal.style.display = "block";
-    }
+            // Sort upcoming shifts by time and show only the next 3
+            const upcomingShifts = playerShifts
+                .filter(s => s.time > nowSeconds)
+                .sort((a, b) => a.time - b.time)
+                .slice(0, 3); // LIMIT to the next 3
 
-    function closeModal() {
-        modal.style.display = "none";
-    }
+            // Display upcoming sessions
+            if (upcomingShifts.length === 0) {
+                upcomingList.innerHTML = '<p style="text-align: center; color: #666;">No upcoming shifts scheduled.</p>';
+            } else {
+                upcomingList.innerHTML = '';
+                upcomingShifts.forEach(session => {
+                    const shiftItem = document.createElement('div');
+                    shiftItem.className = 'upcoming-shift-item';
+                    
+                    const isPlayerHost = session.host.replace(/\s/g, '').toLowerCase() === normalizedPlayerName;
+                    const role = isPlayerHost ? 'Host' : 'Co-Host';
+                    
+                    // Display host and co-host details
+                    let hostInfo = `Host: ${session.host}`;
+                    if (session.cohost && !isPlayerHost) {
+                         hostInfo += ` | Co-Host: ${session.cohost}`;
+                    } else if (session.cohost && isPlayerHost) {
+                        hostInfo = `Co-Host: ${session.cohost}`; // If player is host, show cohost info
+                    }
 
-    // Close the modal if the user clicks anywhere outside of the modal content
-    window.onclick = function(event) {
-        if (event.target === modal) {
-            closeModal();
+                    shiftItem.innerHTML = `
+                        <div class="time">${formatShiftTime(session.time)}</div>
+                        <div class="role">Your Role: ${role}</div>
+                        <div class="host-info">${hostInfo}</div>
+                    `;
+                    upcomingList.appendChild(shiftItem);
+                });
+            }
+
+        } catch (error) {
+            console.error("Error loading player shifts from Discord:", error);
+            upcomingList.innerHTML = '<p style="color: red; text-align: center;">Failed to load scheduled shifts.</p>';
         }
     }
+
+    // Initialize the Discord shift loading when the page loads
+    loadPlayerShiftsFromDiscord();
 </script>
 
 </body>
