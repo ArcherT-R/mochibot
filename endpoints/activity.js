@@ -1,14 +1,15 @@
-// /endpoints/activity.js - FULLY FIXED
+// /endpoints/activity.js
 const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch"); 
-// CRITICAL FIX: Add deletePlayerLiveSession to imports
+// CRITICAL FIX: Add deletePlayerLiveSession and getOngoingSession to imports
 const { 
     createPlayerIfNotExists, 
     logPlayerSession, 
     logPlayerLive, 
-    deletePlayerLiveSession // <-- ADDED
-} = require("./database");
+    deletePlayerLiveSession,
+    getOngoingSession // Not used here, but good practice if routes use it
+} = require("./database"); 
 
 const GROUP_ID = 35807738; 
 
@@ -39,7 +40,7 @@ router.post("/join", async (req, res) => {
 });
 
 // ---------------------------
-// Log Session Endpoint - OK (Fast)
+// Log Session Endpoint - OK
 // ---------------------------
 router.post("/log-session", async (req, res) => {
   const { roblox_id, minutes_played, session_start, session_end } = req.body;
@@ -56,7 +57,7 @@ router.post("/log-session", async (req, res) => {
     console.log(`✅ Logged session for ${roblox_id}: ${minutes_played} minutes`);
     res.json(updatedPlayer);
   } catch (err) {
-    console.error("Failed to log session:", err);
+    console.error("❌ Failed to log session:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -67,63 +68,73 @@ router.post("/live", async (req, res) => {
     const { roblox_id, username, current_minutes } = req.body;
     if (!roblox_id || !username || current_minutes == null)
       return res.status(400).json({ error: "Missing parameters" });
-    await logPlayerLive(roblox_id, username, current_minutes);
+    
+    // Pass session_start_time as null/undefined here, as it's only set on /start-session
+    await logPlayerLive(roblox_id, username, current_minutes); 
+    
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error("Error updating live session:", err);
+    console.error("❌ Error updating live session:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
 // ---------------------------
-// Start Live Session (UPDATED)
+// Start Live Session - UPDATED for Persistent Timer
 // ---------------------------
 router.post("/start-session", async (req, res) => {
-  const { roblox_id, username, avatar_url, group_rank } = req.body;
-  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
+  const { roblox_id, username, avatar_url, group_rank } = req.body;
+  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
 
   const startTime = Date.now(); // Capture the server-side start time
 
-  // Store in memory
-  activeSessions[roblox_id] = {
-    roblox_id,
-    username,
-    avatar_url: avatar_url || "",
-    group_rank: group_rank || "Guest",
-    session_start: startTime, // Stored in memory (for /active endpoint)
-  };
+  activeSessions[roblox_id] = {
+    roblox_id,
+    username,
+    avatar_url: avatar_url || "",
+    group_rank: group_rank || "Guest",
+    session_start: startTime,
+  };
+  
+  try {
+    // CRITICAL: Store the start time in the DB
+    await logPlayerLive(roblox_id, username, 0, startTime);
+  } catch (err) {
+    console.error("❌ Failed to log session start to DB:", err);
+    // Continue even if DB fails, as in-memory state is set
+  }
 
-  // Store in DB (CRITICAL: Assuming logPlayerLive is updated to accept startTime)
-  await logPlayerLive(roblox_id, username, 0, startTime); 
-
-  console.log(`🟢 Live session started: ${username}`);
-  res.json({ success: true });
+  console.log(`🟢 Live session started: ${username}`);
+  res.json({ success: true });
 });
 
 // ---------------------------
-// End Live Session - CRITICAL FIX APPLIED
+// End Live Session - FIXED against Unhandled Rejection
 // ---------------------------
-router.post("/end-session", async (req, res) => { // <-- MUST BE ASYNC NOW
+router.post("/end-session", async (req, res) => {
     const { roblox_id } = req.body;
     if (!roblox_id) return res.status(400).json({ error: "Missing roblox_id" });
 
+    // 1. Delete from fast in-memory object (Always safe)
     const removed = activeSessions[roblox_id];
     if (removed) {
-        // 1. Delete from fast in-memory object
         console.log(`🔴 Live session ended: ${removed.username} (In-memory)`);
         delete activeSessions[roblox_id];
     }
     
+    // 2. CRITICAL FIX: Ensure the entire DB operation is inside the try...catch
     try {
-        // 2. CRITICAL STEP: Delete the row from the player_live table in Supabase
-        await deletePlayerLiveSession(roblox_id);
+        // Delete the row from the player_live table in Supabase
+        await deletePlayerLiveSession(roblox_id); 
         console.log(`🔴 Live session successfully deleted from DB: ${roblox_id}`);
         
         // Respond success to the Roblox client
         res.json({ success: true });
     } catch (err) {
-        console.error("❌ Failed to delete live session from DB:", err);
-        // Respond 500 but still ensures the request completes (essential for Roblox cleanup thread)
+        // This handles the ERR_UNHANDLED_REJECTION
+        console.error("❌ Failed to delete live session from DB:", err); 
+        
+        // Respond 500 but log the error (or 200 if you want to prioritize the Roblox thread finishing)
         res.status(500).json({ error: "Failed to delete live session from DB" });
     }
 });
