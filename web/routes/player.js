@@ -11,7 +11,10 @@ module.exports = () => {
 
       const sessions = await getPlayerSessions(player.roblox_id);
 
-      res.render("player", { player, sessions });
+      // Define ongoingSession (can replace this with real-time check later)
+      const ongoingSession = null;
+
+      res.render("player", { player, sessions, ongoingSession });
     } catch (err) {
       console.error("Error loading player:", err);
       res.status(500).send("Internal Server Error");
