@@ -12,10 +12,10 @@ module.exports = () => {
       const sessions = await getPlayerSessions(player.roblox_id);
       const shifts = await getPlayerShifts(player.roblox_id) || { attended: 0, hosted: 0, coHosted: [] };
 
-      // Ongoing session (replace with real data if available)
+      // Example: Ongoing session (replace with real-time data if available)
       const ongoingSession = null;
 
-      // Activity object for EJS
+      // Build activity object for EJS
       const activity = {
         ongoingSession,
         pastSessions: sessions
@@ -27,11 +27,9 @@ module.exports = () => {
           }))
       };
 
-      res.render("player", {
-        player,
-        activity,  // ✅ pass activity to EJS
-        shifts
-      });
+      // Pass everything to EJS
+      res.render("player", { player, activity, shifts });
+
     } catch (err) {
       console.error("Error loading player:", err);
       res.status(500).send("Internal Server Error");
