@@ -155,22 +155,32 @@ async function getPlayerSessions(roblox_id) {
   return data;
 }
 
-async function logPlayerLive(roblox_id, username, current_minutes) {
-  const { data, error } = await supabase
-    .from("player_live")
-    .upsert(
-      {
-        roblox_id,
-        username,
-        current_minutes,
-        last_updated: new Date().toISOString(),
-      },
-      { onConflict: ["roblox_id"] } // only one row per player
-    );
+// -------------------------
+// Live session updates
+// -------------------------
+router.post("/live", async (req, res) => {
+  try {
+    const { roblox_id, username, current_minutes } = req.body;
+    if (!roblox_id || current_minutes == null) {
+      return res.status(400).json({ error: "Missing roblox_id or current_minutes" });
+    }
 
-  if (error) throw error;
-  return data;
-}
+    // Upsert into player_live table (update if exists, insert if not)
+    const { data, error } = await supabase
+      .from("player_live")
+      .upsert(
+        { roblox_id, username, current_minutes },
+        { onConflict: "roblox_id" } // assumes roblox_id is primary key or unique
+      );
+
+    if (error) throw error;
+
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error("Error updating live session:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = {
   createPlayerIfNotExists,
