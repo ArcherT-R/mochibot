@@ -3,16 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mochi Bar Database - <%= player.username %></title>
+<title>Mochi Bar - <%= player.username %></title>
 <style>
-    body { font-family: Arial, sans-serif; background: #f0f0f0; margin:0; padding:0; }
-    header { background: #6cb4ee; padding: 20px; text-align:center; font-size:24px; font-weight:bold; }
-    .container { max-width: 1200px; margin:auto; padding:20px; display:flex; gap:20px; flex-wrap: wrap; }
-    .column { background:white; padding:15px; border-radius:8px; flex:1; min-width:250px; box-sizing:border-box; }
-    .column h3 { margin-top:0; border-bottom:2px solid #000; padding-bottom:5px; }
-    .avatar { width:150px; height:150px; border-radius:50%; margin-bottom:10px; max-width:100%; }
-    .box, .session-box { background:#e9e9e9; padding:10px; border-radius:6px; margin-bottom:10px; word-wrap: break-word; }
-    .session-container { max-height: 300px; overflow-y:auto; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; margin:0; padding:0; }
+  header { background: #6cb4ee; padding: 20px; text-align:center; font-size:24px; font-weight:bold; color: white; }
+  .container { max-width: 1200px; margin:auto; padding:20px; display:flex; gap:20px; flex-wrap: wrap; }
+  .column { background:white; padding:15px; border-radius:8px; flex:1; min-width:250px; box-sizing:border-box; }
+  .column h3 { margin-top:0; border-bottom:2px solid #000; padding-bottom:5px; }
+  .avatar { width:150px; height:150px; border-radius:50%; margin-bottom:10px; max-width:100%; }
+  .box { background:#e9e9e9; padding:10px; border-radius:6px; margin-bottom:10px; word-wrap: break-word; }
+
+  /* Scrollable past sessions */
+  .sessions-scroll {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+  }
+
+  .session-box { background:#f5f5f5; padding:8px; border-radius:6px; margin-bottom:6px; word-wrap: break-word; }
+
+  /* Responsive: stack columns on mobile */
+  @media (max-width: 768px) {
+    .container { flex-direction: column; gap:15px; padding:15px; }
+    .column { width: 100%; }
+    .avatar { width:100%; height:auto; }
+  }
 </style>
 </head>
 <body>
@@ -21,52 +36,65 @@
 
 <div class="container">
 
-  <!-- Profile -->
+  <!-- Column 1: Profile -->
   <div class="column">
-    <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar">
+    <h3>Profile</h3>
+    <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar" onerror="this.src='https://placehold.co/150x150/e0e6f0/5f6c7b?text=Error';">
     <div class="box"><strong>Username:</strong> <%= player.username %></div>
     <div class="box"><strong>Group Rank:</strong> <%= player.group_rank %></div>
-    <div class="box"><strong>Notes:</strong> ...</div>
+    <div class="box"><strong>Notes:</strong> <%= player.notes || 'No notes available.' %></div>
   </div>
 
-  <!-- Sessions -->
+  <!-- Column 2: Sessions -->
   <div class="column">
     <h3>Sessions</h3>
 
-    <% if (activity.ongoingSession) { %>
+    <!-- Ongoing session -->
+    <% if (ongoingSession) { %>
       <div class="box">
         <strong>🟢 Ongoing Session</strong><br>
-        <%= activity.ongoingSession %>
+        <strong>Started:</strong> <%= new Date(ongoingSession.start).toLocaleString() %>
       </div>
+    <% } else { %>
+      <div class="box">No ongoing session</div>
     <% } %>
 
-    <div class="session-container">
-      <% if (activity.pastSessions && activity.pastSessions.length > 0) { %>
-        <% activity.pastSessions.forEach(session => { %>
+    <hr>
+
+    <!-- Past sessions (limit 4) -->
+    <div class="sessions-scroll">
+      <% if (sessions && sessions.length > 0) { %>
+        <% sessions.slice(0,4).forEach(s => { %>
           <div class="session-box">
-            <strong><%= session.name %></strong><br>
-            <%= session.details %>
+            <strong>Start:</strong> <%= new Date(s.session_start).toLocaleString() %><br>
+            <strong>End:</strong> <%= new Date(s.session_end).toLocaleString() %><br>
+            <strong>Minutes Played:</strong> <%= s.minutes_played %>
           </div>
         <% }) %>
       <% } else { %>
-        <div class="session-box">No past sessions found.</div>
+        <div class="session-box">No past sessions.</div>
       <% } %>
     </div>
   </div>
 
-  <!-- Shifts -->
+  <!-- Column 3: Shifts -->
   <div class="column">
     <h3>Shifts</h3>
-    <div class="box"><strong>Attended:</strong> <%= shifts.attended %></div>
-    <div class="box"><strong>Hosted:</strong> <%= shifts.hosted %></div>
+    <div class="box"><strong>Attended:</strong> <%= shifts.attended || 0 %></div>
+    <div class="box"><strong>Hosted:</strong> <%= shifts.hosted || 0 %></div>
 
     <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
-      <% shifts.coHosted.forEach(s => { %>
-        <div class="box"><strong>Co-Hosted:</strong> <%= s.name %> with <%= s.host %></div>
+      <hr>
+      <% shifts.coHosted.forEach(c => { %>
+        <div class="box">
+          <strong>Co-Hosted:</strong> <%= c.name %><br>
+          <span>with <%= c.host %></span>
+        </div>
       <% }) %>
     <% } %>
   </div>
 
 </div>
+
 </body>
 </html>
