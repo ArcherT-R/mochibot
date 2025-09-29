@@ -1,11 +1,4 @@
-// endpoints/activity.js
-const express = require("express");
-const router = express.Router();
-const {
-  getPlayerByUsername,
-  createPlayerIfNotExists,
-  logPlayerSession,
-} = require("./database"); // make sure this points correctly
+// endpoints/database.js
 const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
@@ -14,6 +7,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 // Players
 // -------------------------
 
+// Create player if not exists
 async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank }) {
   const { data: existing } = await supabase
     .from("players")
@@ -39,17 +33,19 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
   return data;
 }
 
-// Log player session
+// Log a completed player session
 async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
   if (!roblox_id || minutes_played == null || !session_start || !session_end) {
     throw new Error("Missing data in logPlayerSession");
   }
 
+  // Calculate current week start (Monday 00:00)
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
+  // Insert into player_activity
   const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
@@ -63,6 +59,7 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
     .single();
   if (insertErr) throw insertErr;
 
+  // Update total weekly minutes
   const { data: weeklySessions, error: weeklyErr } = await supabase
     .from("player_activity")
     .select("minutes_played")
@@ -94,7 +91,7 @@ async function getPlayerByUsername(username) {
   return data;
 }
 
-// Search players
+// Search players by username
 async function searchPlayersByUsername(username) {
   const { data, error } = await supabase
     .from("players")
@@ -112,30 +109,17 @@ async function getAllPlayers() {
   return data;
 }
 
-// Get all shifts for a player
-async function getPlayerShifts(roblox_id) {
+// -------------------------
+// Player sessions
+// -------------------------
+
+// Get all sessions for a player
+async function getPlayerSessions(roblox_id) {
   const { data, error } = await supabase
-    .from("player_shifts")
+    .from("player_activity")
     .select("*")
     .eq("roblox_id", roblox_id)
-    .order("shift_date", { ascending: false });
-  if (error) throw error;
-
-  // Separate into types
-  const attended = data.filter(s => s.type === "attended").length;
-  const hosted = data.filter(s => s.type === "hosted").length;
-  const coHosted = data.filter(s => s.type === "coHosted").map(s => ({ name: s.name, host: s.host }));
-
-  return { attended, hosted, coHosted };
-}
-
-// Add a shift for a player
-async function addPlayerShift({ roblox_id, type, name, host = null }) {
-  const { data, error } = await supabase
-    .from("player_shifts")
-    .insert([{ roblox_id, type, name, host }])
-    .select()
-    .single();
+    .order("session_start", { ascending: false });
   if (error) throw error;
   return data;
 }
@@ -146,50 +130,70 @@ async function getPlayerLastSessions(roblox_id, limit = 4) {
   return sessions.slice(0, limit);
 }
 
-// Ongoing session (replace with real-time memory if needed)
-async function getOngoingSession(roblox_id) {
-  return null; // or a string describing current session
-}
+// -------------------------
+// Player shifts
+// -------------------------
 
-// ✅ Get all play sessions for a player
-async function getPlayerSessions(roblox_id) {
+// Get all shifts for a player
+async function getPlayerShifts(roblox_id) {
   const { data, error } = await supabase
-    .from("player_activity")
+    .from("player_shifts")
     .select("*")
     .eq("roblox_id", roblox_id)
-    .order("session_start", { ascending: false });
+    .order("shift_date", { ascending: false });
+  if (error) throw error;
 
+  const attended = data.filter(s => s.type === "attended").length;
+  const hosted = data.filter(s => s.type === "hosted").length;
+  const coHosted = data.filter(s => s.type === "coHosted").map(s => ({ name: s.name, host: s.host }));
+
+  return { attended, hosted, coHosted };
+}
+
+// Add a shift
+async function addPlayerShift({ roblox_id, type, name, host = null }) {
+  const { data, error } = await supabase
+    .from("player_shifts")
+    .insert([{ roblox_id, type, name, host }])
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }
 
 // -------------------------
-// Live session updates
+// Player live sessions
 // -------------------------
-router.post("/live", async (req, res) => {
-  try {
-    const { roblox_id, username, current_minutes } = req.body;
-    if (!roblox_id || current_minutes == null) {
-      return res.status(400).json({ error: "Missing roblox_id or current_minutes" });
-    }
 
-    // Upsert into player_live table (update if exists, insert if not)
-    const { data, error } = await supabase
-      .from("player_live")
-      .upsert(
-        { roblox_id, username, current_minutes },
-        { onConflict: "roblox_id" } // assumes roblox_id is primary key or unique
-      );
+// Log/update live session
+async function logPlayerLive(roblox_id, username, current_minutes) {
+  if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
 
-    if (error) throw error;
+  const { data, error } = await supabase
+    .from("player_live")
+    .upsert(
+      { roblox_id, username, current_minutes },
+      { onConflict: "roblox_id" } // assumes roblox_id is unique
+    );
 
-    return res.json({ success: true, data });
-  } catch (err) {
-    console.error("Error updating live session:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
+  if (error) throw error;
+  return data;
+}
 
+// Get ongoing live session (from player_live table)
+async function getOngoingSession(roblox_id) {
+  const { data, error } = await supabase
+    .from("player_live")
+    .select("*")
+    .eq("roblox_id", roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+// -------------------------
+// Exports
+// -------------------------
 module.exports = {
   createPlayerIfNotExists,
   logPlayerSession,
@@ -199,7 +203,7 @@ module.exports = {
   getPlayerSessions,
   getPlayerLastSessions,
   getPlayerShifts,
-  getOngoingSession,
   addPlayerShift,
   logPlayerLive,
+  getOngoingSession,
 };
