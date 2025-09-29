@@ -242,22 +242,24 @@
     <div class="column">
     <h3>Sessions</h3>
 
-       <% if (ongoingSession) { 
-    // Use the session_start_time from the database record
-    const startTime = new Date(ongoingSession.session_start_time).getTime(); 
-%>
-  <div class="box ongoing-session-box" id="ongoing-session-box">
-    <strong>🟢 ONGOING SESSION</strong><br>
-    <span>Started: <%= new Date(startTime).toLocaleString() %></span><br>
-    <span>Time In Game: <span id="live-time">00:00:00</span></span>
-    
+        <% if (ongoingSession) { 
+        // CRITICAL FIX: Use session_start_time if available, otherwise fall back to current time (Date.now())
+        const startTimeString = ongoingSession.session_start_time;
+        const startTime = startTimeString ? new Date(startTimeString).getTime() : Date.now();
+    %>
+      <div class="box ongoing-session-box" id="ongoing-session-box">
+        <strong>🟢 ONGOING SESSION</strong><br>
+        <span>Started: <%= new Date(startTime).toLocaleString() %></span><br>
+        <span>Time In Game: <span id="live-time">00:00:00</span></span>
         <input type="hidden" id="session-start-time" value="<%= startTime %>">
-  </div>
-<% } else { %>
-  <div class="box">No ongoing session</div>
-<% } %>
+      </div>
+    <% } else { %>
+      <div class="box">No ongoing session</div>
+    <% } %>
 
-    <hr>         <div class="sessions-scroll">
+    <hr>
+    
+        <div class="sessions-scroll">
       <% if (sessions && sessions.length > 0) { %>
         <% sessions.slice(0,4).forEach((s, index) => { %>
           <div class="session-box" onclick="showSessionDetails(<%= index %>)">
@@ -276,7 +278,8 @@
     <div class="box shift-box"><strong>Attended:</strong> <%= shifts.attended || 0 %></div>
     <div class="box shift-box"><strong>Hosted:</strong> <%= shifts.hosted || 0 %></div>
     
-    <hr>     <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
+    <hr>
+    <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
       <h4>Co-Hosted Shifts</h4>
       <% shifts.coHosted.forEach(c => { %>
         <div class="box shift-box">
@@ -330,10 +333,12 @@
 
     const startTimeInput = document.getElementById('session-start-time');
     if (startTimeInput) {
+        // Parse the timestamp passed from EJS
         const startTimeMs = parseInt(startTimeInput.value);
         
         function updateLiveCounter() {
-            const elapsed = Date.now() - startTimeMs;
+            // Calculate elapsed time based on the database's start time
+            const elapsed = Date.now() - startTimeMs; 
             document.getElementById('live-time').textContent = formatTime(elapsed);
         }
 
@@ -369,7 +374,7 @@
 
     // Close the modal if the user clicks anywhere outside of the modal content
     window.onclick = function(event) {
-        if (event.target === modal) { // Use === for strict comparison
+        if (event.target === modal) {
             closeModal();
         }
     }
