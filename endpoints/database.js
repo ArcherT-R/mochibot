@@ -143,6 +143,18 @@ async function getOngoingSession(roblox_id) {
   return null; // or a string describing current session
 }
 
+// ✅ Get all play sessions for a player
+async function getPlayerSessions(roblox_id) {
+  const { data, error } = await supabase
+    .from("player_activity")
+    .select("*")
+    .eq("roblox_id", roblox_id)
+    .order("session_start", { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
 module.exports = {
   createPlayerIfNotExists,
   logPlayerSession,
