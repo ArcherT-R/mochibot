@@ -82,31 +82,23 @@ router.post("/live", async (req, res) => {
 // ---------------------------
 // Start Live Session - UPDATED for Persistent Timer
 // ---------------------------
-router.post("/start-session", async (req, res) => {
-  const { roblox_id, username, avatar_url, group_rank } = req.body;
-  if (!roblox_id || !username) return res.status(400).json({ error: "Missing data" });
-
-  const startTime = Date.now(); // Capture the server-side start time
-
-  activeSessions[roblox_id] = {
-    roblox_id,
-    username,
-    avatar_url: avatar_url || "",
-    group_rank: group_rank || "Guest",
-    session_start: startTime,
-  };
-  
-  try {
-    // CRITICAL: Store the start time in the DB
-    await logPlayerLive(roblox_id, username, 0, startTime);
-  } catch (err) {
-    console.error("❌ Failed to log session start to DB:", err);
-    // Continue even if DB fails, as in-memory state is set
-  }
-
-  console.log(`🟢 Live session started: ${username}`);
-  res.json({ success: true });
-});
+local function startLiveSession(player, playerInfo, startTime) -- ADD startTime parameter
+	local payload = {
+		roblox_id = player.UserId,
+		username = player.Name,
+		avatar_url = playerInfo.avatarUrl,
+		group_rank = playerInfo.groupRank,
+        session_start_time = startTime -- ADDED: The Unix timestamp (os.time())
+	}
+	local success, result = pcall(function()
+		HttpService:PostAsync(API_START_SESSION_URL, HttpService:JSONEncode(payload), Enum.HttpContentType.ApplicationJson)
+	end)
+	if success then
+		print("🟢 [Activity] Live session started for:", player.Name)
+	else
+		warn("❌ [Activity] Failed to start live session for:", player.Name, "| Error:", result)
+	end
+end
 
 // ---------------------------
 // End Live Session - FIXED against Unhandled Rejection
