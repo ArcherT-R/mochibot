@@ -36,7 +36,7 @@ async function startBot() {
   // --- Persistent bot data ---
   client.botData = { 
     linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
-    // NEW: Initialize counting game state
+    // Initialize counting game state
     countingGame: { channelId: null, currentNumber: 0, lastUserId: null } 
   };
 
@@ -111,7 +111,7 @@ async function startBot() {
     }
   });
 
-  // --- NEW: Counting Game Logic (messageCreate listener) ---
+  // --- Counting Game Logic (messageCreate listener) ---
   client.on('messageCreate', async message => {
     // 1. Ignore bot messages and messages not in the designated counting channel
     if (message.author.bot) return;
@@ -124,7 +124,8 @@ async function startBot() {
     
     // Function to handle failure and reset
     const handleFailure = async (reason) => {
-        await message.delete().catch(console.error);
+        // --- MODIFIED: ONLY REACT, DO NOT DELETE ---
+        await message.react('❌').catch(console.error); 
 
         // Reset the game state
         game.currentNumber = 0;
@@ -156,7 +157,7 @@ async function startBot() {
     game.lastUserId = message.author.id;
     await client.saveBotData();
     
-    // Optional: React with a checkmark to the correct message
+    // React with a checkmark to the correct message
     await message.react('✅').catch(console.error);
   });
   // --- END NEW LOGIC ---
