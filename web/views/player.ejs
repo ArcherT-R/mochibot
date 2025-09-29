@@ -242,18 +242,20 @@
     <div class="column">
     <h3>Sessions</h3>
 
-        <% if (ongoingSession) { 
-      const startTime = new Date(ongoingSession.start || Date.now()).getTime(); 
-    %>
-      <div class="box ongoing-session-box" id="ongoing-session-box">
-        <strong>🟢 ONGOING SESSION</strong><br>
-        <span>Started: <%= new Date(startTime).toLocaleString() %></span><br>
-        <span>Time In Game: <span id="live-time">00:00:00</span></span>
+       <% if (ongoingSession) { 
+    // Use the session_start_time from the database record
+    const startTime = new Date(ongoingSession.session_start_time).getTime(); 
+%>
+  <div class="box ongoing-session-box" id="ongoing-session-box">
+    <strong>🟢 ONGOING SESSION</strong><br>
+    <span>Started: <%= new Date(startTime).toLocaleString() %></span><br>
+    <span>Time In Game: <span id="live-time">00:00:00</span></span>
+    
         <input type="hidden" id="session-start-time" value="<%= startTime %>">
-      </div>
-    <% } else { %>
-      <div class="box">No ongoing session</div>
-    <% } %>
+  </div>
+<% } else { %>
+  <div class="box">No ongoing session</div>
+<% } %>
 
     <hr>         <div class="sessions-scroll">
       <% if (sessions && sessions.length > 0) { %>
