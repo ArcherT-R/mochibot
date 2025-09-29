@@ -165,15 +165,21 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
 // Player live sessions
 // -------------------------
 
-// Log/update live session (MODIFIED)
-async function logPlayerLive(roblox_id, username, current_minutes, session_start_time) {
+/**
+ * @description Logs/updates the live session in the database.
+ * @param {string} roblox_id
+ * @param {string} username
+ * @param {number} current_minutes - Minutes played since session start (from Roblox polling)
+ * @param {number|null} [session_start_time=null] - Unix timestamp of session start (only sent by /start-session)
+ */
+async function logPlayerLive(roblox_id, username, current_minutes, session_start_time = null) {
   if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
 
   const updateObject = { roblox_id, username, current_minutes };
   
-  // Only add session_start_time if it's provided (i.e., on the initial /start-session call)
+  // CRITICAL: Only save session_start_time if provided (i.e., on the initial /start-session call)
   if (session_start_time) {
-      updateObject.session_start_time = new Date(session_start_time).toISOString();
+      updateObject.session_start_time = new Date(session_start_time).toISOString(); 
   }
 
   const { data, error } = await supabase
@@ -187,21 +193,8 @@ async function logPlayerLive(roblox_id, username, current_minutes, session_start
   return data;
 }
 
-// Get ongoing live session (MODIFIED to pull all fields)
-async function getOngoingSession(roblox_id) {
-  const { data, error } = await supabase
-    .from("player_live")
-    // Select everything, including the new session_start_time
-    .select("roblox_id, username, current_minutes, session_start_time") 
-    .eq("roblox_id", roblox_id)
-    .single();
-  if (error && error.code !== "PGRST116") throw error;
-  // Make sure you return session_start_time here!
-  return data; 
-}
-
 /**
- * @description CRITICAL FIX: Deletes the player's row from the player_live table.
+ * @description Deletes the player's row from the player_live table.
  * @param {string} roblox_id 
  */
 async function deletePlayerLiveSession(roblox_id) {
@@ -219,13 +212,14 @@ async function deletePlayerLiveSession(roblox_id) {
 
 // Get ongoing live session (from player_live table)
 async function getOngoingSession(roblox_id) {
-  const { data, error } = await supabase
-    .from("player_live")
-    .select("*")
-    .eq("roblox_id", roblox_id)
-    .single();
-  if (error && error.code !== "PGRST116") throw error;
-  return data;
+  const { data, error } = await supabase
+    .from("player_live")
+    // CRITICAL: MUST SELECT the session_start_time field
+    .select("roblox_id, username, current_minutes, session_start_time") 
+    .eq("roblox_id", roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
 }
 
 // -------------------------
@@ -242,6 +236,6 @@ module.exports = {
   getPlayerShifts,
   addPlayerShift,
   logPlayerLive,
-  deletePlayerLiveSession, // <--- NEW EXPORT
+  deletePlayerLiveSession,
   getOngoingSession,
 };
