@@ -162,7 +162,7 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
 }
 
 // -------------------------
-// Player live sessions
+// Player live sessions - FINAL FIX
 // -------------------------
 
 /**
@@ -170,16 +170,22 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
  * @param {string} roblox_id
  * @param {string} username
  * @param {number} current_minutes - Minutes played since session start (from Roblox polling)
- * @param {number|null} [session_start_time=null] - Unix timestamp of session start (only sent by /start-session)
+ * @param {number|null} [session_start_time=null] - Unix timestamp of session start (sent by /start-session)
  */
 async function logPlayerLive(roblox_id, username, current_minutes, session_start_time = null) {
   if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
 
   const updateObject = { roblox_id, username, current_minutes };
   
-  // CRITICAL: Only save session_start_time if provided (i.e., on the initial /start-session call)
+  // CRITICAL: Convert Unix timestamp (ms) to ISO string for Supabase timestamptz
   if (session_start_time) {
-      updateObject.session_start_time = new Date(session_start_time).toISOString(); 
+      // If startTime is a number (ms), convert it.
+      if (typeof session_start_time === 'number') {
+          updateObject.session_start_time = new Date(session_start_time).toISOString(); 
+      } else {
+          // If it somehow comes as a string, use it directly (less likely here)
+          updateObject.session_start_time = session_start_time;
+      }
   }
 
   const { data, error } = await supabase
@@ -189,7 +195,10 @@ async function logPlayerLive(roblox_id, username, current_minutes, session_start
       { onConflict: "roblox_id" }
     );
 
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase Error in logPlayerLive:", error);
+    throw error; // Re-throw the error to be caught in activity.js
+  }
   return data;
 }
 
@@ -205,7 +214,10 @@ async function deletePlayerLiveSession(roblox_id) {
     .delete()
     .eq("roblox_id", roblox_id);
 
-  if (error) throw error;
+  if (error) {
+     console.error("Supabase Error in deletePlayerLiveSession:", error);
+     throw error;
+  }
   return { success: true };
 }
 
@@ -214,7 +226,6 @@ async function deletePlayerLiveSession(roblox_id) {
 async function getOngoingSession(roblox_id) {
   const { data, error } = await supabase
     .from("player_live")
-    // CRITICAL: MUST SELECT the session_start_time field
     .select("roblox_id, username, current_minutes, session_start_time") 
     .eq("roblox_id", roblox_id)
     .single();
