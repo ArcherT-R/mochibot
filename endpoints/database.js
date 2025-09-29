@@ -165,27 +165,33 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
 // Player live sessions - FINAL FIX
 // -------------------------
 
+// endpoints/database.js - The logPlayerLive function
+
 /**
  * @description Logs/updates the live session in the database.
  * @param {string} roblox_id
  * @param {string} username
- * @param {number} current_minutes - Minutes played since session start (from Roblox polling)
- * @param {number|null} [session_start_time=null] - Unix timestamp of session start (sent by /start-session)
+ * @param {number} current_minutes - Minutes played (must be a number)
+ * @param {number|null} [session_start_time=null] - Unix timestamp (seconds from Lua)
  */
 async function logPlayerLive(roblox_id, username, current_minutes, session_start_time = null) {
   if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
 
-  const updateObject = { roblox_id, username, current_minutes };
+  const updateObject = { 
+    roblox_id: roblox_id, 
+    username: username, 
+    current_minutes: Number(current_minutes) // Still sends a number here
+  };
   
-  // CRITICAL: Convert Unix timestamp (ms) to ISO string for Supabase timestamptz
+  // CRITICAL FIX FOR TIMESTAMPTZ: Convert the numerical timestamp to ISO string
   if (session_start_time) {
-      // If startTime is a number (ms), convert it.
-      if (typeof session_start_time === 'number') {
-          updateObject.session_start_time = new Date(session_start_time).toISOString(); 
-      } else {
-          // If it somehow comes as a string, use it directly (less likely here)
-          updateObject.session_start_time = session_start_time;
-      }
+      // Lua's os.time() sends a 10-digit Unix timestamp (seconds).
+      // JavaScript's Date constructor requires milliseconds (13 digits).
+      const milliseconds = Number(session_start_time) * 1000;
+      
+      // Convert the numerical milliseconds to the ISO string format
+      updateObject.session_start_time = new Date(milliseconds).toISOString(); 
+      console.log(`[DB:Debug] Converted timestamp: ${session_start_time} to ${updateObject.session_start_time}`);
   }
 
   const { data, error } = await supabase
@@ -197,7 +203,7 @@ async function logPlayerLive(roblox_id, username, current_minutes, session_start
 
   if (error) {
     console.error("Supabase Error in logPlayerLive:", error);
-    throw error; // Re-throw the error to be caught in activity.js
+    throw error; 
   }
   return data;
 }
