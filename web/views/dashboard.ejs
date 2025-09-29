@@ -1,183 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mochi Bar Dashboard</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mochi Bar Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+    }
+
+    header {
+      background-color: #6cb4ee;
+      color: white; /* Changed color to white for better contrast */
+      padding: 20px;
+      text-align: center;
+      font-size: 32px; /* Increased size */
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 20px auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    
+    .main-section {
+        flex: 1 1 65%; /* Takes up two-thirds of the space */
+        min-width: 400px;
+    }
+    
+    .sidebar-section {
+        flex: 1 1 30%; /* Takes up one-third of the space */
+        min-width: 300px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     }
 
-    header {
-      background-color: #6cb4ee;
-      color: black;
-      padding: 20px;
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
+
+    .search-box {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    .suggestions {
+      position: absolute;
+      top: 50px;
+      width: 100%;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 0 0 8px 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .suggestion-item:hover {
+      background-color: #e2f0ff;
+    }
+
+    .suggestion-item img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .suggestion-item span {
+      font-weight: bold;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #6cb4ee;
+      padding-bottom: 5px;
+      color: #555;
+    }
+
+    .player-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      width: 150px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .player-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .player-card img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      border: 2px solid #6cb4ee;
+    }
+    
+    .top-players-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    /* New Shift Styles */
+    .shift-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 10px;
     }
 
-    .container {
-      padding: 20px;
-      max-width: 1200px;
-      margin: auto;
+    .shift-item {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-left: 5px solid #ffcc00; /* Yellow accent for shifts */
     }
 
-    .search-box {
-      position: relative;
-      margin-bottom: 20px;
+    .shift-item strong {
+        color: #007bff;
     }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
+    
+    .shift-time {
+        font-weight: bold;
+        color: #28a745; /* Green for time */
+        margin-bottom: 5px;
     }
-
-    .suggestions {
-      position: absolute;
-      top: 45px;
-      width: 100%;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 0 0 8px 8px;
-      max-height: 300px;
-      overflow-y: auto;
-      z-index: 1000;
-    }
-
-    .suggestion-item {
-      display: flex;
-      align-items: center;
-      padding: 8px 10px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .suggestion-item:hover {
-      background-color: #e2f0ff;
-    }
-
-    .suggestion-item img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    .suggestion-item span {
-      font-weight: bold;
-    }
-
-    h2 {
-      margin-bottom: 10px;
-      border-bottom: 2px solid #000;
-      padding-bottom: 5px;
-    }
-
-    .player-list, .top-players-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-
-    .player-card {
-      background: white;
-      padding: 10px;
-      border-radius: 8px;
-      width: 150px;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .player-card img {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      margin-bottom: 5px;
-    }
-  </style>
+    
+  </style>
 </head>
 <body>
-  <header>Mochi Bar Dashboard</header>
+  <header>Mochi Bar Dashboard</header>
 
-  <div class="container">
-    <!-- Search -->
-    <div class="search-box">
-      <input type="text" id="playerSearch" placeholder="Search players..." />
-      <div id="suggestions" class="suggestions"></div>
+  <div class="container">
+    
+    <div class="main-section">
+        <h2>Upcoming Shifts</h2>
+        <div id="shiftsList" class="shift-list">
+            <p style="text-align: center;">Loading upcoming shifts...</p>
+        </div>
     </div>
+    
+    <div class="sidebar-section">
+        
+        <h2>Search Player</h2>
+        <div class="search-box">
+            <input type="text" id="playerSearch" placeholder="Search players..." />
+            <div id="suggestions" class="suggestions"></div>
+        </div>
 
-    <!-- Top 3 Active This Week -->
-    <h2>Top 3 Active This Week</h2>
-    <div class="top-players-list">
-      <% if (topPlayers && topPlayers.length > 0) { %>
-        <% topPlayers.forEach(player => { %>
-          <div class="player-card">
-            <img src="<%= player.avatar_url %>" alt="Avatar" />
-            <div><%= player.username %></div>
-            <div><%= player.weekly_minutes %> min</div>
-          </div>
-        <% }) %>
-      <% } else { %>
-        <div>No active players yet.</div>
-      <% } %>
+                <h2>Top Active This Week</h2>
+        <div class="top-players-list">
+          <% if (topPlayers && topPlayers.length > 0) { %>
+            <% topPlayers.forEach(player => { %>
+              <div class="player-card" onclick="window.location='/dashboard/player/<%= player.username %>'">
+                <img src="<%= player.avatar_url %>" alt="Avatar" />
+                <div><%= player.username %></div>
+                <div><%= player.weekly_minutes %> min</div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div style="text-align: center; width: 100%;">No active players yet.</div>
+          <% } %>
+        </div>
+        
     </div>
+    
+  </div>
 
-    <!-- All Players -->
-    <h2>All Players</h2>
-    <div class="player-list" id="playerList">
-      <% if (players && players.length > 0) { %>
-        <% players.forEach(player => { %>
-          <div class="player-card">
-            <img src="<%= player.avatar_url %>" alt="Avatar" />
-            <div><%= player.username %></div>
-            <div><%= player.weekly_minutes %> min</div>
-          </div>
-        <% }) %>
-      <% } else { %>
-        <div>No players found.</div>
-      <% } %>
-    </div>
-  </div>
+  <script>
+    const input = document.getElementById("playerSearch");
+    const suggestionsBox = document.getElementById("suggestions");
+    const shiftsList = document.getElementById("shiftsList");
 
-  <script>
-    const input = document.getElementById("playerSearch");
-    const suggestionsBox = document.getElementById("suggestions");
+    // --- Search Logic ---
+    input.addEventListener("input", async () => {
+      const query = input.value.trim();
+      if (!query) {
+        suggestionsBox.innerHTML = "";
+        return;
+      }
 
-    input.addEventListener("input", async () => {
-      const query = input.value.trim();
-      if (!query) {
-        suggestionsBox.innerHTML = "";
-        return;
-      }
+      try {
+        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+        const players = await res.json();
 
-      try {
-        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
-        const players = await res.json();
+        suggestionsBox.innerHTML = players.map(p => `
+          <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+            <img src="${p.avatar_url}" alt="Avatar" />
+            <span>${p.username}</span>
+          </div>
+        `).join("");
+      } catch (err) {
+        console.error("Search error:", err);
+      }
+    });
 
-        suggestionsBox.innerHTML = players.map(p => `
-          <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-            <img src="${p.avatar_url}" alt="Avatar" />
-            <span>${p.username}</span>
-          </div>
-        `).join("");
-      } catch (err) {
-        console.error("Search error:", err);
-      }
-    });
+    document.addEventListener("click", e => {
+      if (!input.contains(e.target)) {
+        suggestionsBox.innerHTML = "";
+      }
+    });
+    
+    // --- Shift Loading Logic ---
+    
+    function formatShiftTime(timestamp) {
+        // Discord timestamps are in seconds, convert to milliseconds
+        const date = new Date(timestamp * 1000); 
+        
+        // Use the user's local timezone for conversion
+        const dateString = date.toLocaleDateString(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        const timeString = date.toLocaleTimeString(undefined, { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZoneName: 'short' // Show the user's timezone abbreviation
+        });
+        
+        return `${dateString} @ ${timeString}`;
+    }
 
-    document.addEventListener("click", e => {
-      if (!input.contains(e.target)) {
-        suggestionsBox.innerHTML = "";
-      }
-    });
-  </script>
+    async function loadShifts() {
+        shiftsList.innerHTML = '<p style="text-align: center;">Fetching data from Discord...</p>';
+
+        try {
+            const response = await fetch('/sessions');
+            const sessions = await response.json();
+
+            if (sessions.error) {
+                shiftsList.innerHTML = `<p style="color: red; text-align: center;">Error: ${sessions.error}</p>`;
+                return;
+            }
+
+            // Filter for sessions that are in the future
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            const upcomingSessions = sessions
+                .filter(s => s.time > nowSeconds)
+                .sort((a, b) => a.time - b.time); // Sort by soonest time
+
+            if (upcomingSessions.length === 0) {
+                shiftsList.innerHTML = '<p style="text-align: center;">No upcoming shifts are currently scheduled.</p>';
+                return;
+            }
+
+            shiftsList.innerHTML = '';
+            upcomingSessions.forEach(session => {
+                const shiftItem = document.createElement('div');
+                shiftItem.className = 'shift-item';
+                
+                let participants = `Host: <strong>${session.host}</strong>`;
+                if (session.cohost) {
+                    participants += `, Co-Host: <strong>${session.cohost}</strong>`;
+                }
+                if (session.overseer) {
+                    participants += `, Overseer: <strong>${session.overseer}</strong>`;
+                }
+                
+                shiftItem.innerHTML = `
+                    <div class="shift-time">${formatShiftTime(session.time)}</div>
+                    <div>${participants}</div>
+                `;
+                shiftsList.appendChild(shiftItem);
+            });
+
+        } catch (error) {
+            console.error("Error loading shifts:", error);
+            shiftsList.innerHTML = '<p style="color: red; text-align: center;">Failed to connect to Discord API or /sessions endpoint.</p>';
+        }
+    }
+
+    // Call the function when the page loads
+    loadShifts();
+  </script>
 </body>
 </html>
