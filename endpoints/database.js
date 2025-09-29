@@ -165,19 +165,39 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
 // Player live sessions
 // -------------------------
 
-// Log/update live session
-async function logPlayerLive(roblox_id, username, current_minutes) {
-  if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
+// Log/update live session (MODIFIED)
+async function logPlayerLive(roblox_id, username, current_minutes, session_start_time) {
+  if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
 
-  const { data, error } = await supabase
-    .from("player_live")
-    .upsert(
-      { roblox_id, username, current_minutes },
-      { onConflict: "roblox_id" } // assumes roblox_id is unique
-    );
+  const updateObject = { roblox_id, username, current_minutes };
+  
+  // Only add session_start_time if it's provided (i.e., on the initial /start-session call)
+  if (session_start_time) {
+      updateObject.session_start_time = new Date(session_start_time).toISOString();
+  }
 
-  if (error) throw error;
-  return data;
+  const { data, error } = await supabase
+    .from("player_live")
+    .upsert(
+      updateObject,
+      { onConflict: "roblox_id" }
+    );
+
+  if (error) throw error;
+  return data;
+}
+
+// Get ongoing live session (MODIFIED to pull all fields)
+async function getOngoingSession(roblox_id) {
+  const { data, error } = await supabase
+    .from("player_live")
+    // Select everything, including the new session_start_time
+    .select("roblox_id, username, current_minutes, session_start_time") 
+    .eq("roblox_id", roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  // Make sure you return session_start_time here!
+  return data; 
 }
 
 /**
