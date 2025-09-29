@@ -6,7 +6,7 @@
 <title>Mochi Bar - <%= player.username %></title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <style>
-    /* Base Styles - Matching Screenshot Theme */
+    /* Base Styles - STRICTLY Matching Screenshot Theme */
     body { 
         font-family: 'Roboto', sans-serif; 
         background: #f0f0f0; /* Light grey background */
@@ -17,14 +17,11 @@
     header { 
         background: #6cb4ee; /* Blue banner */
         padding: 25px 20px; 
-        text-align: center; 
+        text-align: left; 
         font-size: 38px;
         font-weight: bold; 
-        color: black; /* Text color matching screenshot */
+        color: black;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .header-text {
-        font-size: 38px;
     }
     .container { 
         max-width: 1100px;
@@ -38,7 +35,7 @@
 
     /* Column Styling - Grey Blocks */
     .column { 
-        background: #e0e0e0; /* Grey background for column containers */
+        background: #e0e0e0; /* Main grey column container background */
         padding: 15px;
         border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -53,11 +50,33 @@
         font-weight: bold; 
         color: #333;
         padding-bottom: 5px; 
-        border-bottom: none; /* Removed column border to rely on blocks/HRs */
     }
 
-    /* Profile Column Specifics */
-    .avatar-wrapper {
+    /* Content Block Styling (The C0C0C0 Blocks) */
+    .content-block { 
+        background: #c0c0c0; /* Darker grey block (all interactive and data blocks) */
+        padding: 12px 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        word-wrap: break-word; 
+        font-size: 1.05em;
+        color: #000;
+        font-weight: bold;
+        line-height: 1.4;
+    }
+    .content-block span { font-weight: normal; display: block; }
+    .content-block.clickable:hover { opacity: 0.8; cursor: pointer; }
+
+
+    /* Separators */
+    hr { 
+        border: none; 
+        border-top: 3px solid #000; /* Thick black line from screenshot */
+        margin: 15px 0; 
+    }
+
+    /* Column 1: Profile */
+    .avatar-container {
         text-align: center;
         margin-bottom: 20px;
         background: #c0c0c0; /* Avatar placeholder block */
@@ -76,41 +95,14 @@
         object-fit: cover;
     }
 
-    /* Generic Content Box Styling - Matching Screenshot Blocks */
-    .box { 
-        background: #c0c0c0; /* Darker grey block */
-        padding: 12px 15px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        word-wrap: break-word; 
-        font-size: 1.05em;
-        color: #000;
-        font-weight: bold;
-    }
-    .box strong { color: #000; }
-    .box span { font-weight: normal; }
-
-
-    /* Separators */
-    hr { 
-        border: none; 
-        border-top: 3px solid #000; /* Thick black line from screenshot */
-        margin: 20px 0; 
-    }
-
-    /* Sessions Column */
+    /* Column 2: Sessions */
     .ongoing-session-box {
         background: #f0f0f0; /* Slightly lighter grey for the active box */
         border: 1px solid #6cb4ee; 
-        color: #333;
-        font-weight: bold;
         text-align: center;
-        padding: 15px;
-        border-radius: 4px;
-        margin-bottom: 15px;
     }
     #live-time-wrapper { font-size: 1.1em; }
-    #live-time { font-size: 1.4em; color: #28a745; }
+    #live-time { font-size: 1.4em; color: #28a745; } 
 
     .sessions-scroll {
         max-height: 380px; 
@@ -118,98 +110,61 @@
         padding-right: 10px;
     }
 
-    /* Past session card styling - Matching screenshot blocks */
-    .session-box { 
-        background: #c0c0c0;
-        padding: 10px 15px; 
-        border-radius: 4px; 
-        margin-bottom: 15px; 
-        cursor: pointer; 
-        transition: opacity 0.2s;
-        font-size: 1em;
-        color: #000;
-        font-weight: bold;
-    }
-    .session-box:hover { opacity: 0.8; }
-    .session-box span { font-weight: normal; }
-
-
-    /* Shifts Column - Specific blocks */
+    /* Column 3: Shifts */
     #upcoming-shifts-container {
         max-height: 400px;
         overflow-y: auto;
         padding-right: 10px;
     }
-    .upcoming-shift-item {
-        background: #c0c0c0; /* Use same block style for upcoming shifts */
-        padding: 12px 15px;
-        border-radius: 4px;
-        margin-bottom: 15px;
-        word-wrap: break-word; 
-        font-size: 1.05em;
-        color: #000;
-        font-weight: bold;
-    }
-    .upcoming-shift-item .time {
+    .shift-role-indicator {
         font-weight: bold;
-        color: #6cb4ee; /* Blue highlight */
+        color: #6cb4ee;
         display: block;
         margin-bottom: 5px;
     }
-    .upcoming-shift-item span {
+    .shift-detail-time {
+        font-size: 0.9em;
         font-weight: normal;
-        display: block;
     }
-    
-    /* Modal Styles (Kept clean for details) */
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-    .modal-content { background-color: #ffffff; margin: 10% auto; padding: 0; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
-    .modal-header { background-color: #6cb4ee; color: white; padding: 15px 20px; text-align: center; font-weight: bold; font-size: 1.3em; border-top-left-radius: 12px; border-top-right-radius: 12px; position: relative; }
-    .modal-body { padding: 25px; line-height: 1.6; font-size: 1.05em; }
-    .modal-body p { margin-bottom: 12px; }
-    .modal-body strong { display: inline-block; width: 130px; color: #444; }
-    .close { color: white; float: right; font-size: 30px; font-weight: bold; position: absolute; right: 15px; top: 10px; line-height: 1; }
-    .close:hover, .close:focus { color: #eee; text-decoration: none; cursor: pointer; }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .container { flex-direction: column; gap: 20px; padding: 15px; }
-        .column { width: 100%; min-width: unset; }
-        header { font-size: 32px; }
-    }
 </style>
 </head>
 <body>
 
-<header><span class="header-text">Mochi Bar Database</span></header>
+<header>Mochi Bar Database</header>
 
 <div class="container">
 
-    <div class="column">
+        <div class="column">
     <h3>Username</h3>
-    <div class="avatar-wrapper">
+    <div class="avatar-container">
       <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar" onerror="this.src='https://placehold.co/120x120/e0e6f0/5f6c7b?text=Error';">
     </div>
-    <div class="box"><strong><%= player.username %></strong></div>
-    <div class="box"><strong>Group Rank:</strong> <span><%= player.group_rank %></span></div>
-    <div class="box"><strong>Notes:</strong> <span><%= player.notes || 'No notes available.' %></span></div>
+        <div class="content-block" style="text-align: center;">
+      <strong><%= player.username %></strong>
+    </div>
+    <div class="content-block">
+      <strong>Group Rank:</strong> <span><%= player.group_rank %></span>
+    </div>
+    <div class="content-block">
+      <strong>Notes:</strong> <span><%= player.notes || 'No notes available.' %></span>
+    </div>
   </div>
 
-    <div class="column">
+        <div class="column">
     <h3>Sessions</h3>
 
         <% if (ongoingSession) { 
         const startTimeString = ongoingSession.session_start_time;
         const startTime = startTimeString ? new Date(startTimeString).getTime() : Date.now();
     %>
-      <div class="ongoing-session-box" id="ongoing-session-box">
-        <strong>🟢 Ongoing Session</strong><br>
-        <span style="font-size: 0.9em; font-weight: normal;">Start: <%= new Date(startTime).toLocaleTimeString() %></span><br>
+      <div class="content-block ongoing-session-box" id="ongoing-session-box">
+        <strong>Ongoing session? If so put here</strong><br>
+        <span style="font-weight: normal;">Start: <%= new Date(startTime).toLocaleTimeString() %></span><br>
         <div id="live-time-wrapper" style="margin-top: 5px;">Time: <span id="live-time">00:00:00</span></div>
         <input type="hidden" id="session-start-time" value="<%= startTime %>">
       </div>
     <% } else { %>
-      <div class="box ongoing-session-box" style="background: #c0c0c0; border: none; text-align: center;">No ongoing session</div>
+      <div class="content-block" style="text-align: center;">No ongoing session</div>
     <% } %>
 
     <hr>
@@ -217,48 +172,35 @@
         <div class="sessions-scroll">
       <% if (sessions && sessions.length > 0) { %>
         <% sessions.slice(0,4).forEach((s, index) => { %>
-          <div class="session-box" onclick="showSessionDetails(<%= index %>)">
-            <strong>Past Session <%= index + 1 %></strong><br>
+          <div class="content-block clickable" onclick="showSessionDetails(<%= index %>)">
+            <strong>Past session</strong><br>
             <span>Minutes Played: <%= s.minutes_played %></span>
           </div>
         <% }) %>
       <% } else { %>
-        <div class="session-box" style="text-align: center;">No past sessions.</div>
+        <div class="content-block" style="text-align: center;">No past sessions.</div>
       <% } %>
     </div>
   </div>
 
-    <div class="column">
+        <div class="column">
     <h3>Shifts</h3>
     
-    <div class="box">
-        <strong>Shift Attended:</strong> <span><%= shifts.attended || 0 %></span>
+    <div class="content-block">
+        <strong>Shift Attended</strong> <span><%= shifts.attended || 0 %></span>
     </div>
-    <div class="box" id="hosted-shift-count-box">
-        <strong>Shift Hosted:</strong> <span id="hosted-shift-count"><%= shifts.hosted || 0 %></span>
+    <div class="content-block" id="hosted-shift-count-box">
+        <strong>Shift Hosted</strong> <span id="hosted-shift-count"><%= shifts.hosted || 0 %></span>
     </div>
     
     <hr>
     
     <div id="upcoming-shifts-container">
         <div id="upcoming-shifts-list">
-            <div class="upcoming-shift-item" style="text-align: center;">Loading scheduled shifts...</div>
+            <div class="content-block" style="text-align: center; font-weight: normal;">Loading scheduled shifts...</div>
         </div>
     </div>
-    
-    <hr>
     
-        <% if (shifts.coHosted && shifts.coHosted.length > 0) { %>
-      <h4>Logged Co-Hosted</h4>
-      <% shifts.coHosted.slice(0, 3).forEach(c => { %>
-        <div class="box">
-          <strong>Shift:</strong> <span><%= c.name %></span><br>
-          <span>Host: <%= c.host %></span>
-        </div>
-      <% }) %>
-    <% } else { %>
-      <div class="box" style="text-align: center;">No co-hosted shifts logged.</div>
-    <% } %>
   </div>
 
 </div>
@@ -279,13 +221,10 @@
 </div>
 
 <script>
-    // Data passed from server (full sessions list)
     const allSessions = JSON.parse('<%- JSON.stringify(sessions || []) %>');
     const playerUsername = "<%= player.username %>";
     const playerRank = "<%= player.group_rank %>";
     const modal = document.getElementById('sessionModal');
-
-    // Normalize username for reliable comparison with Discord usernames
     const normalizedPlayerName = playerUsername.replace(/\s/g, '').toLowerCase();
 
     // Utility functions
@@ -294,27 +233,14 @@
         let hours = Math.floor(totalSeconds / 3600);
         let minutes = Math.floor((totalSeconds % 3600) / 60);
         let seconds = totalSeconds % 60;
-
         const pad = num => String(num).padStart(2, '0');
         return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     }
     
     function formatShiftTime(timestamp) {
-        // Discord timestamps are in seconds, convert to milliseconds
         const date = new Date(timestamp * 1000); 
-        
-        const dateString = date.toLocaleDateString(undefined, {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric'
-        });
-        
-        const timeString = date.toLocaleTimeString(undefined, { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            timeZoneName: 'short'
-        });
-        
+        const dateString = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        const timeString = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
         return `${dateString} @ ${timeString}`;
     }
 
@@ -345,9 +271,6 @@
         const session = allSessions[index];
         if (!session) return;
 
-        const headerText = `${playerUsername} - ${playerRank}`;
-        document.getElementById('modal-header-text').textContent = headerText;
-
         document.getElementById('modal-minutes-played').textContent = session.minutes_played;
         document.getElementById('modal-session-start').textContent = new Date(session.session_start).toLocaleString();
         document.getElementById('modal-session-end').textContent = new Date(session.session_end).toLocaleString();
@@ -367,21 +290,21 @@
     
     
     /* ----------------------------------
-     * 3. Discord Shift Integration Logic (NEW)
+     * 3. Discord Shift Integration Logic
      * ---------------------------------- */
     
     async function loadPlayerShiftsFromDiscord() {
         const upcomingList = document.getElementById('upcoming-shifts-list');
         const hostedCountSpan = document.getElementById('hosted-shift-count');
         
-        upcomingList.innerHTML = '<div class="upcoming-shift-item" style="text-align: center;">Fetching Discord data...</div>';
+        upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal;">Fetching Discord data...</div>';
 
         try {
             const response = await fetch('/sessions');
             const sessions = await response.json();
 
             if (sessions.error) {
-                upcomingList.innerHTML = `<div class="upcoming-shift-item" style="color: red; text-align: center;">Error: ${sessions.error}</div>`;
+                upcomingList.innerHTML = `<div class="content-block" style="color: red; text-align: center; font-weight: normal;">Error: ${sessions.error}</div>`;
                 return;
             }
 
@@ -408,38 +331,31 @@
                 return false;
             });
             
-            // Update the total hosted count
+            // Update the total hosted count (DB count + passed Discord shifts)
             hostedCountSpan.textContent = hostedCount;
 
-            // Sort upcoming shifts by time and show only the next 3
+            // Sort upcoming shifts by time and show only the next 3 (matching screenshot design)
             const upcomingShifts = playerShifts
                 .filter(s => s.time > nowSeconds)
                 .sort((a, b) => a.time - b.time)
-                .slice(0, 3); // LIMIT to the next 3
+                .slice(0, 3); 
 
             // Display upcoming sessions
             if (upcomingShifts.length === 0) {
-                upcomingList.innerHTML = '<div class="upcoming-shift-item" style="text-align: center;">No upcoming shifts scheduled.</div>';
+                upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal;">No upcoming shifts scheduled.</div>';
             } else {
                 upcomingList.innerHTML = '';
                 upcomingShifts.forEach(session => {
                     const shiftItem = document.createElement('div');
-                    shiftItem.className = 'upcoming-shift-item';
+                    shiftItem.className = 'content-block';
                     
                     const isPlayerHost = session.host.replace(/\s/g, '').toLowerCase() === normalizedPlayerName;
                     const role = isPlayerHost ? 'Host' : 'Co-Host';
                     
-                    let hostInfo = `Host: ${session.host}`;
-                    if (session.cohost && !isPlayerHost) {
-                         hostInfo += ` | Co-Host: ${session.cohost}`;
-                    } else if (session.cohost && isPlayerHost) {
-                        hostInfo = `Co-Host: ${session.cohost}`;
-                    }
-
                     shiftItem.innerHTML = `
-                        <div class="time">Your Role: ${role}</div>
-                        <span>${formatShiftTime(session.time)}</span>
-                        <span>${hostInfo}</span>
+                        <span class="shift-role-indicator">Show shift is ${role} of the shift</span>
+                        <span class="shift-detail-time">Time: ${formatShiftTime(session.time)}</span>
+                        <span class="shift-detail-time">Host: ${session.host} ${session.cohost && !isPlayerHost ? `| Co-Host: ${session.cohost}` : ''}</span>
                     `;
                     upcomingList.appendChild(shiftItem);
                 });
@@ -447,7 +363,7 @@
 
         } catch (error) {
             console.error("Error loading player shifts from Discord:", error);
-            upcomingList.innerHTML = '<div class="upcoming-shift-item" style="color: red; text-align: center;">Failed to load scheduled shifts.</div>';
+            upcomingList.innerHTML = '<div class="content-block" style="color: red; text-align: center; font-weight: normal;">Failed to load scheduled shifts.</div>';
         }
     }
 
