@@ -1,10 +1,16 @@
-// /endpoints/activity.js - Final Review
+// /endpoints/activity.js - FULLY FIXED
 const express = require("express");
 const router = express.Router();
-const fetch = require("node-fetch"); 
-const { createPlayerIfNotExists, logPlayerSession, logPlayerLive } = require("./database");
+const fetch = require("node-fetch"); 
+// CRITICAL FIX: Add deletePlayerLiveSession to imports
+const { 
+    createPlayerIfNotExists, 
+    logPlayerSession, 
+    logPlayerLive, 
+    deletePlayerLiveSession // <-- ADDED
+} = require("./database");
 
-const GROUP_ID = 35807738; 
+const GROUP_ID = 35807738; 
 
 // In-memory live sessions
 const activeSessions = {};
@@ -41,7 +47,6 @@ router.post("/log-session", async (req, res) => {
     return res.status(400).json({ error: "Missing data" });
   }
   try {
-    // Relies on logPlayerSession handling DB connection efficiently
     const updatedPlayer = await logPlayerSession(
       roblox_id,
       Number(minutes_played),
@@ -88,17 +93,31 @@ router.post("/start-session", async (req, res) => {
 });
 
 // ---------------------------
-// End Live Session - OK (Fast)
+// End Live Session - CRITICAL FIX APPLIED
 // ---------------------------
-router.post("/end-session", (req, res) => {
-  const { roblox_id } = req.body;
-  if (!roblox_id) return res.status(400).json({ error: "Missing roblox_id" });
-  const removed = activeSessions[roblox_id];
-  if (removed) {
-    console.log(`🔴 Live session ended: ${removed.username}`);
-    delete activeSessions[roblox_id];
-  }
-  res.json({ success: true });
+router.post("/end-session", async (req, res) => { // <-- MUST BE ASYNC NOW
+    const { roblox_id } = req.body;
+    if (!roblox_id) return res.status(400).json({ error: "Missing roblox_id" });
+
+    const removed = activeSessions[roblox_id];
+    if (removed) {
+        // 1. Delete from fast in-memory object
+        console.log(`🔴 Live session ended: ${removed.username} (In-memory)`);
+        delete activeSessions[roblox_id];
+    }
+    
+    try {
+        // 2. CRITICAL STEP: Delete the row from the player_live table in Supabase
+        await deletePlayerLiveSession(roblox_id);
+        console.log(`🔴 Live session successfully deleted from DB: ${roblox_id}`);
+        
+        // Respond success to the Roblox client
+        res.json({ success: true });
+    } catch (err) {
+        console.error("❌ Failed to delete live session from DB:", err);
+        // Respond 500 but still ensures the request completes (essential for Roblox cleanup thread)
+        res.status(500).json({ error: "Failed to delete live session from DB" });
+    }
 });
 
 // ---------------------------
