@@ -6,7 +6,7 @@
   <title>Mochi Bar Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* Base Styles */
+    /* Base Styles - Matching Screenshot Theme */
     body {
       margin: 0;
       font-family: 'Roboto', sans-serif;
@@ -16,69 +16,82 @@
 
     header {
       background-color: #6cb4ee; /* Blue banner */
-      color: black; /* Text color matching screenshot */
-      padding: 20px;
+      color: black;
+      padding: 25px 20px;
       text-align: center;
-      font-size: 32px;
+      font-size: 38px;
       font-weight: bold;
     }
 
     .container {
       padding: 20px;
-      max-width: 1200px;
-      margin: 20px auto;
+      max-width: 1100px;
+      margin: 30px auto;
       display: flex;
-      gap: 20px;
+      gap: 25px;
       flex-wrap: wrap;
       align-items: flex-start;
     }
 
-    /* Column Layout (Similar to Player page structure) */
+    /* Column Styling - Grey Blocks */
     .column {
-        background: #e0e0e0; /* Grey background for content blocks (matching screenshot) */
+        background: #e0e0e0; /* Grey background for blocks */
         padding: 15px;
-        border-radius: 4px; /* Slightly defined corners */
+        border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        flex: 1 1 300px; /* Flexible width */
-        min-width: 300px;
+        flex: 1 1 300px;
+        min-width: 280px;
         box-sizing: border-box;
     }
     
-    h2 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      border-bottom: 2px solid #333; /* Strong black separator */
-      padding-bottom: 5px;
-      font-size: 24px;
-      color: #333;
+    .column h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 22px;
+        font-weight: bold;
+        color: #333;
+        padding-bottom: 5px;
+    }
+    
+    hr { 
+        border: none; 
+        border-top: 3px solid #000; /* Thick black line from screenshot */
+        margin: 20px 0; 
     }
 
     /* Search Block Styling */
-    .search-box {
-      position: relative;
-      margin-bottom: 20px;
-      background: white;
+    .search-block, .list-block {
+      background: #c0c0c0; /* Darker grey block matching player blocks */
       padding: 10px;
       border-radius: 4px;
+      margin-bottom: 15px;
+      color: #000;
+      font-weight: bold;
     }
 
     input[type="text"] {
       width: 100%;
       padding: 8px;
       font-size: 16px;
-      border: 1px solid #ccc;
+      border: none; /* No border for the theme */
       border-radius: 4px;
       box-sizing: border-box;
+      background: white;
+      font-weight: normal;
     }
+    
+    .search-box {
+        position: relative;
+        margin-bottom: 10px;
+    }
 
     .suggestions {
       position: absolute;
-      top: 50px;
+      top: 100%;
       width: 100%;
       background: white;
       border: 1px solid #ccc;
-      border-radius: 0 0 4px 4px;
-      max-height: 300px;
+      max-height: 250px;
       overflow-y: auto;
       z-index: 1000;
       left: 0;
@@ -91,6 +104,8 @@
       cursor: pointer;
       transition: background 0.2s;
       border-bottom: 1px solid #eee;
+      color: #333;
+      font-weight: normal;
     }
 
     .suggestion-item:hover {
@@ -104,57 +119,51 @@
       margin-right: 10px;
     }
 
-    .player-card {
-      background: #f7f7f7;
-      padding: 10px;
-      border-radius: 4px;
-      text-align: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      cursor: pointer;
-    }
-
-    .player-card img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      margin-bottom: 5px;
-    }
-    
-    .top-players-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        justify-content: center;
-    }
-    
-    /* Shift/Session Specific Styles */
-    .shift-list {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+    /* Shift/Session Specific Styles */
+    .shifts-scroll {
         max-height: 500px;
         overflow-y: auto;
+        padding-right: 10px;
     }
     
     .shift-item {
-        background: #f7f7f7; /* Light grey box */
-        padding: 10px;
+        background: #c0c0c0; /* Darker grey block for individual shifts */
+        padding: 15px;
         border-radius: 4px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        border-left: 5px solid #ffcc00; /* Subtle yellow indicator */
-    }
-    
-    .shift-item strong {
+        margin-bottom: 15px;
         color: #000;
-        display: block;
+        font-weight: bold;
     }
     
     .shift-time {
         font-weight: bold;
-        color: #28a745;
+        color: #6cb4ee; /* Blue for time highlight */
         margin-bottom: 5px;
     }
+    .shift-details span {
+        font-weight: normal;
+        display: block;
+        margin-top: 5px;
+        font-size: 0.95em;
+    }
     
+    /* Top Player Styles */
+    .top-players-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .player-card {
+        background: #c0c0c0;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: bold;
+        color: #000;
+    }
+
   </style>
 </head>
 <body>
@@ -163,32 +172,38 @@
   <div class="container">
     
     <div class="column" style="flex: 2 1 600px;">
-        <h2>Upcoming Shifts</h2>
-        <div id="shiftsList" class="shift-list">
-            <p style="text-align: center;">Loading upcoming shifts...</p>
+        <h2>Upcoming Shifts (Discord)</h2>
+        <div class="shifts-scroll">
+            <div id="shiftsList">
+                <div class="shift-item" style="text-align: center;">Loading upcoming shifts...</div>
+            </div>
         </div>
     </div>
     
     <div class="column" style="flex: 1 1 300px;">
         
-        <h2>Search Player</h2>
+        <h2>Player Lookup</h2>
         <div class="search-box">
-            <input type="text" id="playerSearch" placeholder="Search players..." />
+            <div class="search-block" style="padding: 5px 10px;">
+                <input type="text" id="playerSearch" placeholder="Search Roblox username..." />
+            </div>
             <div id="suggestions" class="suggestions"></div>
         </div>
+        
+        <hr>
 
         <h2>Top Active This Week</h2>
-        <div class="top-players-list">
+        <div class="top-players-grid">
           <% if (topPlayers && topPlayers.length > 0) { %>
-            <% topPlayers.forEach(player => { %>
+            <% topPlayers.slice(0, 4).forEach(player => { %>
               <div class="player-card" onclick="window.location='/dashboard/player/<%= player.username %>'">
-                <img src="<%= player.avatar_url %>" alt="Avatar" />
+                <img src="<%= player.avatar_url %>" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px;" />
                 <div><%= player.username %></div>
-                <div style="font-size: 0.9em; color: #555;"><%= player.weekly_minutes %> min</div>
+                <div style="font-size: 0.8em; font-weight: normal;"><%= player.weekly_minutes %> min</div>
               </div>
             <% }) %>
           <% } else { %>
-            <div style="text-align: center; width: 100%; color: #555;">No active players yet.</div>
+            <div class="player-card" style="grid-column: span 2; font-weight: normal;">No active players data.</div>
           <% } %>
         </div>
         
@@ -215,7 +230,7 @@
 
         suggestionsBox.innerHTML = players.map(p => `
           <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-            <img src="${p.avatar_url}" alt="Avatar" />
+            <img src="${p.avatar_url}" alt="Avatar" onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
             <span>${p.username}</span>
           </div>
         `).join("");
@@ -236,7 +251,6 @@
         // Discord timestamps are in seconds, convert to milliseconds
         const date = new Date(timestamp * 1000); 
         
-        // Use the user's local timezone for conversion
         const dateString = date.toLocaleDateString(undefined, {
             weekday: 'short',
             month: 'short',
@@ -253,14 +267,14 @@
     }
 
     async function loadShifts() {
-        shiftsList.innerHTML = '<p style="text-align: center; color: #555;">Fetching data from Discord...</p>';
+        shiftsList.innerHTML = '<div class="shift-item" style="text-align: center;">Fetching data from Discord...</div>';
 
         try {
             const response = await fetch('/sessions');
             const sessions = await response.json();
 
             if (sessions.error) {
-                shiftsList.innerHTML = `<p style="color: red; text-align: center;">Error: ${sessions.error}</p>`;
+                shiftsList.innerHTML = `<div class="shift-item" style="color: red; text-align: center;">Error: ${sessions.error}</div>`;
                 return;
             }
 
@@ -268,10 +282,10 @@
             const nowSeconds = Math.floor(Date.now() / 1000);
             const upcomingSessions = sessions
                 .filter(s => s.time > nowSeconds)
-                .sort((a, b) => a.time - b.time); // Sort by soonest time
+                .sort((a, b) => a.time - b.time); 
 
             if (upcomingSessions.length === 0) {
-                shiftsList.innerHTML = '<p style="text-align: center; color: #555;">No upcoming shifts are currently scheduled.</p>';
+                shiftsList.innerHTML = '<div class="shift-item" style="text-align: center;">No upcoming shifts are currently scheduled.</div>';
                 return;
             }
 
@@ -280,24 +294,24 @@
                 const shiftItem = document.createElement('div');
                 shiftItem.className = 'shift-item';
                 
-                let participants = `Host: <strong>${session.host}</strong>`;
+                let participants = `Host: ${session.host}`;
                 if (session.cohost) {
-                    participants += ` | Co-Host: <strong>${session.cohost}</strong>`;
-                }
-                if (session.overseer) {
-                    participants += ` | Overseer: <strong>${session.overseer}</strong>`;
+                    participants += ` | Co-Host: ${session.cohost}`;
                 }
                 
                 shiftItem.innerHTML = `
                     <div class="shift-time">${formatShiftTime(session.time)}</div>
-                    <div>${participants}</div>
+                    <div class="shift-details">
+                        <span>${participants}</span>
+                        ${session.overseer ? `<span>Overseer: ${session.overseer}</span>` : ''}
+                    </div>
                 `;
                 shiftsList.appendChild(shiftItem);
             });
 
         } catch (error) {
             console.error("Error loading shifts:", error);
-            shiftsList.innerHTML = '<p style="color: red; text-align: center;">Failed to connect to Discord API or /sessions endpoint.</p>';
+            shiftsList.innerHTML = '<div class="shift-item" style="color: red; text-align: center;">Failed to load scheduled shifts.</div>';
         }
     }
 
