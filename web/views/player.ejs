@@ -33,7 +33,7 @@
         align-items: flex-start;
     }
 
-    /* Column Styling - Grey Blocks */
+    /* Column Styling - Grey Blocks (E0E0E0) */
     .column { 
         background: #e0e0e0; /* Main grey column container background */
         padding: 15px;
@@ -66,7 +66,6 @@
     }
     .content-block span { font-weight: normal; display: block; }
     .content-block.clickable:hover { opacity: 0.8; cursor: pointer; }
-
 
     /* Separators */
     hr { 
@@ -297,14 +296,14 @@
         const upcomingList = document.getElementById('upcoming-shifts-list');
         const hostedCountSpan = document.getElementById('hosted-shift-count');
         
-        upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal;">Fetching Discord data...</div>';
+        upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal; cursor: default;">Fetching Discord data...</div>';
 
         try {
             const response = await fetch('/sessions');
             const sessions = await response.json();
 
             if (sessions.error) {
-                upcomingList.innerHTML = `<div class="content-block" style="color: red; text-align: center; font-weight: normal;">Error: ${sessions.error}</div>`;
+                upcomingList.innerHTML = `<div class="content-block" style="color: red; text-align: center; font-weight: normal; cursor: default;">Error: ${sessions.error}</div>`;
                 return;
             }
 
@@ -342,7 +341,7 @@
 
             // Display upcoming sessions
             if (upcomingShifts.length === 0) {
-                upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal;">No upcoming shifts scheduled.</div>';
+                upcomingList.innerHTML = '<div class="content-block" style="text-align: center; font-weight: normal; cursor: default;">No upcoming shifts scheduled.</div>';
             } else {
                 upcomingList.innerHTML = '';
                 upcomingShifts.forEach(session => {
@@ -363,7 +362,7 @@
 
         } catch (error) {
             console.error("Error loading player shifts from Discord:", error);
-            upcomingList.innerHTML = '<div class="content-block" style="color: red; text-align: center; font-weight: normal;">Failed to load scheduled shifts.</div>';
+            upcomingList.innerHTML = '<div class="content-block" style="color: red; text-align: center; font-weight: normal; cursor: default;">Failed to load scheduled shifts.</div>';
         }
     }
 
