@@ -1,96 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><%= player.username %> - Mochi Bar</title>
-<style>
-  body { font-family: Arial, sans-serif; background: #f0f0f0; margin:0; padding:0; }
-  header { background: #6cb4ee; padding: 20px; text-align:center; font-size:24px; font-weight:bold; }
-  .container { max-width: 1200px; margin:auto; padding:20px; display:flex; gap:20px; flex-wrap: wrap; }
-  .column { background:white; padding:15px; border-radius:8px; flex:1; min-width:250px; box-sizing:border-box; }
-  .column h3 { margin-top:0; border-bottom:2px solid #000; padding-bottom:5px; }
-  .avatar { width:150px; height:150px; border-radius:50%; margin-bottom:10px; max-width:100%; }
-  .box { background:#e9e9e9; padding:10px; border-radius:6px; margin-bottom:10px; word-wrap: break-word; }
-  .session-box { background:#f5f5f5; padding:8px; border-radius:6px; margin-bottom:6px; word-wrap: break-word; }
+  <meta charset="UTF-8" />
+  <title><%= player.username %> – Player Profile</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f8f8f8;
+    }
 
-  .session-list {
-    max-height: 250px; 
-    overflow-y: auto;
-    padding-right: 5px;
-  }
+    h1 {
+      margin-bottom: 10px;
+    }
 
-  .ongoing-box {
-    background: #dff0d8;
-    border: 1px solid #a5d6a7;
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-  }
+    .ongoing-box {
+      background: #e7f7e7;
+      border: 1px solid #3cb371;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
 
-  /* Responsive: stack columns on mobile */
-  @media (max-width: 768px) {
-    .container { flex-direction: column; gap:15px; padding:15px; }
-    .column { width: 100%; }
-    .avatar { width:100%; height:auto; }
-  }
-</style>
+    .divider {
+      border-top: 2px solid #ccc;
+      margin: 25px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px;
+    }
+
+    th {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+  </style>
 </head>
 <body>
+  <h1>👤 <%= player.username %></h1>
+  <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
 
-<header>Mochi Bar - <%= player.username %></header>
-
-<div class="container">
-
-  <!-- Column 1: Profile -->
-  <div class="column">
-    <h3>Profile</h3>
-    <img src="<%= player.avatar_url %>" alt="Avatar" class="avatar">
-    <div class="box"><strong>Username:</strong> <%= player.username %></div>
-    <div class="box"><strong>Group Rank:</strong> <%= player.group_rank %></div>
-    <div class="box"><strong>Notes:</strong> ...</div>
-  </div>
-
-  <!-- Column 2: Sessions -->
-  <div class="column">
-    <h3>Sessions</h3>
-
-    <!-- Ongoing Session -->
-    <% if (ongoingSession) { %>
-      <div class="ongoing-box">
-        <strong>🟢 Ongoing Session</strong><br>
-        <strong>Started:</strong> <%= new Date(ongoingSession.start).toLocaleString() %><br>
-        <strong>Minutes Played:</strong> <%= ongoingSession.minutes_played %>
-      </div>
-    <% } %>
-
-    <!-- Past Sessions -->
-    <div class="session-list">
-      <% if (sessions && sessions.length > 0) { 
-          const recent = sessions.slice(0, 4);
-      %>
-        <% recent.forEach(s => { %>
-          <div class="session-box">
-            <strong>Start:</strong> <%= new Date(s.session_start).toLocaleString() %><br>
-            <strong>End:</strong> <%= new Date(s.session_end).toLocaleString() %><br>
-            <strong>Minutes Played:</strong> <%= s.minutes_played %>
-          </div>
-        <% }) %>
-      <% } else { %>
-        <div class="session-box">No past sessions found.</div>
-      <% } %>
+  <!-- Ongoing Session -->
+  <% if (ongoingSession) { %>
+    <div class="ongoing-box">
+      <strong>💫 Ongoing Session</strong><br>
+      <strong>Started:</strong> <%= new Date(ongoingSession.start).toLocaleString() %><br>
+      <strong>Current Duration:</strong> <span id="sessionTimer"></span>
     </div>
-  </div>
 
-  <!-- Column 3: Shifts -->
-  <div class="column">
-    <h3>Shifts</h3>
-    <div class="box">Shift Attended: ...</div>
-    <div class="box">Shift Hosted: ...</div>
-  </div>
+    <script>
+      // Live timer
+      const startTime = new Date("<%= ongoingSession.start %>").getTime();
+      const timerEl = document.getElementById('sessionTimer');
 
-</div>
+      function updateTimer() {
+        const now = Date.now();
+        const diff = now - startTime;
 
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+
+        timerEl.textContent = `${hours}h ${minutes}m ${seconds}s`;
+      }
+
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    </script>
+
+    <div class="divider"></div>
+  <% } %>
+
+  <!-- Past Sessions -->
+  <h2>🕓 Past Sessions</h2>
+
+  <% if (sessions.length === 0) { %>
+    <p>No past sessions found.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Start</th>
+          <th>End</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% sessions.forEach(session => { %>
+          <tr>
+            <td><%= new Date(session.start).toLocaleString() %></td>
+            <td><%= session.end ? new Date(session.end).toLocaleString() : '—' %></td>
+            <td>
+              <% if (session.end) { 
+                const duration = new Date(session.end) - new Date(session.start);
+                const hrs = Math.floor(duration / 3600000);
+                const mins = Math.floor((duration % 3600000) / 60000);
+                const secs = Math.floor((duration % 60000) / 1000);
+              %>
+                <%= `${hrs}h ${mins}m ${secs}s` %>
+              <% } else { %>
+                —
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
 </body>
 </html>
-
