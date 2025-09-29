@@ -1,5 +1,13 @@
-// endpoints/database.js
+// endpoints/activity.js
+const express = require("express");
+const router = express.Router();
+const {
+  getPlayerByUsername,
+  createPlayerIfNotExists,
+  logPlayerSession,
+} = require("./database"); // make sure this points correctly
 const { createClient } = require("@supabase/supabase-js");
+
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 // -------------------------
