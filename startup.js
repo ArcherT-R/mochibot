@@ -17,7 +17,7 @@ async function main() {
     app.use(express.json()); // needed for POST endpoints
 
     // Routes
-    const dashboardRoute = require('./web/routes/dashboard')(); // ✅ CALL the exported function
+    const dashboardRoute = require('./web/routes/dashboard'); // <- NO () now
     const dashboardSearchRoute = require('./web/routes/dashboardSearch');
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
@@ -31,6 +31,7 @@ async function main() {
     app.use('/activity', activityRoute);
     app.use('/sotw-role', sotwRoleRoute);
     app.use('/shifts', shiftsRoutes);
+
 
     // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
