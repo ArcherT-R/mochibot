@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -34,11 +34,18 @@
     .nav-tabs {
       background: white;
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
+      align-items: center;
       gap: 10px;
       padding: 15px 20px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       border-bottom: 2px solid #e0e6f0;
+      flex-wrap: wrap;
+    }
+    
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
     }
 
     .tab-button {
@@ -97,13 +104,13 @@
     /* Search Bar */
     .search-wrapper {
       position: relative;
-      margin-bottom: 20px; 
-      max-width: 500px;
+      max-width: 300px;
+      flex-grow: 1;
     }
     .search-wrapper input {
       width: 100%;
-      padding: 12px 15px;
-      font-size: 16px;
+      padding: 10px 15px;
+      font-size: 15px;
       border: 1px solid #ccc;
       border-radius: 8px;
       outline: none;
@@ -258,7 +265,9 @@
       header { font-size: 36px; padding: 20px; }
       h2 { text-align: center; }
       .top-players-grid { grid-template-columns: 1fr; }
-      .nav-tabs { flex-wrap: wrap; gap: 5px; }
+      .nav-tabs { flex-direction: column; gap: 10px; }
+      .nav-buttons { width: 100%; justify-content: center; }
+      .search-wrapper { width: 100%; max-width: 100%; }
       .tab-button { padding: 10px 16px; font-size: 14px; }
       .shift-header { flex-direction: column; align-items: flex-start; }
     }
@@ -268,33 +277,32 @@
   <header>Mochi Bar Dashboard</header>
 
   <nav class="nav-tabs">
-    <button class="tab-button active" data-tab="home">
-      <span class="tab-icon">🏠</span>
-      <span>Home</span>
-    </button>
-    <button class="tab-button" data-tab="playerlist">
-      <span class="tab-icon">👥</span>
-      <span>Player List</span>
-    </button>
-    <button class="tab-button" data-tab="myaccount">
-      <span class="tab-icon">👤</span>
-      <span>My Account</span>
-    </button>
-    <button class="tab-button" data-tab="settings">
-      <span class="tab-icon">⚙️</span>
-      <span>Settings</span>
-    </button>
+    <div class="nav-buttons">
+      <button class="tab-button active" data-tab="home">
+        <span class="tab-icon">🏠</span>
+        <span>Home</span>
+      </button>
+      <button class="tab-button" data-tab="playerlist">
+        <span class="tab-icon">👥</span>
+        <span>Player List</span>
+      </button>
+      <button class="tab-button" data-tab="myaccount">
+        <span class="tab-icon">👤</span>
+        <span>My Account</span>
+      </button>
+      <button class="tab-button" data-tab="settings">
+        <span class="tab-icon">⚙️</span>
+        <span>Settings</span>
+      </button>
+    </div>
+    
+    <div class="search-wrapper">
+      <input type="text" id="playerSearch" placeholder="Search Roblox username...">
+      <div id="suggestions" class="suggestions"></div>
+    </div>
   </nav>
 
   <div class="container">
-    <section class="content-section">
-      <h2>Player Lookup</h2>
-      <div class="search-wrapper">
-        <input type="text" id="playerSearch" placeholder="Search Roblox username...">
-        <div id="suggestions" class="suggestions"></div>
-      </div>
-    </section>
-
     <div id="home" class="tab-content active">
       <section class="content-section">
         <h2>Top Active This Week</h2>
@@ -366,7 +374,7 @@
         const players = await res.json();
         suggestionsBox.innerHTML = players.map(p => `
           <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-            <img src="${p.avatar_url || 'https://placehold.co/40x40/e0e6f0/5f6c7b?text=U'}" 
+            <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png" 
                  onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
             <span>${p.username}</span>
           </div>
