@@ -40,6 +40,27 @@
       color: #333;
     }
 
+    /* 🔍 Search Bar */
+    .search-bar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 25px;
+    }
+
+    .search-bar input {
+      width: 100%;
+      max-width: 400px;
+      padding: 10px 15px;
+      font-size: 16px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-bar input:focus {
+      border-color: #42b4ff;
+    }
+
     /* 🏆 Leaderboard */
     .leaderboard {
       display: flex;
@@ -76,17 +97,16 @@
       border-radius: 12px;
       color: #fff;
     }
-    .leaderboard-rank:nth-child(1),
     .leaderboard-card:nth-child(1) .leaderboard-rank {
-      background: #ffd700; /* Gold */
+      background: #ffd700;
       color: #000;
     }
     .leaderboard-card:nth-child(2) .leaderboard-rank {
-      background: #c0c0c0; /* Silver */
+      background: #c0c0c0;
       color: #000;
     }
     .leaderboard-card:nth-child(3) .leaderboard-rank {
-      background: #cd7f32; /* Bronze */
+      background: #cd7f32;
       color: #fff;
     }
 
@@ -170,8 +190,15 @@
 <header>Mochi Bar Dashboard</header>
 
 <div class="container">
+
   <section>
-    <h2>Top 3 Active Players This Week</h2>
+    <h2>Top Active Players This Week</h2>
+
+    <!-- 🔍 Search bar -->
+    <div class="search-bar">
+      <input type="text" id="playerSearch" placeholder="Search for a player...">
+    </div>
+
     <div id="leaderboardContainer" class="leaderboard">
       <% if (!topPlayers || topPlayers.length === 0) { %>
         <div class="no-data" style="width:100%;">No leaderboard data available.</div>
@@ -185,26 +212,20 @@
       <div class="no-data">Loading upcoming shifts...</div>
     </div>
   </section>
+
 </div>
 
 <script>
-  // --- Data Initialization ---
   let topPlayersData = JSON.parse('<%- JSON.stringify(topPlayers || []) %>');
   const leaderboardContainer = document.getElementById('leaderboardContainer');
   const shiftsList = document.getElementById('shiftsList');
+  const searchInput = document.getElementById('playerSearch');
 
-  // 🕒 Calculate live minutes including ongoing
-  function calculateLiveMinutes(player) {
-    let currentMinutes = player.weekly_minutes || 0; 
-    const startTime = player.ongoing_session_start_time;
-    if (startTime) {
-      const sessionStartTimeMs = new Date(startTime).getTime(); 
-      if (!isNaN(sessionStartTimeMs)) {
-        const elapsedMs = Date.now() - sessionStartTimeMs;
-        currentMinutes += (elapsedMs / 1000 / 60);
-      }
-    }
-    return currentMinutes;
+  // 📊 Calculate total live minutes = weekly + current (if live)
+  function getTotalMinutes(player) {
+    const weekly = player.weekly_minutes || 0;
+    const current = player.current_minutes || 0;
+    return weekly + current;
   }
 
   function formatMinutes(totalMinutes) {
@@ -215,21 +236,21 @@
     return h > 0 ? `${h} hr ${m} min` : `${m} min`;
   }
 
-  function renderLeaderboard() {
+  function renderLeaderboard(filter = '') {
     if (topPlayersData.length === 0) {
       leaderboardContainer.innerHTML = `<div class="no-data" style="width:100%;">No leaderboard data available.</div>`;
       return;
     }
 
-    const livePlayers = topPlayersData.map(p => ({
-      ...p,
-      live_minutes: calculateLiveMinutes(p)
-    }));
+    let filteredPlayers = topPlayersData.filter(p =>
+      p.username.toLowerCase().includes(filter.toLowerCase())
+    );
 
-    livePlayers.sort((a, b) => b.live_minutes - a.live_minutes);
+    filteredPlayers.sort((a, b) => getTotalMinutes(b) - getTotalMinutes(a));
 
-    const html = livePlayers.slice(0, 3).map((p, index) => {
-      const isLive = !!p.ongoing_session_start_time;
+    const html = filteredPlayers.slice(0, 50).map((p, index) => {
+      const total = getTotalMinutes(p);
+      const isLive = (p.current_minutes && p.current_minutes > 0);
       const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=100&height=100&format=png`;
 
       return `
@@ -237,8 +258,8 @@
           <div class="leaderboard-rank">#${index + 1}</div>
           <img src="${avatarUrl}" alt="Avatar" onerror="this.onerror=null;this.src='https://placehold.co/100x100/d9d9d9/000?text=U'">
           <div class="leaderboard-name">${p.username}</div>
-          ${isLive ? '<span class="live-status">ONGOING SESSION</span>' : ''}
-          <div class="leaderboard-minutes">${formatMinutes(p.live_minutes)}</div>
+          ${isLive ? '<span class="live-status">LIVE</span>' : ''}
+          <div class="leaderboard-minutes">${formatMinutes(total)}</div>
         </div>
       `;
     }).join('');
@@ -246,8 +267,11 @@
     leaderboardContainer.innerHTML = html;
   }
 
+  searchInput.addEventListener('input', (e) => {
+    renderLeaderboard(e.target.value);
+  });
+
   renderLeaderboard();
-  setInterval(renderLeaderboard, 5000);
 
   // 📅 Shifts
   function formatShiftTime(timestamp) {
@@ -259,7 +283,6 @@
 
   async function loadShifts() {
     shiftsList.innerHTML = `<div class="no-data">Fetching data from Discord...</div>`;
-
     try {
       const res = await fetch('/sessions');
       const sessions = await res.json();
