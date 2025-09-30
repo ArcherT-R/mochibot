@@ -295,20 +295,30 @@ async function renderAttendees(shiftId){
 async function loadShifts(){
   shiftsList.innerHTML=`<div class="no-data">Fetching data from Discord...</div>`;
   try{
-    const res=await fetch('/sessions');
-    if(!res.ok) throw new Error('Failed fetching sessions');
-    const sessions=await res.json();
-    const now=Math.floor(Date.now()/1000);
-    const upcoming=sessions.filter(s=>s.time>now).sort((a,b)=>a.time-b.time);
-    if(!upcoming.length){ shiftsList.innerHTML='<div class="no-data">No upcoming shifts are currently scheduled.</div>'; return; }
+    const res = await fetch('/sessions');
+    if(!res.ok) throw new Error(`HTTP ${res.status}: Failed fetching sessions`);
+    const sessions = await res.json();
+    if(!Array.isArray(sessions)) throw new Error('Sessions is not an array');
+
+    const now = Math.floor(Date.now()/1000);
+    const upcoming = sessions.filter(s=>s.time && s.time>now).sort((a,b)=>a.time-b.time);
+
+    if(!upcoming.length){
+      shiftsList.innerHTML='<div class="no-data">No upcoming shifts are currently scheduled.</div>';
+      return;
+    }
 
     shiftsList.innerHTML='';
     for(const s of upcoming){
-      const {date,time}=formatShiftTime(s.time);
-      const div=document.createElement('div'); div.className='shift-item';
-      let rolesHTML=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host}</span></div>`;
+      if(!s.id) continue; // skip invalid entries
+      const {date,time} = formatShiftTime(s.time);
+      const div = document.createElement('div');
+      div.className='shift-item';
+
+      let rolesHTML=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host||'TBD'}</span></div>`;
       if(s.cohost) rolesHTML+=`<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`;
       if(s.overseer) rolesHTML+=`<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${s.overseer}</span></div>`;
+
       div.innerHTML=`
         <div class="shift-header">
           <span class="shift-icon">📅</span>
@@ -319,9 +329,17 @@ async function loadShifts(){
         <div class="add-attendee-box" id="add-attendee-${s.id}">+ Add attendee</div>
       `;
       shiftsList.appendChild(div);
-      renderAttendees(s.id);
+
+      try{
+        await renderAttendees(s.id);
+      } catch(err){
+        console.error(`Failed to render attendees for shift ${s.id}:`, err);
+      }
     }
-  }catch(err){ console.error(err); shiftsList.innerHTML='<div class="no-data">Failed to load shifts.</div>'; }
+  }catch(err){
+    console.error('Failed to load shifts:', err);
+    shiftsList.innerHTML='<div class="no-data">Failed to load shifts.</div>';
+  }
 }
 
 loadShifts();
