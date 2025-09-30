@@ -22,7 +22,7 @@ async function main() {
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
     const sotwRoleRoute = require('./endpoints/sotw-role')(client);
-    const shiftsRoutes = require('./endpoints/shifts');
+    const shiftsRoutes = require('./endpoints/shiftsDB');
 
     // Mount endpoints
     app.use('/dashboard/search', dashboardSearchRoute);
