@@ -6,286 +6,81 @@
 <title>Mochi Bar Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  body {
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-    background: #f7f9fc;
-    color: #000;
-  }
-
+  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
   header {
     background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
     background-size: 300% 100%;
     animation: gradientFlow 6s ease infinite;
-    color: white;
-    font-weight: 700;
-    font-size: 48px;
-    padding: 25px 40px;
-    text-align: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15);
   }
-
-  @keyframes gradientFlow {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
+  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
   .nav-tabs {
-    background: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    padding: 15px 20px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    border-bottom: 2px solid #e0e6f0;
-    flex-wrap: wrap;
+    background:white; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
   }
-
-  .nav-buttons {
-    display: flex;
-    gap: 10px;
-  }
-
-  .tab-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    color: #555;
-    transition: all 0.3s;
-  }
-
-  .tab-button:hover {
-    background: #f0f8ff;
-    color: #42b4ff;
-  }
-
-  .tab-button.active {
-    background: #42b4ff;
-    color: white;
-  }
-
-  .tab-icon {
-    font-size: 20px;
-  }
-
-  .container {
-    max-width: 1200px;
-    margin: 40px auto;
-    padding: 0 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-  }
-
-  h2 {
-    font-size: 26px;
-    font-weight: 700;
-    margin-bottom: 20px;
-    color: #333;
-  }
-
-  .content-section {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
-    border: 1px solid #ddd;
-  }
-
-  .search-wrapper {
-    position: relative;
-    max-width: 300px;
-    flex-grow: 1;
-  }
-  .search-wrapper input {
-    width: 100%;
-    padding: 10px 15px;
-    font-size: 15px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    outline: none;
-    box-sizing: border-box;
-    transition: border 0.2s;
-  }
-  .search-wrapper input:focus {
-    border-color: #42b4ff;
-  }
-
-  .suggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background: white;
-    border: 1px solid #ccc;
-    max-height: 250px;
-    overflow-y: auto;
-    z-index: 10;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  }
-  .suggestion-item {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-    cursor: pointer;
-    border-bottom: 1px solid #eee;
-    transition: background 0.2s;
-  }
-  .suggestion-item:last-child { border-bottom: none; }
-  .suggestion-item:hover { background: #f0f8ff; }
-  .suggestion-item img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 10px;
-  }
+  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
+  .tab-button.active { background:#42b4ff; color:white; }
+  .tab-icon { font-size:20px; }
+  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
+  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
+  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
+  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
+  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
+  .search-wrapper input:focus { border-color:#42b4ff; }
+  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:#f0f8ff; }
+  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
 
   /* Top Players */
-  .top-players-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    justify-items: center;
-  }
-  .player-card {
-    background: #f9f9f9;
-    text-align: center;
-    padding: 15px;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid #eee;
-    transition: transform 0.2s, box-shadow 0.2s;
-    width: 100%;
-    max-width: 220px;
-  }
-  .player-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  }
-  .player-card img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin-bottom: 10px;
-    object-fit: cover;
-    background: #e0e6f0;
-  }
-  .player-card .time {
-    font-size: 0.9em;
-    font-weight: 500;
-    color: #555;
-    margin-top: 4px;
-  }
-  .player-card .live-status {
-    color: #28a745;
-    font-weight: 700;
-    font-size: 0.8em;
-    display: block;
-    margin-bottom: 4px;
-  }
+  .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
+  .player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
+  .player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
+  .player-card img { width:80px; height:80px; border-radius:50%; margin-bottom:10px; object-fit:cover; background:#e0e6f0; }
+  .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
+  .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
 
   /* Shifts */
-  .shifts-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .shift-item {
-    background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-    padding: 18px 20px;
-    border-radius: 10px;
-    border-left: 4px solid #42b4ff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  }
-  .shift-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  .shift-icon {
-    font-size: 24px;
-  }
-  .shift-datetime {
-    font-weight: 700;
-    font-size: 18px;
-    color: #1a85e6;
-  }
-  .shift-roles, .attendees-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 8px;
-  }
-  .shift-role {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-  }
-  .role-label {
-    font-weight: 600;
-    color: #555;
-    min-width: 80px;
-  }
-  .role-name {
-    color: #333;
-  }
+  .shifts-list { display:flex; flex-direction:column; gap:16px; }
+  .shift-item { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+  .shift-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .shift-icon { font-size:24px; }
+  .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
+  .shift-roles { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .shift-role { display:flex; align-items:center; gap:8px; font-size:15px; }
+  .role-label { font-weight:600; color:#555; min-width:80px; }
+  .role-name { color:#333; }
+
+  /* Attendees */
+  .attendees-container { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
   .attendee-box {
-    display: inline-block;
-    padding: 6px 12px;
-    background: #e0f0ff;
-    border-radius: 12px;
-    font-size: 14px;
-    color: #1a85e6;
-    cursor: default;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default;
   }
-  .add-attendee {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 12px;
-    background: #f0f8ff;
-    color: #42b4ff;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    border: 1px dashed #42b4ff;
-    width: fit-content;
+  .attendee-box span { font-weight:500; color:#333; }
+  .attendee-box button { background:red; border:none; border-radius:6px; color:white; font-weight:700; padding:2px 6px; cursor:pointer; }
+  .add-attendee-box {
+    display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px;
+    background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s;
   }
+  .add-attendee-box:hover { background:#d0e4ff; }
 
-  .no-data {
-    background: #f9f9f9;
-    padding: 20px;
-    text-align: center;
-    border-radius: 8px;
-    font-weight: 500;
-    color: #777;
-    border: 1px solid #eee;
-  }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
 
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  @media (max-width: 600px) {
-    header { font-size: 36px; padding: 20px; }
-    h2 { text-align: center; }
-    .top-players-grid { grid-template-columns: 1fr; }
-    .nav-tabs { flex-direction: column; gap: 10px; }
-    .nav-buttons { width: 100%; justify-content: center; }
-    .search-wrapper { width: 100%; max-width: 100%; }
-    .tab-button { padding: 10px 16px; font-size: 14px; }
-    .shift-header { flex-direction: column; align-items: flex-start; }
+  @media(max-width:600px){
+    header { font-size:36px; padding:20px; }
+    h2 { text-align:center; }
+    .top-players-grid { grid-template-columns:1fr; }
+    .nav-tabs { flex-direction:column; gap:10px; }
+    .nav-buttons { width:100%; justify-content:center; }
+    .search-wrapper { width:100%; max-width:100%; }
+    .tab-button { padding:10px 16px; font-size:14px; }
+    .shift-header { flex-direction:column; align-items:flex-start; }
   }
 </style>
 </head>
@@ -294,28 +89,11 @@
 
 <nav class="nav-tabs">
   <div class="nav-buttons">
-    <button class="tab-button active" data-tab="home">
-      <span class="tab-icon">🏠</span>
-      <span>Home</span>
-    </button>
-    <button class="tab-button" data-tab="playerlist">
-      <span class="tab-icon">👥</span>
-      <span>Player List</span>
-    </button>
-    <button class="tab-button" data-tab="shifts">
-      <span class="tab-icon">📅</span>
-      <span>Shifts</span>
-    </button>
-    <button class="tab-button" data-tab="myaccount">
-      <span class="tab-icon">👤</span>
-      <span>My Account</span>
-    </button>
-    <button class="tab-button" data-tab="settings">
-      <span class="tab-icon">⚙️</span>
-      <span>Settings</span>
-    </button>
+    <button class="tab-button active" data-tab="home"><span class="tab-icon">🏠</span>Home</button>
+    <button class="tab-button" data-tab="playerlist"><span class="tab-icon">👥</span>Player List</button>
+    <button class="tab-button" data-tab="myaccount"><span class="tab-icon">👤</span>My Account</button>
+    <button class="tab-button" data-tab="settings"><span class="tab-icon">⚙️</span>Settings</button>
   </div>
-
   <div class="search-wrapper">
     <input type="text" id="playerSearch" placeholder="Search Roblox username...">
     <div id="suggestions" class="suggestions"></div>
@@ -328,13 +106,11 @@
       <h2>Top Active This Week</h2>
       <div id="topPlayersGrid" class="top-players-grid"></div>
     </section>
-  </div>
 
-  <div id="shifts" class="tab-content">
     <section class="content-section">
-      <h2>Shifts</h2>
+      <h2>Upcoming Shifts & Attendees</h2>
       <div id="shiftsList" class="shifts-list">
-        <div class="no-data">Loading shifts...</div>
+        <div class="no-data">Loading upcoming shifts...</div>
       </div>
     </section>
   </div>
@@ -367,14 +143,15 @@ const suggestionsBox = document.getElementById('suggestions');
 const shiftsList = document.getElementById('shiftsList');
 const topPlayersGrid = document.getElementById('topPlayersGrid');
 
-let topPlayersData = JSON.parse('<%- JSON.stringify(topPlayers || []) %>');
+let topPlayersData = <%- JSON.stringify(topPlayers || []) %>;
 
+// ---------------- Tab Navigation ----------------
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabContents = document.querySelectorAll('.tab-content');
 
 tabButtons.forEach(button => {
   button.addEventListener('click', () => {
-    const targetTab = button.getAttribute('data-tab');
+    const targetTab = button.dataset.tab;
     tabButtons.forEach(btn => btn.classList.remove('active'));
     button.classList.add('active');
     tabContents.forEach(content => content.classList.remove('active'));
@@ -382,165 +159,121 @@ tabButtons.forEach(button => {
   });
 });
 
+// ---------------- Search ----------------
 input.addEventListener('input', async () => {
   const q = input.value.trim();
-  if (!q) { suggestionsBox.innerHTML = ''; return; }
+  if (!q) { suggestionsBox.innerHTML=''; return; }
   try {
     const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
     const players = await res.json();
-    suggestionsBox.innerHTML = players.map(p => `
+    suggestionsBox.innerHTML = players.map(p=>`
       <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
         <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png" 
              onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
         <span>${p.username}</span>
-      </div>
-    `).join('');
-  } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+      </div>`).join('');
+  } catch(err){ suggestionsBox.innerHTML=''; console.error(err);}
 });
-
 document.addEventListener('click', e => {
-  if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
-    suggestionsBox.innerHTML = '';
-  }
+  if(!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML='';
 });
 
-function calculateLiveMinutes(player) {
+// ---------------- Top Players ----------------
+function calculateLiveMinutes(player){
   const startTime = player.ongoing_session_start_time;
-  if (startTime) {
-    const sessionStartTimeMs = new Date(startTime).getTime();
-    if (!isNaN(sessionStartTimeMs) && sessionStartTimeMs > 0) {
-      const elapsedMs = Date.now() - sessionStartTimeMs;
-      if (elapsedMs > 0) return elapsedMs / 1000 / 60;
-    }
+  if(startTime){
+    const elapsedMs = Date.now()-new Date(startTime).getTime();
+    if(elapsedMs>0) return elapsedMs/1000/60;
   }
   return 0;
 }
+function getTotalMinutes(player){ return (player.weekly_minutes||0)+calculateLiveMinutes(player); }
+function formatMinutes(totalMinutes){
+  if(totalMinutes<1) return '0 min';
+  const totalInt=Math.round(totalMinutes);
+  const h=Math.floor(totalInt/60), m=totalInt%60;
+  return h>0?`${h} hr ${m} min`:`${m} min`;
+}
+function renderTopPlayers(){
+  if(topPlayersData.length===0){ topPlayersGrid.innerHTML=`<div class="no-data">No active players data.</div>`; return;}
+  const livePlayers=topPlayersData.map(p=>({...p, live_total_minutes:getTotalMinutes(p), is_live:calculateLiveMinutes(p)>0}))
+                        .sort((a,b)=>b.live_total_minutes-a.live_total_minutes).slice(0,3);
+  topPlayersGrid.innerHTML = livePlayers.map(p=>`
+    <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
+      <img src="${p.avatar_url||'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" alt="Avatar" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+      <div>${p.username}</div>
+      ${p.is_live?'<span class="live-status">LIVE</span>':''}
+      <div class="time">${formatMinutes(p.live_total_minutes)}</div>
+    </div>`).join('');
+}
+renderTopPlayers(); setInterval(renderTopPlayers,5000);
 
-function getTotalMinutes(player) {
-  return (player.weekly_minutes || 0) + calculateLiveMinutes(player);
+// ---------------- Shifts & Attendees ----------------
+function formatShiftTime(ts){
+  const d=new Date(ts*1000), now=new Date(), tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  let dateStr=d.toDateString()===now.toDateString()?'Today':d.toDateString()===tomorrow.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  const timeStr=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
+  return {date:dateStr,time:timeStr};
 }
 
-function formatMinutes(totalMinutes) {
-  if (totalMinutes < 1) return '0 min';
-  const totalMinutesInt = Math.round(totalMinutes);
-  const h = Math.floor(totalMinutesInt / 60);
-  const m = totalMinutesInt % 60;
-  return h > 0 ? `${h} hr ${m} min` : `${m} min`;
+async function fetchAttendees(shiftId){
+  const res=await fetch(`/shifts/attendees?shiftId=${shiftId}`);
+  return res.ok?await res.json():[];
 }
 
-function renderTopPlayers() {
-  if (topPlayersData.length === 0) {
-    topPlayersGrid.innerHTML = `<div class="no-data">No active players data.</div>`;
-    return;
-  }
-  const livePlayers = topPlayersData.map(p => ({
-    ...p,
-    live_total_minutes: getTotalMinutes(p),
-    is_live: calculateLiveMinutes(p) > 0
-  })).sort((a,b)=>b.live_total_minutes-a.live_total_minutes)
-    .slice(0,3);
+async function loadShifts(){
+  shiftsList.innerHTML=`<div class="no-data">Fetching data from Discord...</div>`;
+  try{
+    const res=await fetch('/sessions');
+    const sessions=await res.json();
+    const now=Math.floor(Date.now()/1000);
+    const upcoming=sessions.filter(s=>s.time>now).sort((a,b)=>a.time-b.time);
+    if(upcoming.length===0){ shiftsList.innerHTML=`<div class="no-data">No upcoming shifts are currently scheduled.</div>`; return; }
 
-  topPlayersGrid.innerHTML = livePlayers.map(p => {
-    const avatarUrl = p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
-    return `
-      <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-        <img src="${avatarUrl}" alt="Avatar" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';" />
-        <div>${p.username}</div>
-        ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
-        <div class="time">${formatMinutes(p.live_total_minutes)}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-renderTopPlayers();
-setInterval(renderTopPlayers, 5000);
-
-function formatShiftTime(timestamp) {
-  const d = new Date(timestamp*1000);
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const isToday = d.toDateString() === now.toDateString();
-  const isTomorrow = d.toDateString() === tomorrow.toDateString();
-
-  let dateStr;
-  if (isToday) dateStr = 'Today';
-  else if (isTomorrow) dateStr = 'Tomorrow';
-  else dateStr = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-
-  const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
-  return { date: dateStr, time: timeStr };
-}
-
-async function loadShifts() {
-  shiftsList.innerHTML = `<div class="no-data">Fetching data from Discord...</div>`;
-  try {
-    const res = await fetch('/sessions');
-    const sessions = await res.json();
-    const now = Math.floor(Date.now()/1000);
-    const upcoming = sessions.filter(s=>s.time>now).sort((a,b)=>a.time-b.time);
-    if (upcoming.length===0) {
-      shiftsList.innerHTML = `<div class="no-data">No upcoming shifts are currently scheduled.</div>`;
-      return;
-    }
-    shiftsList.innerHTML = '';
-    upcoming.forEach(session => {
-      const { date, time } = formatShiftTime(session.time);
-      const div = document.createElement('div');
-      div.className = 'shift-item';
-
-      let rolesHTML = `
-        <div class="shift-role">
-          <span class="role-label">📋 Host:</span>
-          <span class="role-name">${session.host}</span>
-        </div>
-      `;
-
-      if (session.cohost) rolesHTML += `
-        <div class="shift-role">
-          <span class="role-label">🤝 Co-Host:</span>
-          <span class="role-name">${session.cohost}</span>
-        </div>
-      `;
-      if (session.overseer) rolesHTML += `
-        <div class="shift-role">
-          <span class="role-label">👁️ Overseer:</span>
-          <span class="role-name">${session.overseer}</span>
-        </div>
-      `;
-
-      div.innerHTML = `
+    shiftsList.innerHTML='';
+    for(const session of upcoming){
+      const {date,time}=formatShiftTime(session.time);
+      const div=document.createElement('div'); div.className='shift-item';
+      
+      let rolesHTML=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${session.host}</span></div>`;
+      if(session.cohost) rolesHTML+=`<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${session.cohost}</span></div>`;
+      if(session.overseer) rolesHTML+=`<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${session.overseer}</span></div>`;
+      
+      div.innerHTML=`
         <div class="shift-header">
           <span class="shift-icon">📅</span>
           <span class="shift-datetime">${date} at ${time}</span>
         </div>
-        <div class="shift-roles">
-          ${rolesHTML}
-        </div>
-        <h3>Attendees</h3>
-        <div class="attendees-list">
-          <div class="add-attendee">+ Add New</div>
-        </div>
+        <div class="shift-roles">${rolesHTML}</div>
+        <div class="attendees-container" id="attendees-${session.id}"></div>
+        <div class="add-attendee-box" id="add-attendee-${session.id}">+ Add New</div>
       `;
       shiftsList.appendChild(div);
-    });
+      await renderAttendees(session.id);
+    }
+  } catch(err){ console.error(err); shiftsList.innerHTML=`<div class="no-data" style="color:red;">Failed to load scheduled shifts.</div>`; }
+}
 
-    document.querySelectorAll('.add-attendee').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const attendeeList = btn.parentElement;
-        const newBox = document.createElement('div');
-        newBox.className = 'attendee-box';
-        newBox.textContent = 'New Attendee';
-        attendeeList.insertBefore(newBox, btn);
-      });
-    });
-
-  } catch (err) {
-    console.error(err);
-    shiftsList.innerHTML = `<div class="no-data" style="color:red;">Failed to load scheduled shifts.</div>`;
-  }
+async function renderAttendees(shiftId){
+  const container=document.getElementById(`attendees-${shiftId}`);
+  const addBox=document.getElementById(`add-attendee-${shiftId}`);
+  container.innerHTML='';
+  const attendees=await fetchAttendees(shiftId);
+  attendees.forEach(a=>{
+    const box=document.createElement('div'); box.className='attendee-box';
+    box.innerHTML=`<span>${a.username}</span><button data-username="${a.username}">×</button>`;
+    box.querySelector('button').addEventListener('click',async()=>{ await fetch('/shifts/remove-attendee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shiftId,username:a.username})}); renderAttendees(shiftId); });
+    container.appendChild(box);
+  });
+  addBox.onclick=async()=>{
+    const res=await fetch('/shifts/players'); const players=await res.json();
+    const select=document.createElement('select'); select.style.width='100%';
+    select.innerHTML='<option value="">Select player...</option>'+players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
+    select.onchange=async()=>{
+      if(select.value){ await fetch('/shifts/add-attendee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shiftId,username:select.value})}); renderAttendees(shiftId); }
+    };
+    addBox.innerHTML=''; addBox.appendChild(select);
+  };
 }
 
 loadShifts();
