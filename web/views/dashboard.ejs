@@ -1,358 +1,330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mochi Bar Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      margin: 0;
-      background: #f7f9fc; /* Light background from your recent designs */
-      color: #000;
-    }
-
-    header {
-      /* Blue header from player profile mockups */
-      background: #42b4ff; 
-      color: black; 
-      font-weight: 700;
-      font-size: 48px;
-      padding: 25px 40px;
-      text-align: left;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 40px auto;
-      padding: 0 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 40px;
-    }
-
-    h2 {
-      font-size: 26px;
-      font-weight: 700;
-      margin-bottom: 20px;
-      text-align: left; /* Align sections left like player info */
-      color: #333;
-    }
-    
-    /* --- General Content Blocks --- */
-    .content-section {
-        background: #fff; /* White blocks from mockups */
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border: 1px solid #ddd;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mochi Bar Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      background: #f7f9fc;
+      color: #000;
     }
 
-    /* 🔍 Search Bar */
-    .search-wrapper {
-      position: relative;
-      margin-bottom: 20px; 
+    header {
+      background: linear-gradient(90deg, #42b4ff, #1a85e6);
+      color: white;
+      font-weight: 700;
+      font-size: 48px;
+      padding: 25px 40px;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    h2 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .content-section {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+      border: 1px solid #ddd;
+    }
+
+    /* Search Bar */
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 20px; 
       max-width: 500px;
-    }
-    .search-wrapper input {
-      width: 100%;
-      padding: 10px 15px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      outline: none;
-      box-sizing: border-box;
-    }
+    }
+    .search-wrapper input {
+      width: 100%;
+      padding: 12px 15px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      box-sizing: border-box;
+      transition: border 0.2s;
+    }
+    .search-wrapper input:focus {
+      border-color: #42b4ff;
+    }
+
     .suggestions {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        background: white;
-        border: 1px solid #ccc;
-        max-height: 250px;
-        overflow-y: auto;
-        z-index: 10;
-        border-radius: 0 0 6px 6px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 10;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     .suggestion-item {
-        display: flex;
-        align-items: center;
-        padding: 8px 10px;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+      transition: background 0.2s;
     }
     .suggestion-item:last-child { border-bottom: none; }
-    .suggestion-item:hover { background: #f0f0f0; }
+    .suggestion-item:hover { background: #f0f8ff; }
     .suggestion-item img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        margin-right: 10px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
     }
 
-    /* 🏆 Top Players Grid */
-    .top-players-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 15px;
-    }
-    .player-card {
-      background: #f9f9f9; /* Slightly darker than block for contrast */
-      text-align: center;
-      padding: 15px;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid #eee;
-      transition: background 0.2s;
-    }
+    /* Top Players */
+    .top-players-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      justify-items: center;
+    }
+    .player-card {
+      background: #f9f9f9;
+      text-align: center;
+      padding: 15px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #eee;
+      transition: transform 0.2s, box-shadow 0.2s;
+      width: 100%;
+      max-width: 220px;
+    }
     .player-card:hover {
-        background: #e9e9e9;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
-    .player-card img {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      margin-bottom: 8px;
-    }
-    .player-card .time {
-      font-size: 0.9em;
-      font-weight: 500;
-      color: #555;
-    }
+    .player-card img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      object-fit: cover;
+      background: #e0e6f0;
+    }
+    .player-card .time {
+      font-size: 0.9em;
+      font-weight: 500;
+      color: #555;
+      margin-top: 4px;
+    }
     .player-card .live-status {
-        color: #28a745; 
-        font-weight: 700;
-        font-size: 0.75em;
-        display: block;
-        margin-bottom: 2px;
+      color: #28a745; 
+      font-weight: 700;
+      font-size: 0.8em;
+      display: block;
+      margin-bottom: 4px;
     }
 
-    /* 📅 Upcoming Shifts */
-    .shifts-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    /* Shifts */
+    .shifts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .shift-item {
+      background: #f0f8ff;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-weight: 500;
+      border: 1px solid #cce6ff;
+    }
+    .shift-time {
+      font-weight: 700;
+      color: #42b4ff;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .no-data {
+      background: #f9f9f9;
+      padding: 15px;
+      text-align: center;
+      border-radius: 8px;
+      font-weight: 500;
+      color: #777;
+      border: 1px solid #eee;
+    }
 
-    .shift-item {
-      background: #f0f0f0; /* Use a light gray block for items */
-      padding: 12px 15px;
-      border-radius: 4px;
-      font-weight: 500;
-      border: 1px solid #e0e0e0;
-    }
-
-    .shift-time {
-      font-weight: 700;
-      color: #42b4ff;
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    .no-data {
-      background: #f9f9f9;
-      padding: 15px;
-      text-align: center;
-      border-radius: 4px;
-      font-weight: 500;
-      color: #777;
-      border: 1px solid #eee;
-    }
-
-    @media (max-width: 600px) {
-      header {
-        font-size: 36px;
-        padding: 20px;
-      }
-      h2 {
-        text-align: center;
-      }
-    }
-  </style>
+    @media (max-width: 600px) {
+      header { font-size: 36px; padding: 20px; }
+      h2 { text-align: center; }
+      .top-players-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-  <header>Mochi Bar Database</header>
+  <header>Mochi Bar Dashboard</header>
 
-  <div class="container">
+  <div class="container">
 
     <section class="content-section">
-      <h2>Player Lookup</h2>
-      <div class="search-wrapper">
-        <input type="text" id="playerSearch" placeholder="Search Roblox username...">
-        <div id="suggestions" class="suggestions"></div>
-      </div>
+      <h2>Player Lookup</h2>
+      <div class="search-wrapper">
+        <input type="text" id="playerSearch" placeholder="Search Roblox username...">
+        <div id="suggestions" class="suggestions"></div>
+      </div>
     </section>
 
-    <section class="content-section">
-      <h2>Top Active This Week</h2>
-      <div id="topPlayersGrid" class="top-players-grid">
-        <% if (!topPlayers || topPlayers.length === 0) { %>
-          <div class="no-data" style="grid-column: 1 / -1;">No active players data.</div>
-        <% } %>
-      </div>
-    </section>
+    <section class="content-section">
+      <h2>Top Active This Week</h2>
+      <div id="topPlayersGrid" class="top-players-grid"></div>
+    </section>
 
-    <section class="content-section">
-      <h2>Upcoming Shifts (Discord)</h2>
-      <div id="shiftsList" class="shifts-list">
-        <div class="no-data">Loading upcoming shifts...</div>
-      </div>
-    </section>
+    <section class="content-section">
+      <h2>Upcoming Shifts (Discord)</h2>
+      <div id="shiftsList" class="shifts-list">
+        <div class="no-data">Loading upcoming shifts...</div>
+      </div>
+    </section>
 
-  </div>
+  </div>
 
-  <script>
-    const input = document.getElementById('playerSearch');
-    const suggestionsBox = document.getElementById('suggestions');
-    const shiftsList = document.getElementById('shiftsList');
+  <script>
+    const input = document.getElementById('playerSearch');
+    const suggestionsBox = document.getElementById('suggestions');
+    const shiftsList = document.getElementById('shiftsList');
     const topPlayersGrid = document.getElementById('topPlayersGrid');
-    
-    // Load data from EJS variable
+
     let topPlayersData = JSON.parse('<%- JSON.stringify(topPlayers || []) %>');
 
-    // --- Player Search (Functionality Retained) ---
-    input.addEventListener('input', async () => {
-      const q = input.value.trim();
-      if (!q) {
-        suggestionsBox.innerHTML = '';
-        return;
-      }
-      try {
-        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
-        const players = await res.json();
-        
-        suggestionsBox.innerHTML = players.map(p => `
-          <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-            <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png" 
+    input.addEventListener('input', async () => {
+      const q = input.value.trim();
+      if (!q) { suggestionsBox.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+        const players = await res.json();
+        suggestionsBox.innerHTML = players.map(p => `
+          <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+            <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png" 
                  onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
-            <span>${p.username}</span>
-          </div>
-        `).join('');
-      } catch (err) {
-        console.error("Search error:", err);
+            <span>${p.username}</span>
+          </div>
+        `).join('');
+      } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+    });
+
+    document.addEventListener('click', e => {
+      if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
         suggestionsBox.innerHTML = '';
-      }
-    });
+      }
+    });
 
-    document.addEventListener('click', e => {
-      if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.innerHTML = '';
-      }
-    });
+    function calculateLiveMinutes(player) {
+      const startTime = player.ongoing_session_start_time;
+      if (startTime) {
+        const sessionStartTimeMs = new Date(startTime).getTime(); 
+        if (!isNaN(sessionStartTimeMs) && sessionStartTimeMs > 0) {
+          const elapsedMs = Date.now() - sessionStartTimeMs;
+          if (elapsedMs > 0) return elapsedMs / 1000 / 60;
+        }
+      }
+      return 0;
+    }
 
-    // --- Top Players Live Update Logic (Functionality Retained) ---
-    
-    function calculateLiveMinutes(player) {
-      const startTime = player.ongoing_session_start_time;
-      if (startTime) {
-        const sessionStartTimeMs = new Date(startTime).getTime(); 
-        if (!isNaN(sessionStartTimeMs) && sessionStartTimeMs > 0) {
-          const elapsedMs = Date.now() - sessionStartTimeMs;
-          if (elapsedMs > 0) {
-                return elapsedMs / 1000 / 60;
-            }
-        }
-      }
-      return 0;
-    }
-
-    function getTotalMinutes(player) {
-      const weekly = player.weekly_minutes || 0;
-      const liveMinutes = calculateLiveMinutes(player); 
-      return weekly + liveMinutes;
-    }
+    function getTotalMinutes(player) {
+      return (player.weekly_minutes || 0) + calculateLiveMinutes(player);
+    }
 
     function formatMinutes(totalMinutes) {
-        if (totalMinutes < 1) return '0 min';
-        const totalMinutesInt = Math.round(totalMinutes);
-        const h = Math.floor(totalMinutesInt / 60);
-        const m = totalMinutesInt % 60;
-        if (h > 0) {
-            return `${h} hr ${m} min`;
-        }
-        return `${m} min`;
+      if (totalMinutes < 1) return '0 min';
+      const totalMinutesInt = Math.round(totalMinutes);
+      const h = Math.floor(totalMinutesInt / 60);
+      const m = totalMinutesInt % 60;
+      return h > 0 ? `${h} hr ${m} min` : `${m} min`;
     }
 
     function renderTopPlayers() {
-        if (topPlayersData.length === 0) {
-            topPlayersGrid.innerHTML = `<div class="no-data" style="grid-column: 1 / -1;">No active players data.</div>`;
-            return;
-        }
+      if (topPlayersData.length === 0) {
+        topPlayersGrid.innerHTML = `<div class="no-data">No active players data.</div>`;
+        return;
+      }
+      const livePlayers = topPlayersData.map(p => ({
+        ...p,
+        live_total_minutes: getTotalMinutes(p),
+        is_live: calculateLiveMinutes(p) > 0
+      })).sort((a,b)=>b.live_total_minutes-a.live_total_minutes)
+        .slice(0,3); // Only top 3
 
-        const livePlayers = topPlayersData.map(p => ({
-            ...p,
-            live_total_minutes: getTotalMinutes(p),
-            is_live: calculateLiveMinutes(p) > 0
-        }));
-
-        livePlayers.sort((a, b) => b.live_total_minutes - a.live_total_minutes);
-
-        // Render the top 8 players, matching the grid capacity
-        const html = livePlayers.slice(0, 8).map(p => {
-            const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=60&height=60&format=png`;
-            return `
-                <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-                    <img src="${avatarUrl}" alt="Avatar" onerror="this.src='https://placehold.co/60x60/e0e6f0/5f6c7b?text=U';" />
-                    <div>${p.username}</div>
-                    ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
-                    <div class="time">${formatMinutes(p.live_total_minutes)}</div>
-                </div>
-            `;
-        }).join('');
-
-        topPlayersGrid.innerHTML = html;
+      topPlayersGrid.innerHTML = livePlayers.map(p => {
+        const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=80&height=80&format=png`;
+        return `
+          <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
+            <img src="${avatarUrl}" alt="Avatar" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';" />
+            <div>${p.username}</div>
+            ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
+            <div class="time">${formatMinutes(p.live_total_minutes)}</div>
+          </div>
+        `;
+      }).join('');
     }
-    
+
     renderTopPlayers();
-    setInterval(renderTopPlayers, 5000); 
+    setInterval(renderTopPlayers, 5000);
 
+    function formatShiftTime(timestamp) {
+      const d = new Date(timestamp*1000);
+      const dateStr = d.toLocaleDateString(undefined,{ weekday:'short', month:'short', day:'numeric' });
+      const timeStr = d.toLocaleTimeString(undefined,{ hour:'2-digit', minute:'2-digit', timeZoneName:'short' });
+      return `${dateStr} @ ${timeStr}`;
+    }
 
-    // --- Shifts (Functionality Retained) ---
-    function formatShiftTime(timestamp) {
-      const d = new Date(timestamp * 1000);
-      const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-      const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-      return `${dateStr} @ ${timeStr}`;
-    }
+    async function loadShifts() {
+      shiftsList.innerHTML = `<div class="no-data">Fetching data from Discord...</div>`;
+      try {
+        const res = await fetch('/sessions');
+        const sessions = await res.json();
+        const now = Math.floor(Date.now()/1000);
+        const upcoming = sessions.filter(s=>s.time>now).sort((a,b)=>a.time-b.time);
+        if (upcoming.length===0) {
+          shiftsList.innerHTML = `<div class="no-data">No upcoming shifts are currently scheduled.</div>`;
+          return;
+        }
+        shiftsList.innerHTML = '';
+        upcoming.forEach(session => {
+          const div = document.createElement('div');
+          div.className = 'shift-item';
+          let hosts = `Host: ${session.host}`;
+          if (session.cohost) hosts += ` | Co-Host: ${session.cohost}`;
+          div.innerHTML = `
+            <span class="shift-time">${formatShiftTime(session.time)}</span>
+            ${hosts}
+            ${session.overseer ? `<br>Overseer: ${session.overseer}` : ''}
+          `;
+          shiftsList.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+        shiftsList.innerHTML = `<div class="no-data" style="color:red;">Failed to load scheduled shifts.</div>`;
+      }
+    }
 
-    async function loadShifts() {
-      shiftsList.innerHTML = `<div class="no-data">Fetching data from Discord...</div>`;
-      try {
-        const res = await fetch('/sessions');
-        const sessions = await res.json();
-        const now = Math.floor(Date.now() / 1000);
-        const upcoming = sessions.filter(s => s.time > now).sort((a,b)=>a.time-b.time);
-
-        if (upcoming.length === 0) {
-          shiftsList.innerHTML = `<div class="no-data">No upcoming shifts are currently scheduled.</div>`;
-          return;
-        }
-
-        shiftsList.innerHTML = '';
-        upcoming.forEach(session => {
-          const div = document.createElement('div');
-          div.className = 'shift-item';
-          let hosts = `Host: ${session.host}`;
-          if (session.cohost) hosts += ` | Co-Host: ${session.cohost}`;
-          div.innerHTML = `
-            <span class="shift-time">${formatShiftTime(session.time)}</span>
-            ${hosts}
-            ${session.overseer ? `<br>Overseer: ${session.overseer}` : ''}
-          `;
-          shiftsList.appendChild(div);
-        });
-      } catch (err) {
-        console.error(err);
-        shiftsList.innerHTML = `<div class="no-data" style="color:red;">Failed to load scheduled shifts.</div>`;
-      }
-    }
-
-    loadShifts();
-  </script>
+    loadShifts();
+  </script>
 </body>
 </html>
