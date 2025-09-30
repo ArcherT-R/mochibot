@@ -1,4 +1,4 @@
-// web/routes/dashboard.js
+// /web/routes/dashboard.js
 const express = require("express");
 const router = express.Router();
 const {
@@ -6,7 +6,8 @@ const {
   getPlayerByUsername,
   getPlayerSessions,
   getPlayerShifts,
-  getOngoingSession
+  getOngoingSession,
+  searchPlayersByUsername
 } = require("../../endpoints/database");
 
 // Helper: Attach ongoing session data to a list of players
@@ -68,7 +69,7 @@ router.get("/search", async (req, res) => {
   try {
     const q = req.query.username?.trim();
     if (!q) return res.json([]);
-    const { searchPlayersByUsername } = require("../../endpoints/database");
+
     const players = await searchPlayersByUsername(q);
     res.json(players || []);
   } catch (err) {
