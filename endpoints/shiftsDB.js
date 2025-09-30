@@ -1,64 +1,52 @@
-// endpoints/shiftsDB.js
-const { createClient } = require("@supabase/supabase-js");
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-// -------------------------
-// Shifts
-// -------------------------
+const express = require('express');
+const router = express.Router();
+const { getAllShifts, getShiftAttendees, addShiftAttendee, removeShiftAttendee } = require('./shiftDB'); // your functions
 
 // Get all shifts
-async function getAllShifts() {
-    const { data, error } = await supabase
-        .from("shifts")
-        .select("*")
-        .order("time", { ascending: true });
-    if (error) throw error;
-    return data;
-}
+router.get('/', async (req, res) => {
+    try {
+        const shifts = await getAllShifts();
+        res.json(shifts);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch shifts' });
+    }
+});
 
 // Get attendees for a shift
-async function getShiftAttendees(shiftId) {
-    const { data, error } = await supabase
-        .from("shift_attendees")
-        .select("username")
-        .eq("shift_id", shiftId);
-    if (error) throw error;
-    return data || [];
-}
+router.get('/attendees', async (req, res) => {
+    try {
+        const shiftId = req.query.shiftId;
+        const attendees = await getShiftAttendees(shiftId);
+        res.json(attendees);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch attendees' });
+    }
+});
 
 // Add attendee
-async function addShiftAttendee(shiftId, username) {
-    // Prevent duplicates
-    const { data: exists } = await supabase
-        .from("shift_attendees")
-        .select("*")
-        .eq("shift_id", shiftId)
-        .eq("username", username)
-        .single();
-    
-    if (!exists) {
-        const { error } = await supabase
-            .from("shift_attendees")
-            .insert([{ shift_id: shiftId, username }]);
-        if (error) throw error;
+router.post('/add-attendee', async (req, res) => {
+    try {
+        const { shiftId, username } = req.body;
+        await addShiftAttendee(shiftId, username);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to add attendee' });
     }
-    return true;
-}
+});
 
 // Remove attendee
-async function removeShiftAttendee(shiftId, username) {
-    const { error } = await supabase
-        .from("shift_attendees")
-        .delete()
-        .eq("shift_id", shiftId)
-        .eq("username", username);
-    if (error) throw error;
-    return true;
-}
+router.post('/remove-attendee', async (req, res) => {
+    try {
+        const { shiftId, username } = req.body;
+        await removeShiftAttendee(shiftId, username);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to remove attendee' });
+    }
+});
 
-module.exports = {
-    getAllShifts,
-    getShiftAttendees,
-    addShiftAttendee,
-    removeShiftAttendee
-};
+module.exports = router;
