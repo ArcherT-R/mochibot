@@ -4,10 +4,14 @@ const { startBot } = require('./bot/client');
 
 async function main() {
   try {
+    // ----------------------------
     // Start Discord bot client
+    // ----------------------------
     const client = await startBot();
 
+    // ----------------------------
     // Initialize Express
+    // ----------------------------
     const app = express();
 
     // ----------------------------
@@ -25,22 +29,34 @@ async function main() {
     // ----------------------------
     // Routes
     // ----------------------------
-    const dashboardRoute = require('./web/routes/dashboard')(); // returns router
-    const dashboardSearchRoute = require('./web/routes/dashboardSearch'); // router
-    const sessionsRoute = require('./endpoints/sessions')(client); // returns router
-    const activityRoute = require('./endpoints/activity'); // router
-    const sotwRoleRoute = require('./endpoints/sotw-role')(client); // returns router
-    const shiftsRoute = require('./endpoints/shifts'); // router (merged shiftDB + router)
 
-    // Mount routes
-    app.use('/dashboard/search', dashboardSearchRoute);
+    // Dashboard route (exports a function returning router)
+    const dashboardRoute = require('./web/routes/dashboard')();
     app.use('/dashboard', dashboardRoute);
+
+    // Dashboard search (exports router directly)
+    const dashboardSearchRoute = require('./web/routes/dashboardSearch');
+    app.use('/dashboard/search', dashboardSearchRoute);
+
+    // Sessions route (exports a function returning router)
+    const sessionsRoute = require('./endpoints/sessions')(client);
     app.use('/sessions', sessionsRoute);
+
+    // Activity route (exports router directly)
+    const activityRoute = require('./endpoints/activity');
     app.use('/activity', activityRoute);
+
+    // SOTW role route (exports a function returning router)
+    const sotwRoleRoute = require('./endpoints/sotw-role')(client);
     app.use('/sotw-role', sotwRoleRoute);
+
+    // Shifts route (exports router directly)
+    const shiftsRoute = require('./endpoints/shifts');
     app.use('/shifts', shiftsRoute);
 
+    // ----------------------------
     // Root redirect
+    // ----------------------------
     app.get('/', (req, res) => res.redirect('/dashboard'));
 
     // ----------------------------
@@ -57,4 +73,5 @@ async function main() {
   }
 }
 
+// Run main
 main();
