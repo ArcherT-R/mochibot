@@ -337,7 +337,7 @@
     const shiftsList = document.getElementById('shiftsList');
     const topPlayersGrid = document.getElementById('topPlayersGrid');
 
-    let topPlayersData = [];
+    let topPlayersData = JSON.parse('<%- JSON.stringify(topPlayers || []) %>');
 
     // Tab Navigation
     const tabButtons = document.querySelectorAll('.tab-button');
