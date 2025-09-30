@@ -249,30 +249,39 @@ async function renderAttendees(shiftId){
     container.appendChild(box);
   });
 
-  addBox.onclick=async()=>{
-    const res=await fetch('/shifts/players'); 
-    const players=await res.json();
-    const select=document.createElement('select'); 
-    select.style.width='100%';
-    select.innerHTML='<option value="">Select player...</option>'+
-      players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
-    
-    select.onchange=async()=>{
-      if(select.value){
-        await fetch('/shifts/add-attendee',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({shiftId,username:select.value})
-        });
-        renderAttendees(shiftId);
-      }
-    };
+addBox.onclick = async (e) => {
+  e.stopPropagation(); // prevent click from closing immediately
+  const res = await fetch('/shifts/players'); 
+  const players = await res.json();
+  
+  // create select
+  const select = document.createElement('select'); 
+  select.style.width = '100%';
+  select.innerHTML = '<option value="">Select player...</option>' +
+    players.map(p => `<option value="${p.username}">${p.username}</option>`).join('');
 
-    addBox.innerHTML=''; 
-    addBox.appendChild(select);
-    select.focus();
+  // replace addBox content
+  addBox.innerHTML = '';
+  addBox.appendChild(select);
+  select.focus();
+
+  // handle selection
+  select.onchange = async () => {
+    if (select.value) {
+      await fetch('/shifts/add-attendee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftId, username: select.value })
+      });
+      renderAttendees(shiftId); // re-render attendees
+    }
   };
-}
+};
+
+// also prevent suggestions box from closing if clicking inside select
+document.addEventListener('click', e => {
+  if(!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML='';
+});
 
 async function loadShifts(){
   shiftsList.innerHTML=`<div class="no-data">Fetching data from Discord...</div>`;
