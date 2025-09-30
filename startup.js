@@ -4,23 +4,35 @@ const { startBot } = require('./bot/client');
 
 async function main() {
   try {
+    // Start Discord bot client
     const client = await startBot();
+
+    // Initialize Express
     const app = express();
 
+    // ----------------------------
+    // Views
+    // ----------------------------
     app.set('views', path.join(__dirname, 'web/views'));
     app.set('view engine', 'ejs');
 
+    // ----------------------------
+    // Static files
+    // ----------------------------
     app.use(express.static(path.join(__dirname, 'web/public')));
-    app.use(express.json());
+    app.use(express.json()); // needed for POST endpoints
 
+    // ----------------------------
     // Routes
-    const dashboardRoute = require('./web/routes/dashboard')();
-    const dashboardSearchRoute = require('./web/routes/dashboardSearch');
-    const sessionsRoute = require('./endpoints/sessions')(client);
-    const activityRoute = require('./endpoints/activity');
-    const sotwRoleRoute = require('./endpoints/sotw-role')(client);
-    const shiftsRoute = require('./endpoints/shifts'); // ✅ corrected
+    // ----------------------------
+    const dashboardRoute = require('./web/routes/dashboard')(); // returns router
+    const dashboardSearchRoute = require('./web/routes/dashboardSearch'); // router
+    const sessionsRoute = require('./endpoints/sessions')(client); // returns router
+    const activityRoute = require('./endpoints/activity'); // router
+    const sotwRoleRoute = require('./endpoints/sotw-role')(client); // returns router
+    const shiftsRoute = require('./endpoints/shifts'); // router (merged shiftDB + router)
 
+    // Mount routes
     app.use('/dashboard/search', dashboardSearchRoute);
     app.use('/dashboard', dashboardRoute);
     app.use('/sessions', sessionsRoute);
@@ -28,12 +40,17 @@ async function main() {
     app.use('/sotw-role', sotwRoleRoute);
     app.use('/shifts', shiftsRoute);
 
+    // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
 
+    // ----------------------------
+    // Start server
+    // ----------------------------
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🌐 Dashboard running on port ${PORT}`);
     });
+
   } catch (err) {
     console.error('Startup error:', err);
     process.exit(1);
