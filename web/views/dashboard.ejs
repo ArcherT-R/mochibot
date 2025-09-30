@@ -6,82 +6,60 @@
 <title>Mochi Bar Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
-  header {
-    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
-    background-size: 300% 100%;
-    animation: gradientFlow 6s ease infinite;
-    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
-    box-shadow:0 2px 5px rgba(0,0,0,0.15);
-  }
-  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
-  .nav-tabs {
-    background:white; display:flex; justify-content:space-between; align-items:center;
-    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
-  }
-  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
-  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
-  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
-  .tab-button.active { background:#42b4ff; color:white; }
-  .tab-icon { font-size:20px; }
-  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
-  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
-  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
-  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
-  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
-  .search-wrapper input:focus { border-color:#42b4ff; }
-  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
-  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
-  .suggestion-item:last-child { border-bottom:none; }
-  .suggestion-item:hover { background:#f0f8ff; }
-  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
-
-  /* Top Players */
-  .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
-  .player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
-  .player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
-  .player-card img { width:80px; height:80px; border-radius:50%; margin-bottom:10px; object-fit:cover; background:#e0e6f0; }
-  .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
-  .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
-
-  /* Shifts */
-  .shifts-list { display:flex; flex-direction:column; gap:16px; }
-  .shift-item { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
-  .shift-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .shift-icon { font-size:24px; }
-  .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
-  .shift-roles { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
-  .shift-role { display:flex; align-items:center; gap:8px; font-size:15px; }
-  .role-label { font-weight:600; color:#555; min-width:80px; }
-  .role-name { color:#333; }
-
-  /* Attendees */
-  .attendees-container { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-  .attendee-box {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default;
-  }
-  .attendee-box span { font-weight:500; color:#333; }
-  .attendee-box button { background:red; border:none; border-radius:6px; color:white; font-weight:700; padding:2px 6px; cursor:pointer; }
-  .add-attendee-box {
-    display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px;
-    background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s;
-  }
-  .add-attendee-box:hover { background:#d0e4ff; }
-
-  .tab-content { display:none; }
-  .tab-content.active { display:block; }
-
-  @media(max-width:600px){
-    header { font-size:36px; padding:20px; }
-    h2 { text-align:center; }
-    .top-players-grid { grid-template-columns:1fr; }
-    .nav-tabs { flex-direction:column; gap:10px; }
-    .nav-buttons { width:100%; justify-content:center; }
-    .search-wrapper { width:100%; max-width:100%; }
-    .tab-button { padding:10px 16px; font-size:14px; }
-    .shift-header { flex-direction:column; align-items:flex-start; }
-  }
+/* --- Styles same as your previous snippet --- */
+body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
+header { background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6); background-size: 300% 100%; animation: gradientFlow 6s ease infinite; color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center; box-shadow:0 2px 5px rgba(0,0,0,0.15); }
+@keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+.nav-tabs { background:white; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap; }
+.nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+.tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+.tab-button:hover { background:#f0f8ff; color:#42b4ff; }
+.tab-button.active { background:#42b4ff; color:white; }
+.tab-icon { font-size:20px; }
+.container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
+h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
+.content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
+.search-wrapper { position:relative; max-width:300px; flex-grow:1; }
+.search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
+.search-wrapper input:focus { border-color:#42b4ff; }
+.suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+.suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+.suggestion-item:last-child { border-bottom:none; }
+.suggestion-item:hover { background:#f0f8ff; }
+.suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+.top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
+.player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
+.player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
+.player-card img { width:80px; height:80px; border-radius:50%; margin-bottom:10px; object-fit:cover; background:#e0e6f0; }
+.player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
+.player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
+.shifts-list { display:flex; flex-direction:column; gap:16px; }
+.shift-item { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+.shift-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.shift-icon { font-size:24px; }
+.shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
+.shift-roles { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+.shift-role { display:flex; align-items:center; gap:8px; font-size:15px; }
+.role-label { font-weight:600; color:#555; min-width:80px; }
+.role-name { color:#333; }
+.attendees-container { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+.attendee-box { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default; }
+.attendee-box span { font-weight:500; color:#333; }
+.attendee-box button { background:red; border:none; border-radius:6px; color:white; font-weight:700; padding:2px 6px; cursor:pointer; }
+.add-attendee-box { display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px; background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s; }
+.add-attendee-box:hover { background:#d0e4ff; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+@media(max-width:600px){
+header { font-size:36px; padding:20px; }
+h2 { text-align:center; }
+.top-players-grid { grid-template-columns:1fr; }
+.nav-tabs { flex-direction:column; gap:10px; }
+.nav-buttons { width:100%; justify-content:center; }
+.search-wrapper { width:100%; max-width:100%; }
+.tab-button { padding:10px 16px; font-size:14px; }
+.shift-header { flex-direction:column; align-items:flex-start; }
+}
 </style>
 </head>
 <body>
@@ -102,7 +80,6 @@
 </nav>
 
 <div class="container">
-  <!-- HOME TAB -->
   <div id="home" class="tab-content active">
     <section class="content-section">
       <h2>Top Active This Week</h2>
@@ -110,7 +87,6 @@
     </section>
   </div>
 
-  <!-- PLAYER LIST TAB -->
   <div id="playerlist" class="tab-content">
     <section class="content-section">
       <h2>Player List</h2>
@@ -118,7 +94,6 @@
     </section>
   </div>
 
-  <!-- SHIFTS TAB -->
   <div id="shifts" class="tab-content">
     <section class="content-section">
       <h2>Upcoming Shifts & Attendees</h2>
@@ -128,7 +103,6 @@
     </section>
   </div>
 
-  <!-- MY ACCOUNT TAB -->
   <div id="myaccount" class="tab-content">
     <section class="content-section">
       <h2>My Account</h2>
@@ -136,7 +110,6 @@
     </section>
   </div>
 
-  <!-- SETTINGS TAB -->
   <div id="settings" class="tab-content">
     <section class="content-section">
       <h2>Settings</h2>
@@ -151,9 +124,10 @@ const suggestionsBox = document.getElementById('suggestions');
 const shiftsList = document.getElementById('shiftsList');
 const topPlayersGrid = document.getElementById('topPlayersGrid');
 
-let topPlayersData = <%- JSON.stringify(topPlayers || []) %>;
+// --- Fallback if topPlayers undefined ---
+let topPlayersData = typeof topPlayers !== 'undefined' ? topPlayers : [];
 
-// ----------- Tabs -----------
+// --- Tabs ---
 document.querySelectorAll('.tab-button').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
@@ -163,7 +137,7 @@ document.querySelectorAll('.tab-button').forEach(btn=>{
   });
 });
 
-// ----------- Search -----------
+// --- Search ---
 input.addEventListener('input', async ()=>{
   const q=input.value.trim();
   if(!q){ suggestionsBox.innerHTML=''; return; }
@@ -182,7 +156,7 @@ document.addEventListener('click', e=>{
   if(!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML='';
 });
 
-// ----------- Top Players -----------
+// --- Top Players ---
 function calculateLiveMinutes(player){
   if(player.ongoing_session_start_time){
     const elapsed=Date.now()-new Date(player.ongoing_session_start_time).getTime();
@@ -211,7 +185,7 @@ function renderTopPlayers(){
 renderTopPlayers();
 setInterval(renderTopPlayers,5000);
 
-// ----------- Shifts -----------
+// --- Shifts ---
 function formatShiftTime(ts){
   const d=new Date(ts*1000), now=new Date(), tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1);
   let dateStr=d.toDateString()===now.toDateString()?'Today':d.toDateString()===tomorrow.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
@@ -220,100 +194,82 @@ function formatShiftTime(ts){
 }
 
 async function fetchAttendees(shiftId){
-  const res=await fetch(`/shifts/attendees?shiftId=${shiftId}`);
-  return res.ok?await res.json():[];
+  try{
+    const res=await fetch(`/shifts/attendees?shiftId=${shiftId}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  }catch(err){ console.error(`Failed to fetch attendees for ${shiftId}:`, err); return []; }
 }
 
 async function renderAttendees(shiftId){
   const container=document.getElementById(`attendees-${shiftId}`);
   const addBox=document.getElementById(`add-attendee-${shiftId}`);
+  if(!container || !addBox) return;
   container.innerHTML='';
+
   const attendees=await fetchAttendees(shiftId);
-  
   attendees.forEach(a=>{
     const box=document.createElement('div'); 
     box.className='attendee-box';
     box.innerHTML=`<span>${a.username}</span><button data-username="${a.username}">×</button>`;
     box.querySelector('button').addEventListener('click',async()=>{
-      await fetch('/shifts/remove-attendee',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({shiftId,username:a.username})
-      });
-      renderAttendees(shiftId);
+      try{
+        await fetch('/shifts/remove-attendee',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({shiftId,username:a.username})
+        });
+        renderAttendees(shiftId);
+      }catch(err){ console.error('Failed to remove attendee:', err); }
     });
     container.appendChild(box);
   });
 
   addBox.onclick = async (e)=>{
     e.stopPropagation();
-    if(addBox.querySelector('select')) return; // Prevent multiple clicks
-    
-    const res=await fetch('/shifts/players');
-    const players=await res.json();
-    const select=document.createElement('select');
-    select.style.width='100%';
-    select.style.padding='8px';
-    select.style.fontSize='14px';
-    select.style.border='1px solid #42b4ff';
-    select.style.borderRadius='6px';
-    select.innerHTML='<option value="">Select player...</option>'+players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
-    
-    addBox.style.background='#fff';
-    addBox.style.border='2px solid #42b4ff';
-    addBox.innerHTML='';
-    addBox.appendChild(select);
-    select.focus();
-    
-    select.onchange=async ()=>{
-      if(select.value){
-        await fetch('/shifts/add-attendee',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({shiftId,username:select.value})
-        });
-        await renderAttendees(shiftId);
-      } else {
-        addBox.style.background='#e0e6f0';
-        addBox.style.border='1px dashed #42b4ff';
-        addBox.innerHTML='+ Add attendee';
-      }
-    };
-    
-    select.onblur=()=>{
-      setTimeout(()=>{
-        if(!select.value){
-          addBox.style.background='#e0e6f0';
-          addBox.style.border='1px dashed #42b4ff';
-          addBox.innerHTML='+ Add attendee';
+    if(addBox.querySelector('select')) return;
+    try{
+      const res=await fetch('/shifts/players');
+      const players=await res.json();
+      const select=document.createElement('select');
+      select.style.width='100%'; select.style.padding='8px'; select.style.fontSize='14px';
+      select.style.border='1px solid #42b4ff'; select.style.borderRadius='6px';
+      select.innerHTML='<option value="">Select player...</option>'+players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
+      addBox.style.background='#fff'; addBox.style.border='2px solid #42b4ff'; addBox.innerHTML=''; addBox.appendChild(select); select.focus();
+      select.onchange=async ()=>{
+        if(select.value){
+          await fetch('/shifts/add-attendee',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({shiftId,username:select.value})
+          });
+          await renderAttendees(shiftId);
+        } else {
+          addBox.style.background='#e0e6f0'; addBox.style.border='1px dashed #42b4ff'; addBox.innerHTML='+ Add attendee';
         }
-      },200);
-    };
+      };
+      select.onblur=()=>{ setTimeout(()=>{ if(!select.value){ addBox.style.background='#e0e6f0'; addBox.style.border='1px dashed #42b4ff'; addBox.innerHTML='+ Add attendee'; } },200); };
+    }catch(err){ console.error('Failed to add attendee:', err); }
   };
 }
 
 async function loadShifts(){
   shiftsList.innerHTML=`<div class="no-data">Fetching data from Discord...</div>`;
   try{
-    const res = await fetch('/sessions');
-    if(!res.ok) throw new Error(`HTTP ${res.status}: Failed fetching sessions`);
-    const sessions = await res.json();
-    if(!Array.isArray(sessions)) throw new Error('Sessions is not an array');
+    const res=await fetch('/sessions');
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const sessions=await res.json();
+    if(!Array.isArray(sessions)) throw new Error('Sessions not array');
 
     const now = Math.floor(Date.now()/1000);
     const upcoming = sessions.filter(s=>s.time && s.time>now).sort((a,b)=>a.time-b.time);
-
-    if(!upcoming.length){
-      shiftsList.innerHTML='<div class="no-data">No upcoming shifts are currently scheduled.</div>';
-      return;
-    }
+    if(!upcoming.length){ shiftsList.innerHTML='<div class="no-data">No upcoming shifts.</div>'; return; }
 
     shiftsList.innerHTML='';
     for(const s of upcoming){
-      if(!s.id) continue; // skip invalid entries
-      const {date,time} = formatShiftTime(s.time);
-      const div = document.createElement('div');
-      div.className='shift-item';
+      if(!s.id) continue;
+      const {date,time}=formatShiftTime(s.time);
+      const div=document.createElement('div'); div.className='shift-item';
 
       let rolesHTML=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host||'TBD'}</span></div>`;
       if(s.cohost) rolesHTML+=`<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`;
@@ -329,12 +285,7 @@ async function loadShifts(){
         <div class="add-attendee-box" id="add-attendee-${s.id}">+ Add attendee</div>
       `;
       shiftsList.appendChild(div);
-
-      try{
-        await renderAttendees(s.id);
-      } catch(err){
-        console.error(`Failed to render attendees for shift ${s.id}:`, err);
-      }
+      await renderAttendees(s.id);
     }
   }catch(err){
     console.error('Failed to load shifts:', err);
@@ -342,6 +293,7 @@ async function loadShifts(){
   }
 }
 
+// --- Initialize ---
 loadShifts();
 </script>
 </body>
