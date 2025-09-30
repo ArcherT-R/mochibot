@@ -153,70 +153,72 @@ const topPlayersGrid = document.getElementById('topPlayersGrid');
 
 let topPlayersData = <%- JSON.stringify(topPlayers || []) %>;
 
-// ---------------- Tab Navigation ----------------
-const tabButtons = document.querySelectorAll('.tab-button');
-const tabContents = document.querySelectorAll('.tab-content');
-tabButtons.forEach(button => {
-  button.addEventListener('click', () => {
-    const targetTab = button.dataset.tab;
-    tabButtons.forEach(btn => btn.classList.remove('active'));
-    button.classList.add('active');
-    tabContents.forEach(content => content.classList.remove('active'));
-    document.getElementById(targetTab).classList.add('active');
+// ----------- Tabs -----------
+document.querySelectorAll('.tab-button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
   });
 });
 
-// ---------------- Search ----------------
-input.addEventListener('input', async () => {
-  const q = input.value.trim();
-  if (!q) { suggestionsBox.innerHTML=''; return; }
-  try {
-    const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
-    const players = await res.json();
-    suggestionsBox.innerHTML = players.map(p=>`
+// ----------- Search -----------
+input.addEventListener('input', async ()=>{
+  const q=input.value.trim();
+  if(!q){ suggestionsBox.innerHTML=''; return; }
+  try{
+    const res=await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+    const players=await res.json();
+    suggestionsBox.innerHTML=players.map(p=>`
       <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
         <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png" 
              onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
         <span>${p.username}</span>
       </div>`).join('');
-  } catch(err){ suggestionsBox.innerHTML=''; console.error(err);}
+  }catch(err){ suggestionsBox.innerHTML=''; console.error(err);}
 });
-document.addEventListener('click', e => {
+document.addEventListener('click', e=>{
   if(!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML='';
 });
 
-// ---------------- Top Players ----------------
+// ----------- Top Players -----------
 function calculateLiveMinutes(player){
-  const startTime = player.ongoing_session_start_time;
-  if(startTime){
-    const elapsedMs = Date.now()-new Date(startTime).getTime();
-    if(elapsedMs>0) return elapsedMs/1000/60;
+  if(player.ongoing_session_start_time){
+    const elapsed=Date.now()-new Date(player.ongoing_session_start_time).getTime();
+    return elapsed>0?elapsed/1000/60:0;
   }
   return 0;
 }
 function getTotalMinutes(player){ return (player.weekly_minutes||0)+calculateLiveMinutes(player); }
-function formatMinutes(totalMinutes){
-  if(totalMinutes<1) return '0 min';
-  const totalInt=Math.round(totalMinutes);
-  const h=Math.floor(totalInt/60), m=totalInt%60;
+function formatMinutes(total){
+  if(total<1) return '0 min';
+  const mins=Math.round(total), h=Math.floor(mins/60), m=mins%60;
   return h>0?`${h} hr ${m} min`:`${m} min`;
 }
 function renderTopPlayers(){
-  if(topPlayersData.length===0){ topPlayersGrid.innerHTML=`<div class="no-data">No active players data.</div>`; return;}
+  if(!topPlayersData.length){ topPlayersGrid.innerHTML='<div class="no-data">No active players data.</div>'; return; }
   const livePlayers=topPlayersData.map(p=>({...p, live_total_minutes:getTotalMinutes(p), is_live:calculateLiveMinutes(p)>0}))
                         .sort((a,b)=>b.live_total_minutes-a.live_total_minutes).slice(0,3);
-  topPlayersGrid.innerHTML = livePlayers.map(p=>`
+  topPlayersGrid.innerHTML=livePlayers.map(p=>`
     <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-      <img src="${p.avatar_url||'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" alt="Avatar" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+      <img src="${p.avatar_url||'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
       <div>${p.username}</div>
       ${p.is_live?'<span class="live-status">LIVE</span>':''}
       <div class="time">${formatMinutes(p.live_total_minutes)}</div>
     </div>`).join('');
 }
-renderTopPlayers(); setInterval(renderTopPlayers,5000);
+renderTopPlayers();
+setInterval(renderTopPlayers,5000);
 
-<!-- Inside <script> -->
-// ---------------- Shifts & Attendees ----------------
+// ----------- Shifts -----------
+function formatShiftTime(ts){
+  const d=new Date(ts*1000), now=new Date(), tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  let dateStr=d.toDateString()===now.toDateString()?'Today':d.toDateString()===tomorrow.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  const timeStr=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
+  return {date:dateStr,time:timeStr};
+}
+
 async function fetchAttendees(shiftId){
   const res=await fetch(`/shifts/attendees?shiftId=${shiftId}`);
   return res.ok?await res.json():[];
@@ -224,7 +226,7 @@ async function fetchAttendees(shiftId){
 
 async function renderAttendees(shiftId){
   const container=document.getElementById(`attendees-${shiftId}`);
-  if(!container) return;
+  const addBox=document.getElementById(`add-attendee-${shiftId}`);
   container.innerHTML='';
   const attendees=await fetchAttendees(shiftId);
   
@@ -242,87 +244,62 @@ async function renderAttendees(shiftId){
     });
     container.appendChild(box);
   });
-}
 
-// ---------------- Add Attendee ----------------
-document.addEventListener('click', async (e) => {
-  // Close any open selects when clicking outside
-  const openSelects = document.querySelectorAll('.add-attendee-box select');
-  openSelects.forEach(s => {
-    if(!s.contains(e.target)) s.parentElement.innerHTML='+ Add attendee';
-  });
-});
-
-async function setupAddAttendeeBoxes(){
-  const boxes = document.querySelectorAll('.add-attendee-box');
-  boxes.forEach(box=>{
-    const shiftId = box.id.replace('add-attendee-','');
-    box.onclick = async (e)=>{
-      e.stopPropagation();
-      // fetch players
-      const res = await fetch('/shifts/players'); 
-      const players = await res.json();
-      if(players.length===0) return;
-
-      // create select
-      const select = document.createElement('select');
-      select.style.width='100%';
-      select.innerHTML='<option value="">Select player...</option>'+
-        players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
-
-      box.innerHTML=''; box.appendChild(select); select.focus();
-
-      select.onchange = async ()=>{
-        if(!select.value) return;
+  addBox.onclick = async (e)=>{
+    e.stopPropagation();
+    const res=await fetch('/shifts/players');
+    const players=await res.json();
+    const select=document.createElement('select');
+    select.style.width='100%';
+    select.innerHTML='<option value="">Select player...</option>'+players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
+    addBox.innerHTML='';
+    addBox.appendChild(select);
+    select.focus();
+    select.onchange=async ()=>{
+      if(select.value){
         await fetch('/shifts/add-attendee',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({shiftId, username:select.value})
+          body:JSON.stringify({shiftId,username:select.value})
         });
         renderAttendees(shiftId);
-        box.innerHTML='+ Add attendee';
-      };
+      }
     };
-  });
+  };
 }
 
-// ---------------- Load Shifts ----------------
 async function loadShifts(){
   shiftsList.innerHTML=`<div class="no-data">Fetching data from Discord...</div>`;
   try{
     const res=await fetch('/sessions');
+    if(!res.ok) throw new Error('Failed fetching sessions');
     const sessions=await res.json();
     const now=Math.floor(Date.now()/1000);
     const upcoming=sessions.filter(s=>s.time>now).sort((a,b)=>a.time-b.time);
-    if(upcoming.length===0){ shiftsList.innerHTML=`<div class="no-data">No upcoming shifts.</div>`; return; }
+    if(!upcoming.length){ shiftsList.innerHTML='<div class="no-data">No upcoming shifts are currently scheduled.</div>'; return; }
 
     shiftsList.innerHTML='';
-    for(const session of upcoming){
-      const {date,time}=formatShiftTime(session.time);
+    for(const s of upcoming){
+      const {date,time}=formatShiftTime(s.time);
       const div=document.createElement('div'); div.className='shift-item';
-      
-      let rolesHTML=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${session.host}</span></div>`;
-      if(session.cohost) rolesHTML+=`<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${session.cohost}</span></div>`;
-      if(session.overseer) rolesHTML+=`<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${session.overseer}</span></div>`;
-      
+      let rolesHTML=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host}</span></div>`;
+      if(s.cohost) rolesHTML+=`<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`;
+      if(s.overseer) rolesHTML+=`<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${s.overseer}</span></div>`;
       div.innerHTML=`
         <div class="shift-header">
           <span class="shift-icon">📅</span>
           <span class="shift-datetime">${date} at ${time}</span>
         </div>
         <div class="shift-roles">${rolesHTML}</div>
-        <div class="attendees-container" id="attendees-${session.id}"></div>
-        <div class="add-attendee-box" id="add-attendee-${session.id}">+ Add attendee</div>
+        <div class="attendees-container" id="attendees-${s.id}"></div>
+        <div class="add-attendee-box" id="add-attendee-${s.id}">+ Add attendee</div>
       `;
       shiftsList.appendChild(div);
-      renderAttendees(session.id);
+      renderAttendees(s.id);
     }
-
-    // After rendering all shifts, attach add-attendee handlers
-    setupAddAttendeeBoxes();
-
- }catch(err){ console.error(err); shiftsList.innerHTML=`<div class="no-data">Failed to load shifts.</div>`; }
+  }catch(err){ console.error(err); shiftsList.innerHTML='<div class="no-data">Failed to load shifts.</div>'; }
 }
+
 loadShifts();
 </script>
 </body>
