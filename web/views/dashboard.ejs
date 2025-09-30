@@ -247,14 +247,24 @@ async function renderAttendees(shiftId){
 
   addBox.onclick = async (e)=>{
     e.stopPropagation();
+    if(addBox.querySelector('select')) return; // Prevent multiple clicks
+    
     const res=await fetch('/shifts/players');
     const players=await res.json();
     const select=document.createElement('select');
     select.style.width='100%';
+    select.style.padding='8px';
+    select.style.fontSize='14px';
+    select.style.border='1px solid #42b4ff';
+    select.style.borderRadius='6px';
     select.innerHTML='<option value="">Select player...</option>'+players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
+    
+    addBox.style.background='#fff';
+    addBox.style.border='2px solid #42b4ff';
     addBox.innerHTML='';
     addBox.appendChild(select);
     select.focus();
+    
     select.onchange=async ()=>{
       if(select.value){
         await fetch('/shifts/add-attendee',{
@@ -262,8 +272,22 @@ async function renderAttendees(shiftId){
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({shiftId,username:select.value})
         });
-        renderAttendees(shiftId);
+        await renderAttendees(shiftId);
+      } else {
+        addBox.style.background='#e0e6f0';
+        addBox.style.border='1px dashed #42b4ff';
+        addBox.innerHTML='+ Add attendee';
       }
+    };
+    
+    select.onblur=()=>{
+      setTimeout(()=>{
+        if(!select.value){
+          addBox.style.background='#e0e6f0';
+          addBox.style.border='1px dashed #42b4ff';
+          addBox.innerHTML='+ Add attendee';
+        }
+      },200);
     };
   };
 }
