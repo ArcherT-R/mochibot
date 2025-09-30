@@ -1,74 +1,61 @@
-// endpoints/shifts.js
 const express = require('express');
 const router = express.Router();
-const db = require('./database');
+const { getAllPlayers } = require('./database'); // your database.js
 
-// Get list of all players for attendee picker
+// You should have a table called `shift_attendees` with fields: id (serial), shift_id (int), username (text)
+const { createClient } = require("@supabase/supabase-js");
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+// Get attendees for a shift
+router.get('/attendees', async (req, res) => {
+  const { shiftId } = req.query;
+  if (!shiftId) return res.status(400).json({ error: 'Missing shiftId' });
+
+  const { data, error } = await supabase
+    .from('shift_attendees')
+    .select('*')
+    .eq('shift_id', shiftId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Get list of all players (for Add New dropdown)
 router.get('/players', async (req, res) => {
   try {
-    const players = await db.getAllPlayers();
+    const players = await getAllPlayers();
     res.json(players);
   } catch (err) {
-    console.error('Error getting players:', err);
-    res.status(500).json({ error: 'Failed to fetch players' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Add attendee to shift
+// Add attendee
 router.post('/add-attendee', async (req, res) => {
   const { shiftId, username } = req.body;
-  if (!shiftId || !username) return res.status(400).json({ error: 'Missing data' });
+  if (!shiftId || !username) return res.status(400).json({ error: 'Missing shiftId or username' });
 
-  try {
-    const { data, error } = await db.supabase
-      .from('shift_attendees')
-      .insert([{ shift_id: shiftId, username }])
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('shift_attendees')
+    .insert([{ shift_id: shiftId, username }]);
 
-    if (error) throw error;
-    res.json(data);
-  } catch (err) {
-    console.error('Error adding attendee:', err);
-    res.status(500).json({ error: 'Failed to add attendee' });
-  }
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true, attendee: data[0] });
 });
 
 // Remove attendee
 router.post('/remove-attendee', async (req, res) => {
   const { shiftId, username } = req.body;
-  if (!shiftId || !username) return res.status(400).json({ error: 'Missing data' });
+  if (!shiftId || !username) return res.status(400).json({ error: 'Missing shiftId or username' });
 
-  try {
-    const { error } = await db.supabase
-      .from('shift_attendees')
-      .delete()
-      .eq('shift_id', shiftId)
-      .eq('username', username);
+  const { error } = await supabase
+    .from('shift_attendees')
+    .delete()
+    .eq('shift_id', shiftId)
+    .eq('username', username);
 
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Error removing attendee:', err);
-    res.status(500).json({ error: 'Failed to remove attendee' });
-  }
-});
-
-// Get attendees for a shift
-router.get('/:shiftId/attendees', async (req, res) => {
-  const { shiftId } = req.params;
-  try {
-    const { data, error } = await db.supabase
-      .from('shift_attendees')
-      .select('username')
-      .eq('shift_id', shiftId);
-
-    if (error) throw error;
-    res.json(data);
-  } catch (err) {
-    console.error('Error getting attendees:', err);
-    res.status(500).json({ error: 'Failed to fetch attendees' });
-  }
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ success: true });
 });
 
 module.exports = router;
