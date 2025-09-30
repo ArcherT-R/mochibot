@@ -215,14 +215,8 @@ function renderTopPlayers(){
 }
 renderTopPlayers(); setInterval(renderTopPlayers,5000);
 
+<!-- Inside <script> -->
 // ---------------- Shifts & Attendees ----------------
-function formatShiftTime(ts){
-  const d=new Date(ts*1000), now=new Date(), tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1);
-  let dateStr=d.toDateString()===now.toDateString()?'Today':d.toDateString()===tomorrow.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
-  const timeStr=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
-  return {date:dateStr,time:timeStr};
-}
-
 async function fetchAttendees(shiftId){
   const res=await fetch(`/shifts/attendees?shiftId=${shiftId}`);
   return res.ok?await res.json():[];
@@ -230,7 +224,7 @@ async function fetchAttendees(shiftId){
 
 async function renderAttendees(shiftId){
   const container=document.getElementById(`attendees-${shiftId}`);
-  const addBox=document.getElementById(`add-attendee-${shiftId}`);
+  if(!container) return;
   container.innerHTML='';
   const attendees=await fetchAttendees(shiftId);
   
@@ -248,41 +242,51 @@ async function renderAttendees(shiftId){
     });
     container.appendChild(box);
   });
+}
 
-addBox.onclick = async (e) => {
-  e.stopPropagation(); // prevent click from closing immediately
-  const res = await fetch('/shifts/players'); 
-  const players = await res.json();
-  
-  // create select
-  const select = document.createElement('select'); 
-  select.style.width = '100%';
-  select.innerHTML = '<option value="">Select player...</option>' +
-    players.map(p => `<option value="${p.username}">${p.username}</option>`).join('');
-
-  // replace addBox content
-  addBox.innerHTML = '';
-  addBox.appendChild(select);
-  select.focus();
-
-  // handle selection
-  select.onchange = async () => {
-    if (select.value) {
-      await fetch('/shifts/add-attendee', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shiftId, username: select.value })
-      });
-      renderAttendees(shiftId); // re-render attendees
-    }
-  };
-};
-
-// also prevent suggestions box from closing if clicking inside select
-document.addEventListener('click', e => {
-  if(!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML='';
+// ---------------- Add Attendee ----------------
+document.addEventListener('click', async (e) => {
+  // Close any open selects when clicking outside
+  const openSelects = document.querySelectorAll('.add-attendee-box select');
+  openSelects.forEach(s => {
+    if(!s.contains(e.target)) s.parentElement.innerHTML='+ Add attendee';
+  });
 });
 
+async function setupAddAttendeeBoxes(){
+  const boxes = document.querySelectorAll('.add-attendee-box');
+  boxes.forEach(box=>{
+    const shiftId = box.id.replace('add-attendee-','');
+    box.onclick = async (e)=>{
+      e.stopPropagation();
+      // fetch players
+      const res = await fetch('/shifts/players'); 
+      const players = await res.json();
+      if(players.length===0) return;
+
+      // create select
+      const select = document.createElement('select');
+      select.style.width='100%';
+      select.innerHTML='<option value="">Select player...</option>'+
+        players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
+
+      box.innerHTML=''; box.appendChild(select); select.focus();
+
+      select.onchange = async ()=>{
+        if(!select.value) return;
+        await fetch('/shifts/add-attendee',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({shiftId, username:select.value})
+        });
+        renderAttendees(shiftId);
+        box.innerHTML='+ Add attendee';
+      };
+    };
+  });
+}
+
+// ---------------- Load Shifts ----------------
 async function loadShifts(){
   shiftsList.innerHTML=`<div class="no-data">Fetching data from Discord...</div>`;
   try{
@@ -290,7 +294,7 @@ async function loadShifts(){
     const sessions=await res.json();
     const now=Math.floor(Date.now()/1000);
     const upcoming=sessions.filter(s=>s.time>now).sort((a,b)=>a.time-b.time);
-    if(upcoming.length===0){ shiftsList.innerHTML=`<div class="no-data">No upcoming shifts are currently scheduled.</div>`; return; }
+    if(upcoming.length===0){ shiftsList.innerHTML=`<div class="no-data">No upcoming shifts.</div>`; return; }
 
     shiftsList.innerHTML='';
     for(const session of upcoming){
@@ -313,7 +317,11 @@ async function loadShifts(){
       shiftsList.appendChild(div);
       renderAttendees(session.id);
     }
-  }catch(err){ console.error(err); shiftsList.innerHTML=`<div class="no-data">Failed to load shifts.</div>`; }
+
+    // After rendering all shifts, attach add-attendee handlers
+    setupAddAttendeeBoxes();
+
+ }catch(err){ console.error(err); shiftsList.innerHTML=`<div class="no-data">Failed to load shifts.</div>`; }
 }
 loadShifts();
 </script>
