@@ -91,6 +91,7 @@
   <div class="nav-buttons">
     <button class="tab-button active" data-tab="home"><span class="tab-icon">🏠</span>Home</button>
     <button class="tab-button" data-tab="playerlist"><span class="tab-icon">👥</span>Player List</button>
+    <button class="tab-button" data-tab="shifts"><span class="tab-icon">📅</span>Shifts</button>
     <button class="tab-button" data-tab="myaccount"><span class="tab-icon">👤</span>My Account</button>
     <button class="tab-button" data-tab="settings"><span class="tab-icon">⚙️</span>Settings</button>
   </div>
@@ -101,12 +102,24 @@
 </nav>
 
 <div class="container">
+  <!-- HOME TAB -->
   <div id="home" class="tab-content active">
     <section class="content-section">
       <h2>Top Active This Week</h2>
       <div id="topPlayersGrid" class="top-players-grid"></div>
     </section>
+  </div>
 
+  <!-- PLAYER LIST TAB -->
+  <div id="playerlist" class="tab-content">
+    <section class="content-section">
+      <h2>Player List</h2>
+      <div class="no-data">Player list coming soon...</div>
+    </section>
+  </div>
+
+  <!-- SHIFTS TAB -->
+  <div id="shifts" class="tab-content">
     <section class="content-section">
       <h2>Upcoming Shifts & Attendees</h2>
       <div id="shiftsList" class="shifts-list">
@@ -115,13 +128,7 @@
     </section>
   </div>
 
-  <div id="playerlist" class="tab-content">
-    <section class="content-section">
-      <h2>Player List</h2>
-      <div class="no-data">Player list coming soon...</div>
-    </section>
-  </div>
-
+  <!-- MY ACCOUNT TAB -->
   <div id="myaccount" class="tab-content">
     <section class="content-section">
       <h2>My Account</h2>
@@ -129,6 +136,7 @@
     </section>
   </div>
 
+  <!-- SETTINGS TAB -->
   <div id="settings" class="tab-content">
     <section class="content-section">
       <h2>Settings</h2>
@@ -146,12 +154,14 @@ const topPlayersGrid = document.getElementById('topPlayersGrid');
 let topPlayersData = <%- JSON.stringify(topPlayers || []) %>;
 
 // ---------------- Tab Navigation ----------------
-document.querySelectorAll('.tab-button').forEach(button => {
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabContents = document.querySelectorAll('.tab-content');
+tabButtons.forEach(button => {
   button.addEventListener('click', () => {
     const targetTab = button.dataset.tab;
-    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    tabButtons.forEach(btn => btn.classList.remove('active'));
     button.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    tabContents.forEach(content => content.classList.remove('active'));
     document.getElementById(targetTab).classList.add('active');
   });
 });
@@ -165,7 +175,8 @@ input.addEventListener('input', async () => {
     const players = await res.json();
     suggestionsBox.innerHTML = players.map(p=>`
       <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-        <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png" />
+        <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png" 
+             onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
         <span>${p.username}</span>
       </div>`).join('');
   } catch(err){ suggestionsBox.innerHTML=''; console.error(err);}
@@ -196,7 +207,7 @@ function renderTopPlayers(){
                         .sort((a,b)=>b.live_total_minutes-a.live_total_minutes).slice(0,3);
   topPlayersGrid.innerHTML = livePlayers.map(p=>`
     <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-      <img src="${p.avatar_url||'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" alt="Avatar"/>
+      <img src="${p.avatar_url||'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" alt="Avatar" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
       <div>${p.username}</div>
       ${p.is_live?'<span class="live-status">LIVE</span>':''}
       <div class="time">${formatMinutes(p.live_total_minutes)}</div>
@@ -217,8 +228,54 @@ async function fetchAttendees(shiftId){
   return res.ok?await res.json():[];
 }
 
+async function renderAttendees(shiftId){
+  const container=document.getElementById(`attendees-${shiftId}`);
+  const addBox=document.getElementById(`add-attendee-${shiftId}`);
+  container.innerHTML='';
+  const attendees=await fetchAttendees(shiftId);
+  
+  attendees.forEach(a=>{
+    const box=document.createElement('div'); 
+    box.className='attendee-box';
+    box.innerHTML=`<span>${a.username}</span><button data-username="${a.username}">×</button>`;
+    box.querySelector('button').addEventListener('click',async()=>{
+      await fetch('/shifts/remove-attendee',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({shiftId,username:a.username})
+      });
+      renderAttendees(shiftId);
+    });
+    container.appendChild(box);
+  });
+
+  addBox.onclick=async()=>{
+    const res=await fetch('/shifts/players'); 
+    const players=await res.json();
+    const select=document.createElement('select'); 
+    select.style.width='100%';
+    select.innerHTML='<option value="">Select player...</option>'+
+      players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
+    
+    select.onchange=async()=>{
+      if(select.value){
+        await fetch('/shifts/add-attendee',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({shiftId,username:select.value})
+        });
+        renderAttendees(shiftId);
+      }
+    };
+
+    addBox.innerHTML=''; 
+    addBox.appendChild(select);
+    select.focus();
+  };
+}
+
 async function loadShifts(){
-  shiftsList.innerHTML=`<div class="no-data">Fetching data...</div>`;
+  shiftsList.innerHTML=`<div class="no-data">Fetching data from Discord...</div>`;
   try{
     const res=await fetch('/sessions');
     const sessions=await res.json();
@@ -242,73 +299,13 @@ async function loadShifts(){
         </div>
         <div class="shift-roles">${rolesHTML}</div>
         <div class="attendees-container" id="attendees-${session.id}"></div>
-        <div class="add-attendee-box" id="add-attendee-${session.id}">+ Add New</div>
+        <div class="add-attendee-box" id="add-attendee-${session.id}">+ Add attendee</div>
       `;
       shiftsList.appendChild(div);
-      await renderAttendees(session.id);
+      renderAttendees(session.id);
     }
-  } catch(err){ console.error(err); shiftsList.innerHTML=`<div class="no-data" style="color:red;">Failed to load scheduled shifts.</div>`; }
+  }catch(err){ console.error(err); shiftsList.innerHTML=`<div class="no-data">Failed to load shifts.</div>`; }
 }
-
-async function renderAttendees(shiftId){
-  const container=document.getElementById(`attendees-${shiftId}`);
-  const addBox=document.getElementById(`add-attendee-${shiftId}`);
-  container.innerHTML='';
-  const attendees=await fetchAttendees(shiftId);
-  attendees.forEach(a=>{
-    const box=document.createElement('div'); box.className='attendee-box';
-    box.innerHTML=`<span>${a.username}</span><button data-username="${a.username}">×</button>`;
-    box.querySelector('button').addEventListener('click',async()=>{
-      await fetch('/shifts/remove-attendee',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({shiftId,username:a.username})});
-      renderAttendees(shiftId);
-    });
-    container.appendChild(box);
-  });
-
-  addBox.onclick = async (e) => {
-    e.stopPropagation();
-    // If dropdown already exists
-    if (document.querySelector(`.attendee-select[data-shift="${shiftId}"]`)) return;
-
-    const res = await fetch('/shifts/players');
-    const players = await res.json();
-
-    const dropdown = document.createElement('div');
-    dropdown.className = 'attendee-select';
-    dropdown.dataset.shift = shiftId;
-    dropdown.style.marginTop = '8px';
-
-    const select = document.createElement('select');
-    select.style.width = '100%';
-    select.style.padding = '8px';
-    select.style.borderRadius = '8px';
-    select.style.border = '1px solid #ccc';
-    select.innerHTML = `<option value="">Select player...</option>` + players.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
-    dropdown.appendChild(select);
-    addBox.insertAdjacentElement('afterend', dropdown);
-    select.focus();
-
-    select.addEventListener('change', async () => {
-      if (select.value) {
-        await fetch('/shifts/add-attendee', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({shiftId, username: select.value})
-        });
-        dropdown.remove();
-        renderAttendees(shiftId);
-      }
-    });
-
-    document.addEventListener('click', function handler(ev){
-      if(!dropdown.contains(ev.target) && ev.target!==addBox){
-        dropdown.remove();
-        document.removeEventListener('click', handler);
-      }
-    });
-  };
-}
-
 loadShifts();
 </script>
 </body>
