@@ -7,8 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
-      margin: 0;
       font-family: 'Roboto', sans-serif;
+      margin: 0;
       background: #ffffff;
       color: #000;
     }
@@ -20,7 +20,7 @@
       font-size: 48px;
       padding: 25px 40px;
       text-align: left;
-      border-bottom: 3px solid #b267f7;
+      border-bottom: 2px solid #b267f7;
     }
 
     .container {
@@ -29,119 +29,62 @@
       padding: 0 20px;
       display: flex;
       flex-direction: column;
-      gap: 30px;
+      gap: 40px;
     }
 
     h2 {
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 700;
-      margin: 0 0 15px;
-      border-bottom: 2px solid #000;
-      padding-bottom: 5px;
-    }
-
-    .content-block {
-      background: #d9d9d9;
-      padding: 15px;
-      font-size: 16px;
-      font-weight: 500;
-      border-radius: 6px;
-      line-height: 1.4;
-    }
-
-    /* Search Box */
-    .search-wrapper {
-      position: relative;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #aaa;
-      border-radius: 4px;
-      box-sizing: border-box;
-      background: white;
-    }
-
-    .suggestions {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      width: 100%;
-      background: white;
-      border: 1px solid #ccc;
-      max-height: 250px;
-      overflow-y: auto;
-      z-index: 10;
-    }
-
-    .suggestion-item {
-      display: flex;
-      align-items: center;
-      padding: 8px 10px;
-      cursor: pointer;
-      border-bottom: 1px solid #eee;
-    }
-
-    .suggestion-item:hover { background: #ddd; }
-
-    .suggestion-item img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    /* Top Players Grid */
-    .top-players-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 15px;
-    }
-
-    .player-card {
-      background: #b5b5b5;
+      margin-bottom: 20px;
       text-align: center;
-      padding: 15px 10px;
-      border-radius: 6px;
-      font-weight: 700;
-      cursor: pointer;
+    }
+
+    /* 🏆 Leaderboard */
+    .leaderboard {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .leaderboard-card {
+      background: #d9d9d9;
+      flex: 1;
+      min-width: 250px;
+      max-width: 300px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    .player-card:hover { background: #a8a8a8; }
-
-    .player-card img {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      margin-bottom: 8px;
-      background: #ccc;
-    }
-
-    .player-card .username {
-      font-size: 0.95em;
+    .leaderboard-rank {
+      font-size: 22px;
       font-weight: 700;
       margin-bottom: 5px;
     }
 
-    .player-card .time {
-      font-size: 0.85em;
-      font-weight: 500;
+    .leaderboard-card img {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      margin-bottom: 10px;
     }
 
-    .player-card .live-status {
-      color: #28a745;
-      font-weight: 700;
-      font-size: 0.8em;
-      display: block;
-      margin-bottom: 3px;
+    .leaderboard-name {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 5px;
     }
 
-    /* Shifts */
+    .leaderboard-minutes {
+      font-size: 16px;
+    }
+
+    /* 📅 Upcoming Shifts */
     .shifts-list {
       display: flex;
       flex-direction: column;
@@ -149,10 +92,12 @@
     }
 
     .shift-item {
-      background: #b5b5b5;
+      background: #d9d9d9;
       padding: 15px;
       border-radius: 6px;
+      font-size: 16px;
       font-weight: 500;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     }
 
     .shift-time {
@@ -162,175 +107,108 @@
       margin-bottom: 5px;
     }
 
+    .no-data {
+      background: #f2f2f2;
+      padding: 15px;
+      text-align: center;
+      border-radius: 6px;
+      font-weight: 500;
+      color: #555;
+    }
+
     @media (max-width: 600px) {
       header {
         font-size: 36px;
         padding: 20px;
       }
+
+      .leaderboard-card img {
+        width: 80px;
+        height: 80px;
+      }
     }
   </style>
 </head>
 <body>
-  <header>Mochi Bar Database</header>
 
-  <div class="container">
+<header>Mochi Bar Dashboard</header>
 
-    <!-- Player Search -->
-    <div>
-      <h2>Player Lookup</h2>
-      <div class="search-wrapper">
-        <input type="text" id="playerSearch" placeholder="Search Roblox username...">
-        <div id="suggestions" class="suggestions"></div>
-      </div>
-    </div>
+<div class="container">
 
-    <!-- Top Players -->
-    <div>
-      <h2>Top Active This Week</h2>
-      <div id="topPlayersGrid" class="top-players-grid">
-        <% if (topPlayers && topPlayers.length === 0) { %>
-          <div class="content-block" style="text-align: center;">No active players data.</div>
-        <% } %>
-      </div>
-    </div>
-
-    <!-- Shifts -->
-    <div>
-      <h2>Upcoming Shifts (Discord)</h2>
-      <div id="shiftsList" class="shifts-list">
-        <div class="content-block" style="text-align:center;font-weight:normal;">Loading upcoming shifts...</div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    const input = document.getElementById('playerSearch');
-    const suggestionsBox = document.getElementById('suggestions');
-    const shiftsList = document.getElementById('shiftsList');
-    const topPlayersGrid = document.getElementById('topPlayersGrid');
-
-    let topPlayersData = JSON.parse('<%- JSON.stringify(topPlayers || []) %>');
-
-    // --- Player Search ---
-    input.addEventListener('input', async () => {
-      const q = input.value.trim();
-      if (!q) {
-        suggestionsBox.innerHTML = '';
-        return;
-      }
-      try {
-        const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
-        const players = await res.json();
-        suggestionsBox.innerHTML = players.map(p => `
-          <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-            <img src="${p.avatar_url}" onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';" />
-            <span>${p.username}</span>
+  <!-- 🏆 Top 3 Players -->
+  <section>
+    <h2>Top 3 Active Players This Week</h2>
+    <div class="leaderboard">
+      <% if (topPlayers && topPlayers.length > 0) { %>
+        <% topPlayers.slice(0, 3).forEach((p, index) => { %>
+          <div class="leaderboard-card">
+            <div class="leaderboard-rank">#<%= index + 1 %></div>
+            <img src="https://www.roblox.com/headshot-thumbnail/image?userId=<%= p.robloxId %>&width=100&height=100&format=png" alt="Avatar">
+            <div class="leaderboard-name"><%= p.username %></div>
+            <div class="leaderboard-minutes"><%= p.total_minutes %> minutes</div>
           </div>
-        `).join('');
-      } catch (err) {
-        console.error(err);
-      }
-    });
+        <% }) %>
+      <% } else { %>
+        <div class="no-data" style="width:100%;">No leaderboard data available.</div>
+      <% } %>
+    </div>
+  </section>
 
-    document.addEventListener('click', e => {
-      if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.innerHTML = '';
-      }
-    });
+  <!-- 📅 Upcoming Shifts -->
+  <section>
+    <h2>Upcoming Shifts (Discord)</h2>
+    <div id="shiftsList" class="shifts-list">
+      <div class="no-data">Loading upcoming shifts...</div>
+    </div>
+  </section>
 
-    // --- Top Players ---
-    function formatMinutes(totalMinutes) {
-      if (!Number.isFinite(totalMinutes)) return '0 min';
-      const rounded = Math.floor(totalMinutes);
-      const h = Math.floor(rounded / 60);
-      const m = rounded % 60;
-      if (h > 0) return `${h} hr ${m} min`;
-      return `${m} min`;
-    }
+</div>
 
-    function calculateLiveMinutes(player) {
-      let baseMinutes = Number(player.current_minutes) || 0; // ← fixed
-      const startTime = player.ongoing_session_start_time;
-      if (startTime) {
-        const elapsedMs = Date.now() - startTime;
-        baseMinutes += elapsedMs / 60000; // ms → min
-      }
-      return baseMinutes;
-    }
+<script>
+  // Format shift time from UNIX
+  function formatShiftTime(timestamp) {
+    const d = new Date(timestamp * 1000);
+    const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+    return `${dateStr} @ ${timeStr}`;
+  }
 
-    function renderTopPlayers() {
-      if (topPlayersData.length === 0) {
-        topPlayersGrid.innerHTML = `<div class="content-block" style="text-align: center;">No active players data.</div>`;
+  async function loadShifts() {
+    const list = document.getElementById('shiftsList');
+    list.innerHTML = `<div class="no-data">Fetching data from Discord...</div>`;
+
+    try {
+      const res = await fetch('/sessions');
+      const sessions = await res.json();
+      const now = Math.floor(Date.now() / 1000);
+      const upcoming = sessions.filter(s => s.time > now).sort((a, b) => a.time - b.time);
+
+      if (upcoming.length === 0) {
+        list.innerHTML = `<div class="no-data">No upcoming shifts are currently scheduled.</div>`;
         return;
       }
 
-      const livePlayers = topPlayersData.map(p => ({
-        ...p,
-        live_minutes: calculateLiveMinutes(p)
-      }));
-
-      livePlayers.sort((a, b) => b.live_minutes - a.live_minutes);
-
-      const html = livePlayers.slice(0, 8).map(p => {
-        const isLive = !!p.ongoing_session_start_time;
-        return `
-          <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-            <img src="${p.avatar_url}" alt="Avatar" onerror="this.src='https://placehold.co/60x60/e0e6f0/5f6c7b?text=U';" />
-            <div class="username">${p.username}</div>
-            ${isLive ? '<span class="live-status">ONGOING SESSION</span>' : ''}
-            <div class="time">${formatMinutes(p.live_minutes)}</div>
-          </div>
+      list.innerHTML = '';
+      upcoming.forEach(session => {
+        const div = document.createElement('div');
+        div.className = 'shift-item';
+        let hosts = `Host: ${session.host}`;
+        if (session.cohost) hosts += ` | Co-Host: ${session.cohost}`;
+        div.innerHTML = `
+          <span class="shift-time">${formatShiftTime(session.time)}</span>
+          ${hosts}
+          ${session.overseer ? `<br>Overseer: ${session.overseer}` : ''}
         `;
-      }).join('');
-
-      topPlayersGrid.innerHTML = html;
+        list.appendChild(div);
+      });
+    } catch (err) {
+      console.error(err);
+      list.innerHTML = `<div class="no-data" style="color:red;">Failed to load shifts.</div>`;
     }
+  }
 
-    renderTopPlayers();
-    setInterval(renderTopPlayers, 5000);
+  loadShifts();
+</script>
 
-    // --- Shifts ---
-    function formatShiftTime(timestamp) {
-      const d = new Date(timestamp * 1000);
-      const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-      const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
-      return `${dateStr} @ ${timeStr}`;
-    }
-
-    async function loadShifts() {
-      shiftsList.innerHTML = `<div class="content-block" style="text-align:center;font-weight:normal;">Fetching data from Discord...</div>`;
-      try {
-        const res = await fetch('/sessions');
-        const sessions = await res.json();
-        const now = Math.floor(Date.now() / 1000);
-        const upcoming = sessions.filter(s => s.time > now).sort((a,b)=>a.time-b.time);
-
-        if (upcoming.length === 0) {
-          shiftsList.innerHTML = `<div class="content-block" style="text-align:center;font-weight:normal;">No upcoming shifts are currently scheduled.</div>`;
-          return;
-        }
-
-        shiftsList.innerHTML = '';
-        upcoming.forEach(session => {
-          const div = document.createElement('div');
-          div.className = 'shift-item';
-          let hosts = `Host: ${session.host}`;
-          if (session.cohost) hosts += ` | Co-Host: ${session.cohost}`;
-          div.innerHTML = `
-            <span class="shift-time">${formatShiftTime(session.time)}</span>
-            ${hosts}
-            ${session.overseer ? `<br>Overseer: ${session.overseer}` : ''}
-          `;
-          shiftsList.appendChild(div);
-        });
-      } catch (err) {
-        console.error(err);
-        shiftsList.innerHTML = `<div class="content-block" style="text-align:center;color:red;font-weight:normal;">Failed to load scheduled shifts.</div>`;
-      }
-    }
-
-    loadShifts();
-  </script>
 </body>
 </html>
