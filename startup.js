@@ -22,6 +22,7 @@ async function main() {
     const sessionsRoute = require('./endpoints/sessions')(client);
     const activityRoute = require('./endpoints/activity');
     const sotwRoleRoute = require('./endpoints/sotw-role')(client);
+    const shiftsRoutes = require('./endpoints/shifts');
 
     // Mount endpoints
     app.use('/dashboard/search', dashboardSearchRoute);
@@ -29,6 +30,7 @@ async function main() {
     app.use('/sessions', sessionsRoute);
     app.use('/activity', activityRoute);
     app.use('/sotw-role', sotwRoleRoute);
+    app.use('/shifts', shiftsRoutes);
 
     // Root redirect
     app.get('/', (req, res) => res.redirect('/dashboard'));
