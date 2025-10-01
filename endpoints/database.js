@@ -1,5 +1,6 @@
 // endpoints/database.js
 const { createClient } = require("@supabase/supabase-js");
+const bcrypt = require('bcryptjs');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
@@ -8,7 +9,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 // -------------------------
 
 // Create player if not exists
-async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank }) {
+async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank, password }) {
   const { data: existing } = await supabase
     .from("players")
     .select("id")
@@ -17,6 +18,11 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
 
   if (existing) return existing;
 
+  let password_hash = null;
+  if (password) {
+    password_hash = await bcrypt.hash(password, 10);
+  }
+
   const { data, error } = await supabase
     .from("players")
     .insert([{
@@ -24,7 +30,8 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
       username,
       avatar_url,
       group_rank,
-      weekly_minutes: 0
+      weekly_minutes: 0,
+      password_hash
     }])
     .select()
     .single();
@@ -33,19 +40,61 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
   return data;
 }
 
-// Log a completed player session
+// Get player by username
+async function getPlayerByUsername(username) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("username", username)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+// -------------------------
+// Authentication
+// -------------------------
+
+// Verify player password
+async function verifyPlayerPassword(username, password) {
+  const player = await getPlayerByUsername(username);
+  if (!player) return { success: false, error: "User not found" };
+
+  if (!player.password_hash) return { success: false, error: "No password set for this account" };
+
+  const match = await bcrypt.compare(password, player.password_hash);
+  if (!match) return { success: false, error: "Invalid password" };
+
+  return { success: true, player };
+}
+
+// Update player password manually
+async function updatePlayerPassword(roblox_id, newPassword) {
+  const password_hash = await bcrypt.hash(newPassword, 10);
+  const { data, error } = await supabase
+    .from("players")
+    .update({ password_hash })
+    .eq("roblox_id", roblox_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// -------------------------
+// Player sessions
+// -------------------------
+
 async function logPlayerSession(roblox_id, minutes_played, session_start, session_end) {
   if (!roblox_id || minutes_played == null || !session_start || !session_end) {
     throw new Error("Missing data in logPlayerSession");
   }
 
-  // Calculate current week start (Monday 00:00)
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
-  // Insert into player_activity
   const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
@@ -59,7 +108,6 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
     .single();
   if (insertErr) throw insertErr;
 
-  // Update total weekly minutes
   const { data: weeklySessions, error: weeklyErr } = await supabase
     .from("player_activity")
     .select("minutes_played")
@@ -79,39 +127,6 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
 
   return updatedPlayer;
 }
-
-// Get player by username
-async function getPlayerByUsername(username) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("*")
-    .eq("username", username)
-    .single();
-  if (error && error.code !== "PGRST116") throw error;
-  return data;
-}
-
-// Search players by username
-async function searchPlayersByUsername(username) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("username, avatar_url, group_rank, weekly_minutes, roblox_id")
-    .ilike("username", `%${username}%`)
-    .limit(10);
-  if (error) throw error;
-  return data;
-}
-
-// Get all players
-async function getAllPlayers() {
-  const { data, error } = await supabase.from("players").select("*");
-  if (error) throw error;
-  return data;
-}
-
-// -------------------------
-// Player sessions
-// -------------------------
 
 // Get all sessions for a player
 async function getPlayerSessions(roblox_id) {
@@ -134,7 +149,6 @@ async function getPlayerLastSessions(roblox_id, limit = 4) {
 // Player shifts
 // -------------------------
 
-// Get all shifts for a player
 async function getPlayerShifts(roblox_id) {
   const { data, error } = await supabase
     .from("player_shifts")
@@ -150,7 +164,6 @@ async function getPlayerShifts(roblox_id) {
   return { attended, hosted, coHosted };
 }
 
-// Add a shift
 async function addPlayerShift({ roblox_id, type, name, host = null }) {
   const { data, error } = await supabase
     .from("player_shifts")
@@ -165,13 +178,6 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
 // Player live sessions
 // -------------------------
 
-/**
- * @description Logs/updates the live session in the database.
- * @param {string} roblox_id
- * @param {string} username
- * @param {number} current_minutes - Minutes played (must be a number)
- * @param {number|null} [session_start_time=null] - Unix timestamp (seconds from Lua)
- */
 async function logPlayerLive(roblox_id, username, current_minutes, session_start_time = null) {
   if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
 
@@ -181,31 +187,19 @@ async function logPlayerLive(roblox_id, username, current_minutes, session_start
     current_minutes: Number(current_minutes)
   };
   
-  // Convert Unix timestamp to ISO string for PostgreSQL timestamptz
   if (session_start_time) {
     const milliseconds = Number(session_start_time) * 1000;
     updateObject.session_start_time = new Date(milliseconds).toISOString(); 
-    console.log(`[DB:Debug] Converted timestamp: ${session_start_time} to ${updateObject.session_start_time}`);
   }
 
   const { data, error } = await supabase
     .from("player_live")
-    .upsert(
-      updateObject,
-      { onConflict: "roblox_id" }
-    );
+    .upsert(updateObject, { onConflict: "roblox_id" });
 
-  if (error) {
-    console.error("Supabase Error in logPlayerLive:", error);
-    throw error; 
-  }
+  if (error) throw error;
   return data;
 }
 
-/**
- * @description Deletes the player's row from the player_live table.
- * @param {string} roblox_id 
- */
 async function deletePlayerLiveSession(roblox_id) {
   if (!roblox_id) throw new Error("Missing roblox_id for live session deletion");
 
@@ -214,14 +208,10 @@ async function deletePlayerLiveSession(roblox_id) {
     .delete()
     .eq("roblox_id", roblox_id);
 
-  if (error) {
-     console.error("Supabase Error in deletePlayerLiveSession:", error);
-     throw error;
-  }
+  if (error) throw error;
   return { success: true };
 }
 
-// Get ongoing live session (from player_live table)
 async function getOngoingSession(roblox_id) {
   const { data, error } = await supabase
     .from("player_live")
@@ -255,14 +245,13 @@ async function addShift({ shift_time, host, cohost, overseer }) {
   return data;
 }
 
-// NEW: Get shift by time (for duplicate checking)
 async function getShiftByTime(shift_time) {
   const { data, error } = await supabase
     .from('shifts')
     .select('*')
     .eq('shift_time', shift_time)
     .single();
-  if (error && error.code !== "PGRST116") return null; // No match found
+  if (error && error.code !== "PGRST116") return null;
   return data;
 }
 
@@ -300,10 +289,22 @@ async function removeShiftAttendee(shiftId, robloxId) {
 // -------------------------
 module.exports = {
   createPlayerIfNotExists,
-  logPlayerSession,
   getPlayerByUsername,
-  searchPlayersByUsername,
-  getAllPlayers,
+  searchPlayersByUsername: async (username) => {
+    const { data, error } = await supabase
+      .from("players")
+      .select("username, avatar_url, group_rank, weekly_minutes, roblox_id")
+      .ilike("username", `%${username}%`)
+      .limit(10);
+    if (error) throw error;
+    return data;
+  },
+  getAllPlayers: async () => {
+    const { data, error } = await supabase.from("players").select("*");
+    if (error) throw error;
+    return data;
+  },
+  logPlayerSession,
   getPlayerSessions,
   getPlayerLastSessions,
   getPlayerShifts,
@@ -313,8 +314,10 @@ module.exports = {
   getOngoingSession,
   getAllShifts,
   addShift,
-  getShiftByTime, // NEW
+  getShiftByTime,
   getShiftAttendees,
   addShiftAttendee,
   removeShiftAttendee,
+  verifyPlayerPassword,
+  updatePlayerPassword
 };
