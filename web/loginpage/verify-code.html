@@ -2,54 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Verify Roblox Account</title>
+  <title>Verify Roblox Profile</title>
 </head>
 <body>
-  <h1>Verify Your Roblox Account</h1>
-  <p>Put the verification code in your Roblox profile description.</p>
-
+  <h1>Verify Your Roblox Profile</h1>
+  <p>Enter the verification code you added to your Roblox profile description.</p>
   <form id="verifyForm">
-    <label>Username: <input type="text" name="username" id="username" required></label><br>
-    <label>Verification Code: <input type="text" name="code" id="code" required></label><br>
+    <input type="hidden" id="username">
+    <label>Verification Code: <input type="text" name="code" required></label>
     <button type="submit">Verify</button>
   </form>
-
   <p id="message"></p>
 
   <script>
     const form = document.getElementById('verifyForm');
     const msg = document.getElementById('message');
+    const usernameInput = document.getElementById('username');
 
-    // If username is in query string, prefill
-    const urlParams = new URLSearchParams(window.location.search);
-    const queryUsername = urlParams.get('username');
-    if (queryUsername) document.getElementById('username').value = queryUsername;
+    // Get username from query string
+    const params = new URLSearchParams(window.location.search);
+    const username = params.get('username');
+    usernameInput.value = username;
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async e => {
       e.preventDefault();
-      const username = document.getElementById('username').value;
-      const code = document.getElementById('code').value;
+      const data = new FormData(form);
+      const code = data.get('code');
 
-      try {
-        const res = await fetch('/loginpage/roblox-verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, code })
-        });
+      const res = await fetch('/loginpage/verify-roblox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, code })
+      });
 
-        const json = await res.json();
-        if (res.ok) {
-          msg.textContent = '✅ Verification successful! Proceed to set a password.';
-          // Redirect to set-password page
-          setTimeout(() => {
-            window.location.href = `/loginpage/set-password?username=${encodeURIComponent(username)}`;
-          }, 1500);
-        } else {
-          msg.textContent = `❌ ${json.error}`;
-        }
-      } catch (err) {
-        msg.textContent = '❌ An error occurred. Try again.';
-        console.error(err);
+      const json = await res.json();
+      if (res.ok) {
+        msg.textContent = '✅ Profile verified! Redirecting to set password...';
+        setTimeout(() => {
+          window.location.href = `/loginpage/set-password?username=${encodeURIComponent(username)}`;
+        }, 1500);
+      } else {
+        msg.textContent = json.error;
       }
     });
   </script>
