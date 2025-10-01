@@ -321,16 +321,67 @@ document.addEventListener('DOMContentLoaded', () => {
   const shiftModal = document.getElementById('shiftModal');
 
   let currentShiftId = null;
+  let currentUser = null;
+  let userGroupRank = 0;
+
+  // ------------------- Get Current User -------------------
+  async function loadCurrentUser() {
+    try {
+      const res = await fetch('/dashboard/current-user');
+      if (res.ok) {
+        currentUser = await res.json();
+        userGroupRank = currentUser.group_rank_number || 0;
+        console.log('Current user rank:', userGroupRank);
+        updateTabAccess();
+      }
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+    }
+  }
+
+  function updateTabAccess() {
+    const playerlistTab = document.querySelector('[data-tab="playerlist"]');
+    const settingsTab = document.querySelector('[data-tab="settings"]');
+
+    // Player List - requires rank 230+
+    if (userGroupRank < 230) {
+      playerlistTab.style.opacity = '0.5';
+      playerlistTab.style.cursor = 'not-allowed';
+      playerlistTab.title = 'Requires rank 230+';
+    }
+
+    // Settings - requires rank 253+ (Vice Chairman+)
+    if (userGroupRank < 253) {
+      settingsTab.style.opacity = '0.5';
+      settingsTab.style.cursor = 'not-allowed';
+      settingsTab.title = 'Requires Vice Chairman+ (253+)';
+    }
+  }
 
   // ------------------- Tabs -------------------
   document.querySelectorAll('.tab-button').forEach(btn => {
     btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+
+      // Check access permissions
+      if (tab === 'playerlist' && userGroupRank < 230) {
+        alert('Access Denied: Player List requires rank 230+');
+        return;
+      }
+
+      if (tab === 'settings' && userGroupRank < 253) {
+        alert('Access Denied: Settings requires Vice Chairman+ (253+)');
+        return;
+      }
+
       document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById(btn.dataset.tab).classList.add('active');
+      document.getElementById(tab).classList.add('active');
     });
   });
+
+  loadCurrentUser();
 
   // ------------------- Player Search -------------------
   input.addEventListener('input', async () => {
@@ -539,65 +590,93 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
       const attendees = res.ok ? await res.json() : [];
       
+      // Get shift details to check if user is host/cohost/overseer
+      const shiftRes = await fetch('/shifts');
+      const shifts = shiftRes.ok ? await shiftRes.json() : [];
+      const currentShift = shifts.find(s => s.id === currentShiftId);
+      
+      const isShiftLeader = currentShift && currentUser && (
+        currentShift.host === currentUser.username ||
+        currentShift.cohost === currentUser.username ||
+        currentShift.overseer === currentUser.username
+      );
+      
+      const canEdit = userGroupRank >= 230 || isShiftLeader;
+      
       document.getElementById('modalAttendeeCount').textContent = attendees.length;
       
       container.innerHTML = '';
       attendees.forEach(a => {
         const box = document.createElement('div');
         box.className = 'attendee-box';
-        box.innerHTML = `<span>${a.username}</span><button data-robloxid="${a.roblox_id}">×</button>`;
-        box.querySelector('button').addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await fetch('/shifts/remove-attendee', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({shiftId: currentShiftId, robloxId: a.roblox_id})
+        
+        if (canEdit) {
+          box.innerHTML = `<span>${a.username}</span><button data-robloxid="${a.roblox_id}">×</button>`;
+          box.querySelector('button').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await fetch('/shifts/remove-attendee', {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({shiftId: currentShiftId, robloxId: a.roblox_id})
+            });
+            renderModalAttendees();
           });
-          renderModalAttendees();
-        });
+        } else {
+          box.innerHTML = `<span>${a.username}</span>`;
+        }
+        
         container.appendChild(box);
       });
 
-      addBox.onclick = async e => {
-        e.stopPropagation();
-        if(addBox.querySelector('select')) return;
+      if (canEdit) {
+        addBox.style.display = 'flex';
+        addBox.onclick = async e => {
+          e.stopPropagation();
+          if(addBox.querySelector('select')) return;
 
-        const res = await fetch('/dashboard/players');
-        const players = res.ok ? await res.json() : [];
-        const select = document.createElement('select');
-        select.style.width = '100%';
-        select.style.padding = '8px';
-        select.style.fontSize = '14px';
-        select.style.border = '1px solid #42b4ff';
-        select.style.borderRadius = '6px';
-        select.innerHTML = '<option value="">Select player...</option>' + players.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username}</option>`).join('');
+          const res = await fetch('/dashboard/players');
+          const allPlayers = res.ok ? await res.json() : [];
+          
+          // Filter to rank 199+ only
+          const eligiblePlayers = allPlayers.filter(p => (p.group_rank_number || 0) >= 199);
+          
+          const select = document.createElement('select');
+          select.style.width = '100%';
+          select.style.padding = '8px';
+          select.style.fontSize = '14px';
+          select.style.border = '1px solid #42b4ff';
+          select.style.borderRadius = '6px';
+          select.innerHTML = '<option value="">Select player (Rank 199+)...</option>' + eligiblePlayers.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username}</option>`).join('');
 
-        addBox.style.background = '#fff';
-        addBox.style.border = '2px solid #42b4ff';
-        addBox.innerHTML = '';
-        addBox.appendChild(select);
-        select.focus();
+          addBox.style.background = '#fff';
+          addBox.style.border = '2px solid #42b4ff';
+          addBox.innerHTML = '';
+          addBox.appendChild(select);
+          select.focus();
 
-        select.onchange = async () => {
-          if(select.value){
-            const [robloxId, username] = select.value.split('|');
-            await fetch('/shifts/add-attendee', {
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({shiftId: currentShiftId, robloxId, username})
-            });
-            await renderModalAttendees();
-          } else resetAddBox();
+          select.onchange = async () => {
+            if(select.value){
+              const [robloxId, username] = select.value.split('|');
+              await fetch('/shifts/add-attendee', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({shiftId: currentShiftId, robloxId, username})
+              });
+              await renderModalAttendees();
+            } else resetAddBox();
+          };
+
+          select.onblur = () => setTimeout(resetAddBox, 200);
+
+          function resetAddBox(){
+            addBox.style.background = '#e6f3ff';
+            addBox.style.border = '2px dashed #42b4ff';
+            addBox.innerHTML = '+ Add attendee';
+          }
         };
-
-        select.onblur = () => setTimeout(resetAddBox, 200);
-
-        function resetAddBox(){
-          addBox.style.background = '#e6f3ff';
-          addBox.style.border = '2px dashed #42b4ff';
-          addBox.innerHTML = '+ Add attendee';
-        }
-      };
+      } else {
+        addBox.style.display = 'none';
+      }
     } catch(err) {
       console.error('Error loading attendees:', err);
     }
