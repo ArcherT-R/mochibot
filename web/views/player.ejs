@@ -372,8 +372,12 @@
         <span class="info-value"><%= player.group_rank %></span>
       </div>
       <div class="info-item">
-        <span class="info-label">Notes</span>
-        <span class="info-value"><%= player.notes || 'No notes' %></span>
+        <span class="info-label">Roblox ID</span>
+        <span class="info-value"><%= player.roblox_id %></span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Weekly Playtime</span>
+        <span class="info-value"><%= Math.floor(player.weekly_minutes / 60) %> hrs <%= player.weekly_minutes % 60 %> min</span>
       </div>
     </div>
   </div>
@@ -423,11 +427,11 @@
     
     <div class="stats-grid">
       <div class="stat-box">
-        <span class="stat-number"><%= shifts.attended || 0 %></span>
+        <span class="stat-number" id="attended-count"><%= shifts.attended || 0 %></span>
         <span class="stat-label">Attended</span>
       </div>
       <div class="stat-box">
-        <span class="stat-number"><%= shifts.hosted || 0 %></span>
+        <span class="stat-number" id="hosted-count"><%= shifts.hosted || 0 %></span>
         <span class="stat-label">Hosted</span>
       </div>
     </div>
@@ -457,6 +461,7 @@
 <script>
   const allSessions = JSON.parse('<%- JSON.stringify(sessions || []) %>');
   const playerUsername = "<%= player.username %>";
+  const playerRobloxId = "<%= player.roblox_id %>";
   const normalizedPlayerName = playerUsername.replace(/\s/g, '').toLowerCase();
   const playerShiftsContainer = document.getElementById('player-shifts');
 
@@ -504,28 +509,73 @@
   function closeModal() { modal.style.display = 'none'; }
   window.onclick = function(e) { if (e.target === modal) closeModal(); }
 
-  // --- Load Shifts ---
+  // --- Load Player Shifts (from shifts database + attendees) ---
   async function loadPlayerShifts() {
     try {
-      const res = await fetch('/sessions');
+      // Fetch all shifts from database
+      const res = await fetch('/shifts');
+      if (!res.ok) throw new Error('Failed to fetch shifts');
+      
       const allShifts = await res.json();
-      const now = Math.floor(Date.now() / 1000);
-      const relevant = allShifts.filter(s => {
-        const host = s.host ? s.host.replace(/\s/g, '').toLowerCase() : '';
-        const cohost = s.cohost ? s.cohost.replace(/\s/g, '').toLowerCase() : '';
-        return (host === normalizedPlayerName || cohost === normalizedPlayerName) && s.time > now;
-      }).sort((a, b) => a.time - b.time);
-
+      console.log('All shifts:', allShifts);
+      
+      const now = Date.now();
+      
+      // Filter for upcoming shifts where player is host, cohost, or attendee
+      const playerUpcomingShifts = [];
+      
+      for (const shift of allShifts) {
+        const shiftTime = shift.shift_time || shift.time;
+        if (!shiftTime) continue;
+        
+        // Convert to milliseconds if needed
+        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+        if (timestamp <= now) continue; // Skip past shifts
+        
+        let role = null;
+        
+        // Check if host
+        const hostNormalized = shift.host ? shift.host.replace(/\s/g, '').toLowerCase() : '';
+        if (hostNormalized === normalizedPlayerName) {
+          role = 'Host';
+        }
+        
+        // Check if cohost
+        const cohostNormalized = shift.cohost ? shift.cohost.replace(/\s/g, '').toLowerCase() : '';
+        if (cohostNormalized === normalizedPlayerName) {
+          role = 'Co-Host';
+        }
+        
+        // Check if attendee
+        const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
+        if (attendeesRes.ok) {
+          const attendees = await attendeesRes.json();
+          const isAttendee = attendees.some(a => a.roblox_id === playerRobloxId);
+          if (isAttendee && !role) {
+            role = 'Attendee';
+          }
+        }
+        
+        if (role) {
+          playerUpcomingShifts.push({ ...shift, role, timestamp });
+        }
+      }
+      
+      // Sort by timestamp
+      playerUpcomingShifts.sort((a, b) => a.timestamp - b.timestamp);
+      
+      console.log('Player upcoming shifts:', playerUpcomingShifts);
+      
+      // Render shifts
       playerShiftsContainer.innerHTML = '';
-      if (relevant.length === 0) {
+      if (playerUpcomingShifts.length === 0) {
         playerShiftsContainer.innerHTML = '<div class="no-data">No upcoming shifts scheduled</div>';
         return;
       }
 
-      relevant.forEach(shift => {
-        const isHost = shift.host.replace(/\s/g, '').toLowerCase() === normalizedPlayerName;
-        const role = isHost ? '📋 Host' : '🤝 Co-Host';
-        const date = new Date(shift.time * 1000);
+      playerUpcomingShifts.forEach(shift => {
+        const roleIcon = shift.role === 'Host' ? '📋' : shift.role === 'Co-Host' ? '🤝' : '👥';
+        const date = new Date(shift.timestamp);
         const dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
         const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
         
@@ -533,17 +583,18 @@
         box.className = 'shift-item';
         box.innerHTML = `
           <div class="session-header">
-            <span class="session-title">${role}</span>
+            <span class="session-title">${roleIcon} ${shift.role}</span>
           </div>
           <div class="session-details">
-            ${dateStr} at ${timeStr}
+            ${dateStr} at ${timeStr}<br>
+            Host: <strong>${shift.host || 'TBD'}</strong>
           </div>
         `;
         playerShiftsContainer.appendChild(box);
       });
 
     } catch (err) {
-      console.error(err);
+      console.error('Error loading shifts:', err);
       playerShiftsContainer.innerHTML = '<div class="no-data" style="color:#e74c3c; border-color: #e74c3c;">Failed to load shifts</div>';
     }
   }
