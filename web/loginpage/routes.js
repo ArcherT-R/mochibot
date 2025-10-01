@@ -4,28 +4,28 @@ const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
-// -------------------- In-memory stores --------------------
+// -------------------- Temporary in-memory stores --------------------
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
 const loginCredentials = [];     // { username, passwordHash }
 
 // -------------------- Serve HTML pages --------------------
-router.get('/signup', (req, res) => {
+router.get(['/signup', '/signup.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'signup.html'));
 });
 
-router.get('/verify-code', (req, res) => {
+router.get(['/verify-code', '/verify-code.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'verify-code.html'));
 });
 
-router.get('/set-password', (req, res) => {
+router.get(['/set-password', '/set-password.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'set-password.html'));
 });
 
-router.get('/login', (req, res) => {
+router.get(['/login', '/login.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// -------------------- Signup flow --------------------
+// -------------------- Signup Flow --------------------
 router.post('/start-signup', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: 'Username required' });
@@ -40,7 +40,7 @@ router.post('/start-signup', (req, res) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   pendingVerifications[key] = {
     code,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes expiry
     verified: false
   };
 
