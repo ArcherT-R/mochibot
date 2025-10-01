@@ -17,7 +17,7 @@
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('message');
 
-    form.addEventListener('submit', async e => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const data = new FormData(form);
       const username = data.get('username');
@@ -31,10 +31,7 @@
 
       const json = await res.json();
       if (res.ok) {
-        msg.textContent = '✅ Login successful! Redirecting to dashboard...';
-        setTimeout(() => {
-          window.location.href = `/dashboard`;
-        }, 1000);
+        msg.textContent = 'Login successful!';
       } else {
         msg.textContent = json.error;
       }
