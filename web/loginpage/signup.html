@@ -1,24 +1,40 @@
-<script>
-const form = document.getElementById('signupForm');
-const msg = document.getElementById('message');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up</title>
+</head>
+<body>
+  <h1>Sign Up</h1>
+  <form id="signupForm">
+    <label>Username: <input type="text" name="username" required></label>
+    <button type="submit">Start Signup</button>
+  </form>
+  <p id="message"></p>
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const data = new FormData(form);
-  const username = data.get('username');
+  <script>
+    const form = document.getElementById('signupForm');
+    const msg = document.getElementById('message');
 
-  const res = await fetch('/loginpage/start-signup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username })
-  });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      const username = data.get('username');
 
-  const json = await res.json();
-  if (res.ok) {
-    msg.textContent = `Verification code sent! Check console (or Roblox verification).`;
-    window.location.href = `/loginpage/verify-code.html?username=${encodeURIComponent(username)}`;
-  } else {
-    msg.textContent = json.error;
-  }
-});
-</script>
+      const res = await fetch('/loginpage/start-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        msg.textContent = `Verification code sent! Check console (or Roblox verification).`;
+        window.location.href = `/loginpage/verify-code.html?username=${encodeURIComponent(username)}`;
+      } else {
+        msg.textContent = json.error;
+      }
+    });
+  </script>
+</body>
+</html>
