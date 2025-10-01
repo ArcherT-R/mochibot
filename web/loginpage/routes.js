@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Temporary in-memory stores
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
