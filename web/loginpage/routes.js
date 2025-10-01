@@ -4,28 +4,29 @@ const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
-// -------------------- In-memory stores --------------------
+// Temporary in-memory stores
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
 const loginCredentials = [];     // { username, passwordHash }
 
 // -------------------- Serve HTML pages --------------------
-router.get('/', (req, res) => {
-  res.redirect('/loginpage/login.html'); // Default redirect
-});
 
-router.get('/signup.html', (req, res) => {
+// Signup page
+router.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'signup.html'));
 });
 
-router.get('/verify-code.html', (req, res) => {
+// Verify code page
+router.get('/verify-code', (req, res) => {
   res.sendFile(path.join(__dirname, 'verify-code.html'));
 });
 
-router.get('/set-password.html', (req, res) => {
+// Set password page
+router.get('/set-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'set-password.html'));
 });
 
-router.get('/login.html', (req, res) => {
+// Login page
+router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
@@ -40,16 +41,15 @@ router.post('/start-signup', (req, res) => {
     return res.status(400).json({ error: 'User already registered' });
   }
 
-  // Generate 6-digit verification code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   pendingVerifications[key] = {
     code,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 min expiry
+    expiresAt: Date.now() + 10 * 60 * 1000,
     verified: false
   };
 
   console.log(`📩 Generated verification code ${code} for ${username}`);
-  res.json({ success: true }); // You could also send code in dev
+  res.json({ success: true });
 });
 
 // -------------------- Verify Code --------------------
