@@ -5,7 +5,7 @@
   <title>Verify Code</title>
 </head>
 <body>
-  <h1>Verify Account</h1>
+  <h1>Verify Your Account</h1>
   <form id="verifyForm">
     <label>Verification Code: <input type="text" name="code" required></label>
     <button type="submit">Verify</button>
@@ -16,12 +16,19 @@
     const form = document.getElementById('verifyForm');
     const msg = document.getElementById('message');
 
+    // Get username from query string
     const params = new URLSearchParams(window.location.search);
     const username = params.get('username');
 
+    if (!username) {
+      msg.textContent = 'Username missing! Go back to signup.';
+      form.style.display = 'none';
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const code = form.code.value;
+      const data = new FormData(form);
+      const code = data.get('code');
 
       const res = await fetch('/loginpage/verify-code', {
         method: 'POST',
@@ -31,8 +38,10 @@
 
       const json = await res.json();
       if (res.ok) {
-        msg.textContent = `Verified! Proceed to set a password.`;
-        window.location.href = `/loginpage/set-password.html?username=${encodeURIComponent(username)}`;
+        msg.textContent = '✅ Verified! Redirecting to set your password...';
+        setTimeout(() => {
+          window.location.href = `/loginpage/set-password.html?username=${encodeURIComponent(username)}`;
+        }, 1000);
       } else {
         msg.textContent = json.error;
       }
@@ -40,4 +49,3 @@
   </script>
 </body>
 </html>
-
