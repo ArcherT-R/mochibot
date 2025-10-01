@@ -421,17 +421,17 @@
     </div>
   </div>
 
-<!-- Shifts Card -->
+  <!-- Shifts Card -->
   <div class="card">
     <h3>Shifts Statistics</h3>
     
     <div class="stats-grid">
       <div class="stat-box" style="cursor:pointer;" onclick="toggleShiftsList('attended')">
-        <span class="stat-number" id="attended-count"><%= shifts.attended || 0 %></span>
+        <span class="stat-number" id="attended-count">0</span>
         <span class="stat-label">Attended</span>
       </div>
       <div class="stat-box" style="cursor:pointer;" onclick="toggleShiftsList('hosted')">
-        <span class="stat-number" id="hosted-count"><%= shifts.hosted || 0 %></span>
+        <span class="stat-number" id="hosted-count">0</span>
         <span class="stat-label">Hosted</span>
       </div>
     </div>
@@ -457,6 +457,8 @@
     </div>
   </div>
 
+</div>
+
 <!-- Modal -->
 <div id="sessionModal" class="modal">
   <div class="modal-content">
@@ -465,19 +467,6 @@
       <span class="close" onclick="closeModal()">&times;</span>
     </div>
     <div class="modal-body" id="modal-body">
-      <!-- filled by JS -->
-    </div>
-  </div>
-</div>
-
-<!-- Shifts History Modal -->
-<div id="shiftsHistoryModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <span id="shifts-modal-header-text"></span>
-      <span class="close" onclick="closeShiftsModal()">&times;</span>
-    </div>
-    <div class="modal-body" id="shifts-modal-body" style="max-height:400px; overflow-y:auto;">
       <!-- filled by JS -->
     </div>
   </div>
@@ -532,11 +521,13 @@
   }
 
   function closeModal() { modal.style.display = 'none'; }
-  window.onclick = function(e) { if (e.target === modal) closeModal(); }
+  window.onclick = function(e) { 
+    if (e.target === modal) closeModal(); 
+  }
 
-  // --- Shifts History Modal ---
-  const shiftsHistoryModal = document.getElementById('shiftsHistoryModal');
+  // --- Shifts History ---
   let allPlayerShifts = [];
+  let currentOpenSection = null;
 
   async function loadAllPlayerShifts() {
     try {
@@ -551,52 +542,61 @@
     }
   }
 
-  function showShiftsModal(type) {
-    const filtered = allPlayerShifts.filter(s => s.type === type);
-    const title = type === 'attended' ? 'Shifts Attended' : 'Shifts Hosted';
+  function populateShiftsList(type) {
+    const shifts = type === 'attended' ? window.pastAttendedShifts : window.pastHostedShifts;
+    const listId = type === 'attended' ? 'attended-shifts-list' : 'hosted-shifts-list';
+    const listElement = document.getElementById(listId);
     
-    document.getElementById('shifts-modal-header-text').textContent = title;
-    
-    const modalBody = document.getElementById('shifts-modal-body');
-    
-    if (filtered.length === 0) {
-      modalBody.innerHTML = '<div class="no-data">No shifts recorded</div>';
+    if (!shifts || shifts.length === 0) {
+      listElement.innerHTML = '<div class="no-data">No shifts recorded</div>';
     } else {
-      modalBody.innerHTML = filtered.map(shift => {
-        const date = shift.shift_date ? new Date(shift.shift_date).toLocaleDateString(undefined, {
+      listElement.innerHTML = shifts.map(shift => {
+        const date = new Date(shift.timestamp);
+        const dateStr = date.toLocaleDateString(undefined, {
           weekday: 'long',
           month: 'long',
           day: 'numeric',
           year: 'numeric'
-        }) : 'Unknown date';
+        });
+        const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
         
         return `
           <div class="session-item" style="margin-bottom: 12px;">
             <div class="session-header">
-              <span class="session-title">${shift.name || 'Shift'}</span>
+              <span class="session-title">${shift.host ? 'Shift' : 'Shift'}</span>
             </div>
             <div class="session-details">
-              ${date}
+              ${dateStr} at ${timeStr}
               ${shift.host ? `<br>Host: <strong>${shift.host}</strong>` : ''}
             </div>
           </div>
         `;
       }).join('');
     }
+  }
+
+  function toggleShiftsList(type) {
+    const sectionId = type === 'attended' ? 'attended-shifts-section' : 'hosted-shifts-section';
+    const section = document.getElementById(sectionId);
     
-    shiftsHistoryModal.style.display = 'block';
+    if (currentOpenSection === type) {
+      // Close if clicking the same one
+      section.style.display = 'none';
+      currentOpenSection = null;
+    } else {
+      // Close any open section
+      if (currentOpenSection) {
+        const otherSection = currentOpenSection === 'attended' ? 'attended-shifts-section' : 'hosted-shifts-section';
+        document.getElementById(otherSection).style.display = 'none';
+      }
+      // Open the clicked section and populate it
+      populateShiftsList(type);
+      section.style.display = 'block';
+      currentOpenSection = type;
+    }
   }
 
-  function closeShiftsModal() {
-    shiftsHistoryModal.style.display = 'none';
-  }
-
-  window.onclick = function(e) {
-    if (e.target === modal) closeModal();
-    if (e.target === shiftsHistoryModal) closeShiftsModal();
-  };
-
-  window.showShiftsModal = showShiftsModal;
+  window.toggleShiftsList = toggleShiftsList;
 
   // --- Load Player Shifts (from shifts database + attendees) ---
   async function loadPlayerShifts() {
@@ -610,8 +610,10 @@
       
       const now = Date.now();
       
-      // Filter for upcoming shifts where player is host, cohost, or attendee
+      // Arrays for upcoming, past attended, and past hosted
       const playerUpcomingShifts = [];
+      const pastAttendedShifts = [];
+      const pastHostedShifts = [];
       
       for (const shift of allShifts) {
         const shiftTime = shift.shift_time || shift.time;
@@ -619,7 +621,6 @@
         
         // Convert to milliseconds if needed
         const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-        if (timestamp <= now) continue; // Skip past shifts
         
         let role = null;
         
@@ -646,41 +647,64 @@
         }
         
         if (role) {
-          playerUpcomingShifts.push({ ...shift, role, timestamp });
+          const shiftData = { ...shift, role, timestamp };
+          
+          if (timestamp > now) {
+            // Upcoming shift
+            playerUpcomingShifts.push(shiftData);
+          } else {
+            // Past shift - categorize by role
+            if (role === 'Host' || role === 'Co-Host') {
+              pastHostedShifts.push(shiftData);
+            } else if (role === 'Attendee') {
+              pastAttendedShifts.push(shiftData);
+            }
+          }
         }
       }
       
-      // Sort by timestamp
+      // Sort all arrays by timestamp (most recent first for past, soonest first for upcoming)
       playerUpcomingShifts.sort((a, b) => a.timestamp - b.timestamp);
+      pastAttendedShifts.sort((a, b) => b.timestamp - a.timestamp);
+      pastHostedShifts.sort((a, b) => b.timestamp - a.timestamp);
       
       console.log('Player upcoming shifts:', playerUpcomingShifts);
+      console.log('Past attended shifts:', pastAttendedShifts);
+      console.log('Past hosted shifts:', pastHostedShifts);
       
-      // Render shifts
+      // Update counts
+      document.getElementById('attended-count').textContent = pastAttendedShifts.length;
+      document.getElementById('hosted-count').textContent = pastHostedShifts.length;
+      
+      // Store past shifts globally for the toggle function
+      window.pastAttendedShifts = pastAttendedShifts;
+      window.pastHostedShifts = pastHostedShifts;
+      
+      // Render upcoming shifts
       playerShiftsContainer.innerHTML = '';
       if (playerUpcomingShifts.length === 0) {
         playerShiftsContainer.innerHTML = '<div class="no-data">No upcoming shifts scheduled</div>';
-        return;
+      } else {
+        playerUpcomingShifts.forEach(shift => {
+          const roleIcon = shift.role === 'Host' ? '📋' : shift.role === 'Co-Host' ? '🤝' : '👥';
+          const date = new Date(shift.timestamp);
+          const dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+          const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+          
+          const box = document.createElement('div');
+          box.className = 'shift-item';
+          box.innerHTML = `
+            <div class="session-header">
+              <span class="session-title">${roleIcon} ${shift.role}</span>
+            </div>
+            <div class="session-details">
+              ${dateStr} at ${timeStr}<br>
+              Host: <strong>${shift.host || 'TBD'}</strong>
+            </div>
+          `;
+          playerShiftsContainer.appendChild(box);
+        });
       }
-
-      playerUpcomingShifts.forEach(shift => {
-        const roleIcon = shift.role === 'Host' ? '📋' : shift.role === 'Co-Host' ? '🤝' : '👥';
-        const date = new Date(shift.timestamp);
-        const dateStr = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-        const timeStr = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-        
-        const box = document.createElement('div');
-        box.className = 'shift-item';
-        box.innerHTML = `
-          <div class="session-header">
-            <span class="session-title">${roleIcon} ${shift.role}</span>
-          </div>
-          <div class="session-details">
-            ${dateStr} at ${timeStr}<br>
-            Host: <strong>${shift.host || 'TBD'}</strong>
-          </div>
-        `;
-        playerShiftsContainer.appendChild(box);
-      });
 
     } catch (err) {
       console.error('Error loading shifts:', err);
