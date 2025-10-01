@@ -421,18 +421,32 @@
     </div>
   </div>
 
-  <!-- Shifts Card -->
+<!-- Shifts Card -->
   <div class="card">
-    <h3>Shifts</h3>
+    <h3>Shifts Statistics</h3>
     
     <div class="stats-grid">
-      <div class="stat-box" style="cursor:pointer;" onclick="showShiftsModal('attended')">
+      <div class="stat-box" style="cursor:pointer;" onclick="toggleShiftsList('attended')">
         <span class="stat-number" id="attended-count"><%= shifts.attended || 0 %></span>
         <span class="stat-label">Attended</span>
       </div>
-      <div class="stat-box" style="cursor:pointer;" onclick="showShiftsModal('hosted')">
+      <div class="stat-box" style="cursor:pointer;" onclick="toggleShiftsList('hosted')">
         <span class="stat-number" id="hosted-count"><%= shifts.hosted || 0 %></span>
         <span class="stat-label">Hosted</span>
+      </div>
+    </div>
+
+    <div id="attended-shifts-section" style="display:none; margin-top: 20px;">
+      <h3 style="font-size: 18px; margin-bottom: 15px;">Shifts Attended</h3>
+      <div id="attended-shifts-list" class="shifts-scroll" style="max-height: 300px;">
+        <div class="no-data">Loading...</div>
+      </div>
+    </div>
+
+    <div id="hosted-shifts-section" style="display:none; margin-top: 20px;">
+      <h3 style="font-size: 18px; margin-bottom: 15px;">Shifts Hosted</h3>
+      <div id="hosted-shifts-list" class="shifts-scroll" style="max-height: 300px;">
+        <div class="no-data">Loading...</div>
       </div>
     </div>
 
@@ -442,8 +456,6 @@
       <div class="no-data">Loading scheduled shifts...</div>
     </div>
   </div>
-
-</div>
 
 <!-- Modal -->
 <div id="sessionModal" class="modal">
