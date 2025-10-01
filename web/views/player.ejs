@@ -525,22 +525,8 @@
     if (e.target === modal) closeModal(); 
   }
 
-  // --- Shifts History ---
-  let allPlayerShifts = [];
+  // --- Shifts Logic ---
   let currentOpenSection = null;
-
-  async function loadAllPlayerShifts() {
-    try {
-      // Fetch all past shifts from player_shifts table via backend
-      const res = await fetch(`/dashboard/player-shifts/${playerRobloxId}`);
-      if (!res.ok) throw new Error('Failed to fetch player shifts');
-      allPlayerShifts = await res.json();
-      console.log('Player shift history:', allPlayerShifts);
-    } catch (err) {
-      console.error('Error loading player shifts history:', err);
-      allPlayerShifts = [];
-    }
-  }
 
   function populateShiftsList(type) {
     const shifts = type === 'attended' ? window.pastAttendedShifts : window.pastHostedShifts;
@@ -563,7 +549,7 @@
         return `
           <div class="session-item" style="margin-bottom: 12px;">
             <div class="session-header">
-              <span class="session-title">${shift.host ? 'Shift' : 'Shift'}</span>
+              <span class="session-title">Shift</span>
             </div>
             <div class="session-details">
               ${dateStr} at ${timeStr}
@@ -580,16 +566,13 @@
     const section = document.getElementById(sectionId);
     
     if (currentOpenSection === type) {
-      // Close if clicking the same one
       section.style.display = 'none';
       currentOpenSection = null;
     } else {
-      // Close any open section
       if (currentOpenSection) {
         const otherSection = currentOpenSection === 'attended' ? 'attended-shifts-section' : 'hosted-shifts-section';
         document.getElementById(otherSection).style.display = 'none';
       }
-      // Open the clicked section and populate it
       populateShiftsList(type);
       section.style.display = 'block';
       currentOpenSection = type;
@@ -598,10 +581,9 @@
 
   window.toggleShiftsList = toggleShiftsList;
 
-  // --- Load Player Shifts (from shifts database + attendees) ---
+  // --- Load Player Shifts ---
   async function loadPlayerShifts() {
     try {
-      // Fetch all shifts from database
       const res = await fetch('/shifts');
       if (!res.ok) throw new Error('Failed to fetch shifts');
       
@@ -610,7 +592,6 @@
       
       const now = Date.now();
       
-      // Arrays for upcoming, past attended, and past hosted
       const playerUpcomingShifts = [];
       const pastAttendedShifts = [];
       const pastHostedShifts = [];
@@ -619,24 +600,20 @@
         const shiftTime = shift.shift_time || shift.time;
         if (!shiftTime) continue;
         
-        // Convert to milliseconds if needed
         const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
         
         let role = null;
         
-        // Check if host
         const hostNormalized = shift.host ? shift.host.replace(/\s/g, '').toLowerCase() : '';
         if (hostNormalized === normalizedPlayerName) {
           role = 'Host';
         }
         
-        // Check if cohost
         const cohostNormalized = shift.cohost ? shift.cohost.replace(/\s/g, '').toLowerCase() : '';
         if (cohostNormalized === normalizedPlayerName) {
           role = 'Co-Host';
         }
         
-        // Check if attendee
         const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
         if (attendeesRes.ok) {
           const attendees = await attendeesRes.json();
@@ -650,10 +627,8 @@
           const shiftData = { ...shift, role, timestamp };
           
           if (timestamp > now) {
-            // Upcoming shift
             playerUpcomingShifts.push(shiftData);
           } else {
-            // Past shift - categorize by role
             if (role === 'Host' || role === 'Co-Host') {
               pastHostedShifts.push(shiftData);
             } else if (role === 'Attendee') {
@@ -663,7 +638,6 @@
         }
       }
       
-      // Sort all arrays by timestamp (most recent first for past, soonest first for upcoming)
       playerUpcomingShifts.sort((a, b) => a.timestamp - b.timestamp);
       pastAttendedShifts.sort((a, b) => b.timestamp - a.timestamp);
       pastHostedShifts.sort((a, b) => b.timestamp - a.timestamp);
@@ -672,15 +646,12 @@
       console.log('Past attended shifts:', pastAttendedShifts);
       console.log('Past hosted shifts:', pastHostedShifts);
       
-      // Update counts
       document.getElementById('attended-count').textContent = pastAttendedShifts.length;
       document.getElementById('hosted-count').textContent = pastHostedShifts.length;
       
-      // Store past shifts globally for the toggle function
       window.pastAttendedShifts = pastAttendedShifts;
       window.pastHostedShifts = pastHostedShifts;
       
-      // Render upcoming shifts
       playerShiftsContainer.innerHTML = '';
       if (playerUpcomingShifts.length === 0) {
         playerShiftsContainer.innerHTML = '<div class="no-data">No upcoming shifts scheduled</div>';
@@ -713,7 +684,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', loadPlayerShifts);
-  document.addEventListener('DOMContentLoaded', loadAllPlayerShifts);
 </script>
 
 </body>
