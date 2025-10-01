@@ -1,15 +1,33 @@
 const express = require('express');
-const router = express.Router();
+const path = require('path');
 const bcrypt = require('bcryptjs');
+
+const router = express.Router();
 
 // Temporary in-memory stores
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
 const loginCredentials = [];     // { username, passwordHash }
 
-// -------------------- Signup --------------------
+// -------------------- Serve HTML pages --------------------
+
+// If you are serving static files, you can also use express.static in startup.js
 router.get('/signup', (req, res) => {
-  res.sendFile('signup.html', { root: __dirname });
+  res.sendFile(path.join(__dirname, 'signup.html'));
 });
+
+router.get('/verify-code', (req, res) => {
+  res.sendFile(path.join(__dirname, 'verify-code.html'));
+});
+
+router.get('/set-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'set-password.html'));
+});
+
+router.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// -------------------- Signup flow --------------------
 
 router.post('/start-signup', (req, res) => {
   const { username } = req.body;
@@ -25,12 +43,12 @@ router.post('/start-signup', (req, res) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   pendingVerifications[key] = {
     code,
-    expiresAt: Date.now() + 10 * 60 * 1000,
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 min expiry
     verified: false
   };
 
   console.log(`📩 Generated verification code ${code} for ${username}`);
-  res.json({ code });
+  res.json({ success: true });
 });
 
 // -------------------- Verify Code --------------------
@@ -49,10 +67,6 @@ router.post('/verify-code', (req, res) => {
 });
 
 // -------------------- Set Password --------------------
-router.get('/set-password', (req, res) => {
-  res.sendFile('set-password.html', { root: __dirname });
-});
-
 router.post('/set-password', async (req, res) => {
   const { username, password } = req.body;
   const key = username.toLowerCase();
@@ -69,10 +83,6 @@ router.post('/set-password', async (req, res) => {
 });
 
 // -------------------- Login --------------------
-router.get('/login', (req, res) => {
-  res.sendFile('login.html', { root: __dirname });
-});
-
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = loginCredentials.find(u => u.username.toLowerCase() === username.toLowerCase());
