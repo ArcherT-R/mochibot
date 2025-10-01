@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
-// -------------------- Temporary in-memory stores --------------------
+// -------------------- In-memory stores --------------------
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
 const loginCredentials = [];     // { username, passwordHash }
 
@@ -25,12 +25,13 @@ router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// -------------------- Signup Flow --------------------
+// -------------------- Signup flow --------------------
 router.post('/start-signup', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: 'Username required' });
 
   const key = username.toLowerCase();
+
   if (loginCredentials.find(u => u.username.toLowerCase() === key)) {
     return res.status(400).json({ error: 'User already registered' });
   }
@@ -39,11 +40,11 @@ router.post('/start-signup', (req, res) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   pendingVerifications[key] = {
     code,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 min expiry
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
     verified: false
   };
 
-  console.log(`📩 Verification code for ${username}: ${code}`);
+  console.log(`📩 Generated verification code ${code} for ${username}`);
   res.json({ success: true });
 });
 
