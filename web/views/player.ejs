@@ -450,10 +450,10 @@
       </div>
     </div>
 
-    <h3 style="margin-top: 25px; font-size: 18px;">Upcoming Shifts</h3>
+    <h3 style="margin-top: 25px; font-size: 18px;">All Shifts</h3>
     
     <div id="player-shifts" class="shifts-scroll">
-      <div class="no-data">Loading scheduled shifts...</div>
+      <div class="no-data">Loading shifts...</div>
     </div>
   </div>
 
@@ -581,64 +581,7 @@
 
   window.toggleShiftsList = toggleShiftsList;
 
-  // --- Load Player Shifts ---
-  async function loadPlayerShifts() {
-    try {
-      const res = await fetch('/shifts');
-      if (!res.ok) throw new Error('Failed to fetch shifts');
-      
-      const allShifts = await res.json();
-      console.log('All shifts:', allShifts);
-      
-      const now = Date.now();
-      
-      const playerUpcomingShifts = [];
-      const allAttendedShifts = [];
-      const allHostedShifts = [];
-      
-      for (const shift of allShifts) {
-        const shiftTime = shift.shift_time || shift.time;
-        if (!shiftTime) continue;
-        
-        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-        
-        let role = null;
-        let isAttendee = false;
-        
-        const hostNormalized = shift.host ? shift.host.replace(/\s/g, '').toLowerCase() : '';
-        if (hostNormalized === normalizedPlayerName) {
-          role = 'Host';
-        }
-        
-        const cohostNormalized = shift.cohost ? shift.cohost.replace(/\s/g, '').toLowerCase() : '';
-        if (cohostNormalized === normalizedPlayerName) {
-          role = 'Co-Host';
-        }
-        
-        const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
-        if (attendeesRes.ok) {
-          const attendees = await attendeesRes.json();
-          isAttendee = attendees.some(a => a.roblox_id === playerRobloxId);
-          if (isAttendee && !role) {
-            role = 'Attendee';
-          }
-        }
-        
-        const shiftData = { ...shift, role, timestamp };
-        
-        // Count ALL attended shifts (past and future) for the counter
-        if (isAttendee) {
-          allAttendedShifts.push(shiftData);
-        }
-        
-        // Count ALL hosted shifts (past and future) for the counter
-        if (role === 'Host' || role === 'Co-Host') {
-          allHostedShifts.push(shiftData);
-        }
-        
-        // Only show upcoming shifts in the "Upcoming Shifts" section
-        if (role && timestamp > now) {
-          playerUpcomingShifts.push(shiftData);
+Shifts.push(shiftData);
         }
       }
       
