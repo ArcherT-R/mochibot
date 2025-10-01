@@ -5,7 +5,6 @@ const {
   getAllPlayers,
   getPlayerByUsername,
   getPlayerSessions,
-  getPlayerShifts,
   getOngoingSession,
   searchPlayersByUsername
 } = require("../../endpoints/database");
@@ -43,7 +42,7 @@ router.get("/", async (req, res) => {
 });
 
 // ----------------------------
-// Top players API endpoint (NEW)
+// Top players API endpoint
 // ----------------------------
 router.get("/top-players", async (req, res) => {
   try {
@@ -60,7 +59,7 @@ router.get("/top-players", async (req, res) => {
 });
 
 // ----------------------------
-// All players API endpoint (NEW)
+// All players API endpoint
 // ----------------------------
 router.get("/players", async (req, res) => {
   try {
@@ -83,10 +82,15 @@ router.get("/player/:username", async (req, res) => {
     if (!player) return res.status(404).send("Player not found");
     
     const sessions = await getPlayerSessions(player.roblox_id);
-    const shifts = await getPlayerShifts(player.roblox_id) || { attended: 0, hosted: 0, coHosted: [] };
     const ongoingSession = await getOngoingSession(player.roblox_id);
     
-    res.render("player", { player, sessions, shifts, ongoingSession });
+    // Pass empty shift data - actual shift counting happens on frontend
+    res.render("player", { 
+      player, 
+      sessions, 
+      shifts: { attended: 0, hosted: 0 }, 
+      ongoingSession 
+    });
   } catch (err) {
     console.error("Error loading player page:", err);
     res.status(500).send("Internal Server Error");
