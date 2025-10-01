@@ -4,13 +4,11 @@ const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
-// Temporary in-memory stores
+// -------------------- Temporary in-memory stores --------------------
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
 const loginCredentials = [];     // { username, passwordHash }
 
 // -------------------- Serve HTML pages --------------------
-
-// If you are serving static files, you can also use express.static in startup.js
 router.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'signup.html'));
 });
@@ -27,14 +25,12 @@ router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// -------------------- Signup flow --------------------
-
+// -------------------- Signup Flow --------------------
 router.post('/start-signup', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: 'Username required' });
 
   const key = username.toLowerCase();
-
   if (loginCredentials.find(u => u.username.toLowerCase() === key)) {
     return res.status(400).json({ error: 'User already registered' });
   }
@@ -47,7 +43,7 @@ router.post('/start-signup', (req, res) => {
     verified: false
   };
 
-  console.log(`📩 Generated verification code ${code} for ${username}`);
+  console.log(`📩 Verification code for ${username}: ${code}`);
   res.json({ success: true });
 });
 
