@@ -4,7 +4,8 @@ const {
   addShift,
   getShiftAttendees,
   addShiftAttendee,
-  removeShiftAttendee
+  removeShiftAttendee,
+  getShiftByTime
 } = require('./database');
 
 const router = express.Router();
@@ -24,7 +25,7 @@ router.get('/', async (req, res) => {
 router.get('/attendees', async (req, res) => {
   const shiftId = req.query.shiftId;
   if (!shiftId) return res.status(400).json({ error: 'Missing shiftId' });
-
+  
   try {
     const attendees = await getShiftAttendees(shiftId);
     res.json(attendees);
@@ -39,7 +40,7 @@ router.post('/add-attendee', async (req, res) => {
   const { shiftId, robloxId, username } = req.body;
   if (!shiftId || !robloxId || !username)
     return res.status(400).json({ error: 'Missing data' });
-
+  
   try {
     const attendee = await addShiftAttendee(shiftId, robloxId, username);
     res.json(attendee);
@@ -54,7 +55,7 @@ router.post('/remove-attendee', async (req, res) => {
   const { shiftId, robloxId } = req.body;
   if (!shiftId || !robloxId)
     return res.status(400).json({ error: 'Missing data' });
-
+  
   try {
     await removeShiftAttendee(shiftId, robloxId);
     res.json({ success: true });
@@ -64,12 +65,19 @@ router.post('/remove-attendee', async (req, res) => {
   }
 });
 
-// Add new shift
+// Add new shift (with duplicate prevention)
 router.post('/add', async (req, res) => {
   const { shift_time, host, cohost, overseer } = req.body;
   if (!shift_time) return res.status(400).json({ error: 'Missing shift_time' });
-
+  
   try {
+    // Check if shift already exists at this time
+    const existing = await getShiftByTime(shift_time);
+    if (existing) {
+      console.log(`Shift already exists at ${shift_time}, skipping duplicate`);
+      return res.json({ message: 'Shift already exists', shift: existing });
+    }
+    
     const shift = await addShift({ shift_time, host, cohost, overseer });
     res.json(shift);
   } catch (err) {
