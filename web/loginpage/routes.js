@@ -1,89 +1,21 @@
 const express = require('express');
-const path = require('path');
 const bcrypt = require('bcryptjs');
+const path = require('path');
 
 const router = express.Router();
 
-// Temporary in-memory stores
-const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
-const loginCredentials = [];     // { username, passwordHash }
+// Temporary in-memory credentials
+// In real usage, this would come from a database or your dashboard
+const loginCredentials = [
+  // Example: { username: 'Archer', passwordHash: '<hashed password>' }
+];
 
-// -------------------- Serve HTML pages --------------------
-
-// Signup page
-router.get('/signup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'signup.html'));
-});
-
-// Verify code page
-router.get('/verify-code', (req, res) => {
-  res.sendFile(path.join(__dirname, 'verify-code.html'));
-});
-
-// Set password page
-router.get('/set-password', (req, res) => {
-  res.sendFile(path.join(__dirname, 'set-password.html'));
-});
-
-// Login page
+// -------------------- Serve Login Page --------------------
 router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// -------------------- Signup flow --------------------
-router.post('/start-signup', (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.status(400).json({ error: 'Username required' });
-
-  const key = username.toLowerCase();
-
-  if (loginCredentials.find(u => u.username.toLowerCase() === key)) {
-    return res.status(400).json({ error: 'User already registered' });
-  }
-
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  pendingVerifications[key] = {
-    code,
-    expiresAt: Date.now() + 10 * 60 * 1000,
-    verified: false
-  };
-
-  console.log(`📩 Generated verification code ${code} for ${username}`);
-  res.json({ success: true });
-});
-
-// -------------------- Verify Code --------------------
-router.post('/verify-code', (req, res) => {
-  const { username, code } = req.body;
-  const key = username.toLowerCase();
-  const entry = pendingVerifications[key];
-
-  if (!entry) return res.status(400).json({ error: 'No pending verification' });
-  if (entry.verified) return res.status(400).json({ error: 'Already verified' });
-  if (Date.now() > entry.expiresAt) return res.status(400).json({ error: 'Code expired' });
-  if (entry.code !== code) return res.status(400).json({ error: 'Invalid code' });
-
-  entry.verified = true;
-  res.json({ success: true });
-});
-
-// -------------------- Set Password --------------------
-router.post('/set-password', async (req, res) => {
-  const { username, password } = req.body;
-  const key = username.toLowerCase();
-  const entry = pendingVerifications[key];
-
-  if (!entry || !entry.verified) return res.status(400).json({ error: 'User not verified' });
-
-  const passwordHash = await bcrypt.hash(password, 10);
-  loginCredentials.push({ username, passwordHash });
-
-  console.log(`✅ ${username} set a password and is now registered`);
-  delete pendingVerifications[key];
-  res.json({ success: true });
-});
-
-// -------------------- Login --------------------
+// -------------------- Login Logic --------------------
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = loginCredentials.find(u => u.username.toLowerCase() === username.toLowerCase());
