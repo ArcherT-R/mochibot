@@ -7,8 +7,8 @@
 <body>
   <h1>Login</h1>
   <form id="loginForm">
-    <label>Username: <input type="text" name="username" required></label>
-    <label>Password: <input type="password" name="password" required></label>
+    <label>Username: <input type="text" name="username" required></label><br>
+    <label>Password: <input type="password" name="password" required></label><br>
     <button type="submit">Login</button>
   </form>
   <p id="message"></p>
@@ -23,17 +23,20 @@
       const username = data.get('username');
       const password = data.get('password');
 
-      const res = await fetch('/loginpage/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      const json = await res.json();
-      if (res.ok) {
-        msg.textContent = `Login successful! Welcome ${json.player.username}`;
-      } else {
-        msg.textContent = json.error;
+      try {
+        const res = await fetch('/loginpage/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const json = await res.json();
+        if (res.ok) {
+          msg.textContent = `Welcome, ${json.username}!`;
+        } else {
+          msg.textContent = json.error;
+        }
+      } catch (err) {
+        msg.textContent = 'Network error';
       }
     });
   </script>
