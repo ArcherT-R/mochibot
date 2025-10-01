@@ -322,16 +322,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentShiftId = null;
   let currentUser = null;
-  let userGroupRank = 0;
 
   // ------------------- Get Current User -------------------
+  const LEADERSHIP_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Automation', 'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+  ];
+
+  const CORPORATE_RANKS = [
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
+  ];
+
+  const CHIEF_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Automation'
+  ];
+
+  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+
   async function loadCurrentUser() {
     try {
       const res = await fetch('/dashboard/current-user');
       if (res.ok) {
         currentUser = await res.json();
-        userGroupRank = currentUser.group_rank_number || 0;
-        console.log('Current user rank:', userGroupRank);
+        console.log('Current user rank:', currentUser.group_rank);
         updateTabAccess();
       }
     } catch (err) {
@@ -339,22 +356,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function hasLeadershipRank() {
+    return currentUser && LEADERSHIP_RANKS.includes(currentUser.group_rank);
+  }
+
+  function hasChiefRank() {
+    return currentUser && CHIEF_RANKS.includes(currentUser.group_rank);
+  }
+
+  function hasCorporateRank() {
+    return currentUser && CORPORATE_RANKS.includes(currentUser.group_rank);
+  }
+
+  function hasExecutiveRank() {
+    return currentUser && EXECUTIVE_RANKS.includes(currentUser.group_rank);
+  }
+
   function updateTabAccess() {
     const playerlistTab = document.querySelector('[data-tab="playerlist"]');
     const settingsTab = document.querySelector('[data-tab="settings"]');
 
-    // Player List - requires rank 230+
-    if (userGroupRank < 230) {
+    // Player List - requires leadership rank
+    if (!hasLeadershipRank()) {
       playerlistTab.style.opacity = '0.5';
       playerlistTab.style.cursor = 'not-allowed';
-      playerlistTab.title = 'Requires rank 230+';
+      playerlistTab.title = 'Requires Leadership rank';
     }
 
-    // Settings - requires rank 253+ (Vice Chairman+)
-    if (userGroupRank < 253) {
+    // Settings - requires executive rank (Chairman/Vice Chairman)
+    if (!hasExecutiveRank()) {
       settingsTab.style.opacity = '0.5';
       settingsTab.style.cursor = 'not-allowed';
-      settingsTab.title = 'Requires Vice Chairman+ (253+)';
+      settingsTab.title = 'Requires Chairman or Vice Chairman';
     }
   }
 
@@ -364,13 +397,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const tab = btn.dataset.tab;
 
       // Check access permissions
-      if (tab === 'playerlist' && userGroupRank < 230) {
-        alert('Access Denied: Player List requires rank 230+');
+      if (tab === 'playerlist' && !hasLeadershipRank()) {
+        alert('Access Denied: Player List requires Leadership rank');
         return;
       }
 
-      if (tab === 'settings' && userGroupRank < 253) {
-        alert('Access Denied: Settings requires Vice Chairman+ (253+)');
+      if (tab === 'settings' && !hasExecutiveRank()) {
+        alert('Access Denied: Settings requires Chairman or Vice Chairman rank');
         return;
       }
 
@@ -456,138 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const attendeesPromises = shifts.map(async shift => {
         try {
-          const res = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
-          return res.ok ? await res.json() : [];
-        } catch {
-          return [];
-        }
-      });
-      
-      const allAttendeesArrays = await Promise.all(attendeesPromises);
-      
-      // Count shift participation per username
-      const participationCount = {};
-      
-      shifts.forEach((shift, index) => {
-        const attendees = allAttendeesArrays[index];
-        
-        // Count host
-        if (shift.host && shift.host !== 'TBD') {
-          participationCount[shift.host] = (participationCount[shift.host] || 0) + 1;
-        }
-        
-        // Count co-host
-        if (shift.cohost) {
-          participationCount[shift.cohost] = (participationCount[shift.cohost] || 0) + 1;
-        }
-        
-        // Count overseer
-        if (shift.overseer) {
-          participationCount[shift.overseer] = (participationCount[shift.overseer] || 0) + 1;
-        }
-        
-        // Count attendees
-        attendees.forEach(attendee => {
-          participationCount[attendee.username] = (participationCount[attendee.username] || 0) + 1;
-        });
-      });
-      
-      // Convert to array and sort
-      const sortedLeaders = Object.entries(participationCount)
-        .map(([username, count]) => ({ username, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3);
-      
-      const topShiftLeadersGrid = document.getElementById('topShiftLeaders');
-      
-      if(!sortedLeaders.length){
-        topShiftLeadersGrid.innerHTML = '<div class="no-data">No shift participation data.</div>';
-        return;
-      }
-      
-      // Fetch player details for avatars
-      const playersRes = await fetch('/dashboard/players');
-      const allPlayers = playersRes.ok ? await playersRes.json() : [];
-      
-      topShiftLeadersGrid.innerHTML = sortedLeaders.map(leader => {
-        const player = allPlayers.find(p => p.username === leader.username);
-        const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
-        
-        return `
-          <div class="player-card" onclick="window.location='/dashboard/player/${leader.username}'">
-            <img src="${avatarUrl}"
-                 onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-            <div>${leader.username}</div>
-            <div class="time">${leader.count} shift${leader.count !== 1 ? 's' : ''}</div>
-          </div>`;
-      }).join('');
-    } catch(err){ 
-      console.error('Error loading shift leaders:', err); 
-      document.getElementById('topShiftLeaders').innerHTML = '<div class="no-data">Failed to load shift leaders.</div>';
-    }
-  }
-  renderTopShiftLeaders();
-  setInterval(renderTopShiftLeaders, 60000);
-
-  // ------------------- Full Player List -------------------
-  async function renderFullPlayers(){
-    try {
-      const res = await fetch('/dashboard/players');
-      const players = res.ok ? await res.json() : [];
-      if(!players.length){
-        fullPlayerList.innerHTML = '<div class="no-data">No players found.</div>';
-        return;
-      }
-      fullPlayerList.innerHTML = players.map(p => `
-        <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-          <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
-               onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-          <div>${p.username}</div>
-        </div>`).join('');
-    } catch(err){ console.error(err); fullPlayerList.innerHTML = '<div class="no-data">Failed to load players.</div>'; }
-  }
-  renderFullPlayers();
-
-  // ------------------- Shifts -------------------
-  function formatShiftTime(ts){
-    const d = new Date(ts);
-    const now = new Date();
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    let dateStr = d.toDateString() === now.toDateString() ? 'Today'
-                : d.toDateString() === tomorrow.toDateString() ? 'Tomorrow'
-                : d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
-    const timeStr = d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
-    return {date: dateStr, time: timeStr};
-  }
-
-  async function openShiftModal(shift) {
-    currentShiftId = shift.id;
-    const shiftTime = shift.shift_time || shift.time;
-    const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-    const {date, time} = formatShiftTime(new Date(timestamp));
-    
-    document.getElementById('modalShiftTitle').textContent = `${date} at ${time}`;
-    
-    // Render roles
-    let rolesHTML = `<div class="role-item"><span class="role-label">📋 Host:</span><span class="role-name">${shift.host || 'TBD'}</span></div>`;
-    if(shift.cohost) rolesHTML += `<div class="role-item"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${shift.cohost}</span></div>`;
-    if(shift.overseer) rolesHTML += `<div class="role-item"><span class="role-label">👁️ Overseer:</span><span class="role-name">${shift.overseer}</span></div>`;
-    document.getElementById('modalRoles').innerHTML = rolesHTML;
-    
-    // Load attendees
-    await renderModalAttendees();
-    
-    shiftModal.style.display = 'block';
-  }
-
-  async function renderModalAttendees() {
-    if (!currentShiftId) return;
-    
-    const container = document.getElementById('modalAttendees');
-    const addBox = document.getElementById('modalAddAttendee');
-    
-    try {
-      const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
+          const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
       const attendees = res.ok ? await res.json() : [];
       
       // Get shift details to check if user is host/cohost/overseer
@@ -601,7 +503,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currentShift.overseer === currentUser.username
       );
       
-      const canEdit = userGroupRank >= 230 || isShiftLeader;
+      // Chiefs and Chairmans can always edit
+      // Corporate can only edit if they're a shift leader (host/cohost/overseer)
+      // Directors cannot edit at all
+      const canEdit = hasChiefRank() || (hasCorporateRank() && isShiftLeader);
       
       document.getElementById('modalAttendeeCount').textContent = attendees.length;
       
@@ -752,4 +657,135 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-</html>
+</html>/attendees?shiftId=${shift.id}`);
+          return res.ok ? await res.json() : [];
+        } catch {
+          return [];
+        }
+      });
+      
+      const allAttendeesArrays = await Promise.all(attendeesPromises);
+      
+      // Count shift participation per username
+      const participationCount = {};
+      
+      shifts.forEach((shift, index) => {
+        const attendees = allAttendeesArrays[index];
+        
+        // Count host
+        if (shift.host && shift.host !== 'TBD') {
+          participationCount[shift.host] = (participationCount[shift.host] || 0) + 1;
+        }
+        
+        // Count co-host
+        if (shift.cohost) {
+          participationCount[shift.cohost] = (participationCount[shift.cohost] || 0) + 1;
+        }
+        
+        // Count overseer
+        if (shift.overseer) {
+          participationCount[shift.overseer] = (participationCount[shift.overseer] || 0) + 1;
+        }
+        
+        // Count attendees
+        attendees.forEach(attendee => {
+          participationCount[attendee.username] = (participationCount[attendee.username] || 0) + 1;
+        });
+      });
+      
+      // Convert to array and sort
+      const sortedLeaders = Object.entries(participationCount)
+        .map(([username, count]) => ({ username, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
+      
+      const topShiftLeadersGrid = document.getElementById('topShiftLeaders');
+      
+      if(!sortedLeaders.length){
+        topShiftLeadersGrid.innerHTML = '<div class="no-data">No shift participation data.</div>';
+        return;
+      }
+      
+      // Fetch player details for avatars
+      const playersRes = await fetch('/dashboard/players');
+      const allPlayers = playersRes.ok ? await playersRes.json() : [];
+      
+      topShiftLeadersGrid.innerHTML = sortedLeaders.map(leader => {
+        const player = allPlayers.find(p => p.username === leader.username);
+        const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
+        
+        return `
+          <div class="player-card" onclick="window.location='/dashboard/player/${leader.username}'">
+            <img src="${avatarUrl}"
+                 onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+            <div>${leader.username}</div>
+            <div class="time">${leader.count} shift${leader.count !== 1 ? 's' : ''}</div>
+          </div>`;
+      }).join('');
+    } catch(err){ 
+      console.error('Error loading shift leaders:', err); 
+      document.getElementById('topShiftLeaders').innerHTML = '<div class="no-data">Failed to load shift leaders.</div>';
+    }
+  }
+  renderTopShiftLeaders();
+  setInterval(renderTopShiftLeaders, 60000);
+
+  // ------------------- Full Player List -------------------
+  async function renderFullPlayers(){
+    try {
+      const res = await fetch('/dashboard/players');
+      const players = res.ok ? await res.json() : [];
+      if(!players.length){
+        fullPlayerList.innerHTML = '<div class="no-data">No players found.</div>';
+        return;
+      }
+      fullPlayerList.innerHTML = players.map(p => `
+        <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
+               onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+          <div>${p.username}</div>
+        </div>`).join('');
+    } catch(err){ console.error(err); fullPlayerList.innerHTML = '<div class="no-data">Failed to load players.</div>'; }
+  }
+  renderFullPlayers();
+
+  // ------------------- Shifts -------------------
+  function formatShiftTime(ts){
+    const d = new Date(ts);
+    const now = new Date();
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    let dateStr = d.toDateString() === now.toDateString() ? 'Today'
+                : d.toDateString() === tomorrow.toDateString() ? 'Tomorrow'
+                : d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+    const timeStr = d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
+    return {date: dateStr, time: timeStr};
+  }
+
+  async function openShiftModal(shift) {
+    currentShiftId = shift.id;
+    const shiftTime = shift.shift_time || shift.time;
+    const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+    const {date, time} = formatShiftTime(new Date(timestamp));
+    
+    document.getElementById('modalShiftTitle').textContent = `${date} at ${time}`;
+    
+    // Render roles
+    let rolesHTML = `<div class="role-item"><span class="role-label">📋 Host:</span><span class="role-name">${shift.host || 'TBD'}</span></div>`;
+    if(shift.cohost) rolesHTML += `<div class="role-item"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${shift.cohost}</span></div>`;
+    if(shift.overseer) rolesHTML += `<div class="role-item"><span class="role-label">👁️ Overseer:</span><span class="role-name">${shift.overseer}</span></div>`;
+    document.getElementById('modalRoles').innerHTML = rolesHTML;
+    
+    // Load attendees
+    await renderModalAttendees();
+    
+    shiftModal.style.display = 'block';
+  }
+
+  async function renderModalAttendees() {
+    if (!currentShiftId) return;
+    
+    const container = document.getElementById('modalAttendees');
+    const addBox = document.getElementById('modalAddAttendee');
+    
+    try {
+      const res = await fetch(`/shifts
