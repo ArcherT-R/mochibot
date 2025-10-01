@@ -59,6 +59,10 @@ async function main() {
   const dashboardRoute = require('./web/routes/dashboard');
   app.use('/dashboard', dashboardRoute);
 
+  // Log In Routes
+  const loginPageRoutes = require('./web/loginpage/routes');
+  app.use('/loginpage', loginPageRoutes);
+  
   // ----------------------------
   // Discord-Dependent Routes (Conditional)
   // ----------------------------
