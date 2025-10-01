@@ -240,6 +240,29 @@ async function getOngoingSession(roblox_id) {
 }
 
 // -------------------------
+// Shifts from Discord
+// -------------------------
+
+async function getAllShifts() {
+  const { data, error } = await supabase
+    .from("shifts")
+    .select("*")
+    .order("time", { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+async function addOrUpdateShift({ host, cohost, overseer, time }) {
+  const { data, error } = await supabase
+    .from("shifts")
+    .upsert([{ host, cohost, overseer, time }], { onConflict: ["host", "time"] })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// -------------------------
 // Exports
 // -------------------------
 module.exports = {
@@ -255,4 +278,6 @@ module.exports = {
   logPlayerLive,
   deletePlayerLiveSession,
   getOngoingSession,
+  getAllShifts,
+  addOrUpdateShift,
 };
