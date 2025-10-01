@@ -1,122 +1,381 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mochi Bar Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
-    header {
-      background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
-      background-size: 300% 100%;
-      animation: gradientFlow 6s ease infinite;
-      color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
-      box-shadow:0 2px 5px rgba(0,0,0,0.15);
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mochi Bar Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
+  header {
+    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
+    background-size: 300% 100%;
+    animation: gradientFlow 6s ease infinite;
+    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15);
+  }
+  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+  .nav-tabs {
+    background:white; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
+  }
+  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
+  .tab-button.active { background:#42b4ff; color:white; }
+  .tab-icon { font-size:20px; }
+  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
+  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
+  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
+  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
+  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
+  .search-wrapper input:focus { border-color:#42b4ff; }
+  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:#f0f8ff; }
+  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
 
-    @keyframes gradientFlow {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
+  /* Top Players */
+  .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
+  .player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
+  .player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
+  .player-card img { width:80px; height:80px; border-radius:50%; margin-bottom:10px; object-fit:cover; background:#e0e6f0; }
+  .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
+  .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
 
-    .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
-    h2 { font-size: 28px; margin-bottom: 10px; }
-    .leaderboard, .players-list {
-      background: white; border-radius: 12px; padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px;
-    }
-    .player-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 0; border-bottom: 1px solid #eee;
-    }
-    .player-item:last-child { border-bottom: none; }
-    .player-info { display: flex; align-items: center; gap: 10px; }
-    .player-info img { width: 40px; height: 40px; border-radius: 50%; }
-    .minutes { font-weight: 700; }
-    .search-bar { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; }
-  </style>
+  /* Shifts */
+  .shifts-list { display:flex; flex-direction:column; gap:16px; }
+  .shift-item { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+  .shift-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .shift-icon { font-size:24px; }
+  .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
+  .shift-roles { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .shift-role { display:flex; align-items:center; gap:8px; font-size:15px; }
+  .role-label { font-weight:600; color:#555; min-width:80px; }
+  .role-name { color:#333; }
+
+  /* Attendees */
+  .attendees-container { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .attendee-box {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default;
+  }
+  .attendee-box span { font-weight:500; color:#333; }
+  .attendee-box button { background:red; border:none; border-radius:6px; color:white; font-weight:700; padding:2px 6px; cursor:pointer; }
+  .add-attendee-box {
+    display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px;
+    background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s;
+  }
+  .add-attendee-box:hover { background:#d0e4ff; }
+
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  @media(max-width:600px){
+    header { font-size:36px; padding:20px; }
+    h2 { text-align:center; }
+    .top-players-grid { grid-template-columns:1fr; }
+    .nav-tabs { flex-direction:column; gap:10px; }
+    .nav-buttons { width:100%; justify-content:center; }
+    .search-wrapper { width:100%; max-width:100%; }
+    .tab-button { padding:10px 16px; font-size:14px; }
+    .shift-header { flex-direction:column; align-items:flex-start; }
+  }
+</style>
 </head>
 <body>
-  <header>Mochi Bar Dashboard</header>
-  <div class="container">
+<header>Mochi Bar Dashboard</header>
 
-    <div class="leaderboard">
-      <h2>🏆 Top Weekly Players</h2>
-      <% if (topPlayers && topPlayers.length > 0) { %>
-        <% topPlayers.forEach(player => { %>
-          <div class="player-item">
-            <div class="player-info">
-              <img src="<%= player.avatar_url %>" alt="">
-              <span><%= player.username %></span>
-            </div>
-            <div class="minutes"><%= player.weekly_minutes || 0 %> min</div>
-          </div>
-        <% }) %>
-      <% } else { %>
-        <p>No top players found.</p>
-      <% } %>
-    </div>
+<nav class="nav-tabs">
+  <div class="nav-buttons">
+    <button class="tab-button active" data-tab="home"><span class="tab-icon">🏠</span>Home</button>
+    <button class="tab-button" data-tab="playerlist"><span class="tab-icon">👥</span>Player List</button>
+    <button class="tab-button" data-tab="shifts"><span class="tab-icon">📅</span>Shifts</button>
+    <button class="tab-button" data-tab="myaccount"><span class="tab-icon">👤</span>My Account</button>
+    <button class="tab-button" data-tab="settings"><span class="tab-icon">⚙️</span>Settings</button>
+  </div>
+  <div class="search-wrapper">
+    <input type="text" id="playerSearch" placeholder="Search Roblox username...">
+    <div id="suggestions" class="suggestions"></div>
+  </div>
+</nav>
 
-    <div class="players-list">
-      <h2>👥 All Players</h2>
-      <input type="text" class="search-bar" id="playerSearch" placeholder="Search players..."/>
-      <div id="playerList">
-        <% if (players && players.length > 0) { %>
-          <% players.forEach(player => { %>
-            <div class="player-item">
-              <div class="player-info">
-                <img src="<%= player.avatar_url %>" alt="">
-                <span><%= player.username %></span>
-              </div>
-              <div class="minutes"><%= player.weekly_minutes || 0 %> min</div>
-            </div>
-          <% }) %>
-        <% } else { %>
-          <p>No players found.</p>
-        <% } %>
-      </div>
-    </div>
+<div class="container">
+  <!-- HOME TAB -->
+  <div id="home" class="tab-content active">
+    <section class="content-section">
+      <h2>Top Active This Week</h2>
+      <div id="topPlayersGrid" class="top-players-grid"></div>
+    </section>
   </div>
 
-  <script>
-    const searchInput = document.getElementById('playerSearch');
-    const playerList = document.getElementById('playerList');
+  <!-- PLAYER LIST TAB -->
+  <div id="playerlist" class="tab-content">
+    <section class="content-section">
+      <h2>Player List</h2>
+      <div id="fullPlayerList"></div>
+    </section>
+  </div>
 
-    searchInput.addEventListener('input', async () => {
-      const query = searchInput.value.trim();
-      if (!query) {
-        playerList.innerHTML = `<%= players.map(p => `
-          <div class="player-item">
-            <div class="player-info">
-              <img src="${p.avatar_url}" alt="">
-              <span>${p.username}</span>
-            </div>
-            <div class="minutes">${p.weekly_minutes || 0} min</div>
-          </div>
-        `).join('') %>`;
-        return;
-      }
+  <!-- SHIFTS TAB -->
+  <div id="shifts" class="tab-content">
+    <section class="content-section">
+      <h2>Upcoming Shifts & Attendees</h2>
+      <div id="shiftsList" class="shifts-list"></div>
+    </section>
+  </div>
 
-      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
-      const results = await res.json();
+  <!-- MY ACCOUNT TAB -->
+  <div id="myaccount" class="tab-content">
+    <section class="content-section">
+      <h2>My Account</h2>
+      <div class="no-data">Account settings coming soon...</div>
+    </section>
+  </div>
 
-      if (!results.length) {
-        playerList.innerHTML = "<p>No players found.</p>";
-        return;
-      }
+  <!-- SETTINGS TAB -->
+  <div id="settings" class="tab-content">
+    <section class="content-section">
+      <h2>Settings</h2>
+      <div class="no-data">Settings panel coming soon...</div>
+    </section>
+  </div>
+</div>
 
-      playerList.innerHTML = results.map(p => `
-        <div class="player-item">
-          <div class="player-info">
-            <img src="${p.avatar_url}" alt="">
-            <span>${p.username}</span>
-          </div>
-          <div class="minutes">${p.weekly_minutes || 0} min</div>
-        </div>
-      `).join('');
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('playerSearch');
+  const suggestionsBox = document.getElementById('suggestions');
+  const shiftsList = document.getElementById('shiftsList');
+  const topPlayersGrid = document.getElementById('topPlayersGrid');
+  const fullPlayerList = document.getElementById('fullPlayerList');
+
+  // ------------------- Tabs -------------------
+  document.querySelectorAll('.tab-button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
     });
-  </script>
+  });
+
+  // ------------------- Player Search -------------------
+  input.addEventListener('input', async () => {
+    const q = input.value.trim();
+    if (!q) { suggestionsBox.innerHTML = ''; return; }
+    try {
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      suggestionsBox.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>`).join('');
+    } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+  });
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
+  });
+
+  // ------------------- Top Players -------------------
+  let topPlayersData = <%- JSON.stringify(topPlayers || []) %>;
+
+  function calculateLiveMinutes(player){
+    if(player.ongoing_session_start_time){
+      const elapsed = Date.now() - new Date(player.ongoing_session_start_time).getTime();
+      return elapsed > 0 ? elapsed / 1000 / 60 : 0;
+    }
+    return 0;
+  }
+
+  function getTotalMinutes(player){ return (player.weekly_minutes || 0) + calculateLiveMinutes(player); }
+
+  function formatMinutes(total){
+    if(total < 1) return '0 min';
+    const mins = Math.round(total), h = Math.floor(mins / 60), m = mins % 60;
+    return h > 0 ? `${h} hr ${m} min` : `${m} min`;
+  }
+
+  function renderTopPlayers(){
+    if(!topPlayersData.length){
+      topPlayersGrid.innerHTML = '<div class="no-data">No active players data.</div>';
+      return;
+    }
+    const livePlayers = topPlayersData
+      .map(p => ({...p, live_total_minutes: getTotalMinutes(p), is_live: calculateLiveMinutes(p) > 0}))
+      .sort((a,b) => b.live_total_minutes - a.live_total_minutes)
+      .slice(0,8);
+
+    topPlayersGrid.innerHTML = livePlayers.map(p => `
+      <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
+        <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
+             onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+        <div>${p.username}</div>
+        ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
+        <div class="time">${formatMinutes(p.live_total_minutes)}</div>
+      </div>`).join('');
+  }
+  renderTopPlayers();
+  setInterval(renderTopPlayers, 5000);
+
+  // ------------------- Full Player List -------------------
+  async function renderFullPlayers(){
+    try {
+      const res = await fetch('/dashboard/players');
+      const players = res.ok ? await res.json() : [];
+      if(!players.length){
+        fullPlayerList.innerHTML = '<div class="no-data">No players found.</div>';
+        return;
+      }
+      fullPlayerList.innerHTML = players.map(p => `
+        <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
+               onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+          <div>${p.username}</div>
+        </div>`).join('');
+    } catch(err){
+      console.error(err);
+      fullPlayerList.innerHTML = '<div class="no-data">Failed to load players.</div>';
+    }
+  }
+  renderFullPlayers();
+
+  // ------------------- Shifts -------------------
+  function formatShiftTime(ts){
+    const d = new Date(ts * 1000);
+    const now = new Date();
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    let dateStr = d.toDateString() === now.toDateString() ? 'Today'
+                : d.toDateString() === tomorrow.toDateString() ? 'Tomorrow'
+                : d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+    const timeStr = d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
+    return {date: dateStr, time: timeStr};
+  }
+
+  async function fetchAttendees(shiftId){
+    const res = await fetch(`/shifts/attendees?shiftId=${shiftId}`);
+    return res.ok ? await res.json() : [];
+  }
+
+  async function renderAttendees(shiftId){
+    const container = document.getElementById(`attendees-${shiftId}`);
+    const addBox = document.getElementById(`add-attendee-${shiftId}`);
+    container.innerHTML = '';
+
+    const attendees = await fetchAttendees(shiftId);
+
+    attendees.forEach(a => {
+      const box = document.createElement('div');
+      box.className = 'attendee-box';
+      box.innerHTML = `<span>${a.username}</span><button data-robloxid="${a.roblox_id}">×</button>`;
+      box.querySelector('button').addEventListener('click', async () => {
+        await fetch('/shifts/remove-attendee', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({shiftId, robloxId:a.roblox_id})
+        });
+        renderAttendees(shiftId);
+      });
+      container.appendChild(box);
+    });
+
+    addBox.onclick = async e => {
+      e.stopPropagation();
+      if(addBox.querySelector('select')) return;
+
+      const res = await fetch('/dashboard/players');
+      const players = res.ok ? await res.json() : [];
+      const select = document.createElement('select');
+      select.style.width = '100%';
+      select.style.padding = '8px';
+      select.style.fontSize = '14px';
+      select.style.border = '1px solid #42b4ff';
+      select.style.borderRadius = '6px';
+      select.innerHTML = '<option value="">Select player...</option>' + players.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username}</option>`).join('');
+
+      addBox.style.background = '#fff';
+      addBox.style.border = '2px solid #42b4ff';
+      addBox.innerHTML = '';
+      addBox.appendChild(select);
+      select.focus();
+
+      select.onchange = async () => {
+        if(select.value){
+          const [robloxId, username] = select.value.split('|');
+          await fetch('/shifts/add-attendee', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({shiftId, robloxId, username})
+          });
+          await renderAttendees(shiftId);
+        } else {
+          addBox.style.background = '#e0e6f0';
+          addBox.style.border = '1px dashed #42b4ff';
+          addBox.innerHTML = '+ Add attendee';
+        }
+      };
+
+      select.onblur = () => {
+        setTimeout(() => {
+          if(!select.value){
+            addBox.style.background = '#e0e6f0';
+            addBox.style.border = '1px dashed #42b4ff';
+            addBox.innerHTML = '+ Add attendee';
+          }
+        }, 200);
+      };
+    };
+  }
+
+  async function loadShifts(){
+    shiftsList.innerHTML = `<div class="no-data">Fetching shifts...</div>`;
+    try{
+      const res = await fetch('/shifts');
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const shifts = await res.json();
+      const now = Math.floor(Date.now()/1000);
+      const upcoming = shifts.filter(s => s.time && s.time > now).sort((a,b)=>a.time-b.time);
+
+      if(!upcoming.length){
+        shiftsList.innerHTML = '<div class="no-data">No upcoming shifts.</div>';
+        return;
+      }
+
+      shiftsList.innerHTML = '';
+      upcoming.forEach((s,index)=>{
+        const shiftId = s.id ?? index;
+        const {date,time} = formatShiftTime(s.time);
+        const div = document.createElement('div');
+        div.className = 'shift-item';
+
+        let rolesHTML = `<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host || 'TBD'}</span></div>`;
+        if(s.cohost) rolesHTML += `<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`;
+        if(s.overseer) rolesHTML += `<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${s.overseer}</span></div>`;
+
+        div.innerHTML = `
+          <div class="shift-header">
+            <span class="shift-icon">📅</span>
+            <span class="shift-datetime">${date} at ${time}</span>
+          </div>
+          <div class="shift-roles">${rolesHTML}</div>
+          <div class="attendees-container" id="attendees-${shiftId}"></div>
+          <div class="add-attendee-box" id="add-attendee-${shiftId}">+ Add attendee</div>
+        `;
+        shiftsList.appendChild(div);
+
+        renderAttendees(shiftId).catch(console.error);
+      });
+    } catch(err){
+      console.error('Failed to load shifts:', err);
+      shiftsList.innerHTML = '<div class="no-data">Failed to load shifts.</div>';
+    }
+  }
+
+  loadShifts();
+});
+</script>
 </body>
 </html>
