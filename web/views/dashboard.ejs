@@ -327,8 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const LEADERSHIP_RANKS = [
     'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
     'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
-    'Automation', 'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
   ];
 
   const CORPORATE_RANKS = [
@@ -355,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Has Chief Rank:', hasChiefRank());
         console.log('Has Executive Rank:', hasExecutiveRank());
         updateTabAccess();
+        lockSearchIfNeeded();
       }
     } catch (err) {
       console.error('Failed to load current user:', err);
@@ -364,28 +364,24 @@ document.addEventListener('DOMContentLoaded', () => {
   function hasLeadershipRank() {
     if (!currentUser) return false;
     const rank = currentUser.group_rank || currentUser.rank;
-    if (!rank) return false;
     return LEADERSHIP_RANKS.includes(rank);
   }
 
   function hasChiefRank() {
     if (!currentUser) return false;
     const rank = currentUser.group_rank || currentUser.rank;
-    if (!rank) return false;
     return CHIEF_RANKS.includes(rank);
   }
 
   function hasCorporateRank() {
     if (!currentUser) return false;
     const rank = currentUser.group_rank || currentUser.rank;
-    if (!rank) return false;
     return CORPORATE_RANKS.includes(rank);
   }
 
   function hasExecutiveRank() {
     if (!currentUser) return false;
     const rank = currentUser.group_rank || currentUser.rank;
-    if (!rank) return false;
     return EXECUTIVE_RANKS.includes(rank);
   }
 
@@ -415,6 +411,15 @@ document.addEventListener('DOMContentLoaded', () => {
       settingsTab.style.opacity = '1';
       settingsTab.style.cursor = 'pointer';
       settingsTab.title = '';
+    }
+  }
+
+  // ------------------- Lock Search for Non-Leadership -------------------
+  function lockSearchIfNeeded() {
+    if (!hasLeadershipRank()) {
+      input.disabled = true;
+      input.placeholder = 'Requires Leadership rank';
+      suggestionsBox.innerHTML = '';
     }
   }
 
@@ -455,6 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ------------------- Player Search -------------------
   input.addEventListener('input', async () => {
+    if (!hasLeadershipRank()) return; // extra safety
     const q = input.value.trim();
     if (!q) { suggestionsBox.innerHTML = ''; return; }
     try {
@@ -468,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`).join('');
     } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
   });
-  
+
   document.addEventListener('click', e => {
     if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
   });
