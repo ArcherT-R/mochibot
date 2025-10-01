@@ -593,8 +593,8 @@
       const now = Date.now();
       
       const playerUpcomingShifts = [];
-      const pastAttendedShifts = [];
-      const pastHostedShifts = [];
+      const allAttendedShifts = [];
+      const allHostedShifts = [];
       
       for (const shift of allShifts) {
         const shiftTime = shift.shift_time || shift.time;
@@ -603,6 +603,7 @@
         const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
         
         let role = null;
+        let isAttendee = false;
         
         const hostNormalized = shift.host ? shift.host.replace(/\s/g, '').toLowerCase() : '';
         if (hostNormalized === normalizedPlayerName) {
@@ -617,40 +618,43 @@
         const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
         if (attendeesRes.ok) {
           const attendees = await attendeesRes.json();
-          const isAttendee = attendees.some(a => a.roblox_id === playerRobloxId);
+          isAttendee = attendees.some(a => a.roblox_id === playerRobloxId);
           if (isAttendee && !role) {
             role = 'Attendee';
           }
         }
         
-        if (role) {
-          const shiftData = { ...shift, role, timestamp };
-          
-          if (timestamp > now) {
-            playerUpcomingShifts.push(shiftData);
-          } else {
-            if (role === 'Host' || role === 'Co-Host') {
-              pastHostedShifts.push(shiftData);
-            } else if (role === 'Attendee') {
-              pastAttendedShifts.push(shiftData);
-            }
-          }
+        const shiftData = { ...shift, role, timestamp };
+        
+        // Count ALL attended shifts (past and future) for the counter
+        if (isAttendee) {
+          allAttendedShifts.push(shiftData);
+        }
+        
+        // Count ALL hosted shifts (past and future) for the counter
+        if (role === 'Host' || role === 'Co-Host') {
+          allHostedShifts.push(shiftData);
+        }
+        
+        // Only show upcoming shifts in the "Upcoming Shifts" section
+        if (role && timestamp > now) {
+          playerUpcomingShifts.push(shiftData);
         }
       }
       
       playerUpcomingShifts.sort((a, b) => a.timestamp - b.timestamp);
-      pastAttendedShifts.sort((a, b) => b.timestamp - a.timestamp);
-      pastHostedShifts.sort((a, b) => b.timestamp - a.timestamp);
+      allAttendedShifts.sort((a, b) => b.timestamp - a.timestamp);
+      allHostedShifts.sort((a, b) => b.timestamp - a.timestamp);
       
       console.log('Player upcoming shifts:', playerUpcomingShifts);
-      console.log('Past attended shifts:', pastAttendedShifts);
-      console.log('Past hosted shifts:', pastHostedShifts);
+      console.log('All attended shifts:', allAttendedShifts);
+      console.log('All hosted shifts:', allHostedShifts);
       
-      document.getElementById('attended-count').textContent = pastAttendedShifts.length;
-      document.getElementById('hosted-count').textContent = pastHostedShifts.length;
+      document.getElementById('attended-count').textContent = allAttendedShifts.length;
+      document.getElementById('hosted-count').textContent = allHostedShifts.length;
       
-      window.pastAttendedShifts = pastAttendedShifts;
-      window.pastHostedShifts = pastHostedShifts;
+      window.pastAttendedShifts = allAttendedShifts;
+      window.pastHostedShifts = allHostedShifts;
       
       playerShiftsContainer.innerHTML = '';
       if (playerUpcomingShifts.length === 0) {
