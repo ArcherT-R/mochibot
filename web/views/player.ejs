@@ -292,14 +292,8 @@
   }
 
   @keyframes slideIn {
-    from {
-      transform: translateY(-50px);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 
   .modal-header {
@@ -326,9 +320,7 @@
     line-height: 1;
   }
 
-  .close:hover {
-    color: #333;
-  }
+  .close:hover { color: #333; }
 
   .modal-body {
     font-size: 15px;
@@ -343,29 +335,14 @@
     border-radius: 6px;
   }
 
-  .modal-body strong {
-    color: #1a85e6;
-    display: inline-block;
-    min-width: 140px;
-  }
+  .modal-body strong { color: #1a85e6; display: inline-block; min-width: 140px; }
 
   @media (max-width: 900px) {
-    header {
-      font-size: 36px;
-      padding: 20px;
-    }
-    .container {
-      flex-direction: column;
-    }
-    .card {
-      min-width: 100%;
-    }
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-    .back-button {
-      margin: 20px;
-    }
+    header { font-size: 36px; padding: 20px; }
+    .container { flex-direction: column; }
+    .card { min-width: 100%; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .back-button { margin: 20px; }
   }
 </style>
 </head>
@@ -486,7 +463,7 @@
   // --- Live Counter ---
   const startTimeInput = document.getElementById('session-start-time');
   if (startTimeInput) {
-    const startTime = parseInt(startTimeInput.value);
+    const startTime = parseInt(startTimeInput.value, 10) || Date.now();
     function updateLiveCounter() {
       const elapsed = Date.now() - startTime;
       const totalSeconds = Math.floor(elapsed / 1000);
@@ -524,28 +501,22 @@
     modal.style.display = 'block';
   }
 
-  function closeModal() {
-    modal.style.display = 'none';
-  }
-  
-  window.onclick = function(e) {
-    if (e.target === modal) closeModal();
-  }
+  function closeModal() { modal.style.display = 'none'; }
+  window.onclick = function(e) { if (e.target === modal) closeModal(); }
 
   // --- Load Shifts ---
   async function loadPlayerShifts() {
     try {
       const res = await fetch('/sessions');
-      const sessions = await res.json();
+      const allShifts = await res.json();
       const now = Math.floor(Date.now() / 1000);
-      const relevant = sessions.filter(s => {
+      const relevant = allShifts.filter(s => {
         const host = s.host ? s.host.replace(/\s/g, '').toLowerCase() : '';
         const cohost = s.cohost ? s.cohost.replace(/\s/g, '').toLowerCase() : '';
         return (host === normalizedPlayerName || cohost === normalizedPlayerName) && s.time > now;
       }).sort((a, b) => a.time - b.time);
 
       playerShiftsContainer.innerHTML = '';
-
       if (relevant.length === 0) {
         playerShiftsContainer.innerHTML = '<div class="no-data">No upcoming shifts scheduled</div>';
         return;
