@@ -1,54 +1,12 @@
-// endpoints/shifts.js
 const express = require('express');
-const { createClient } = require('@supabase/supabase-js');
+const {
+  getAllShifts,
+  addShift,
+  getShiftAttendees,
+  addShiftAttendee,
+  removeShiftAttendee
+} = require('./database');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-// -------------------------
-// Shift DB Functions
-// -------------------------
-
-async function getAllShifts() {
-  const { data, error } = await supabase
-    .from('shifts')
-    .select('*')
-    .order('time', { ascending: true });
-  if (error) throw error;
-  return data;
-}
-
-async function getShiftAttendees(shiftId) {
-  const { data, error } = await supabase
-    .from('shift_attendees')
-    .select('*')
-    .eq('shift_id', shiftId);
-  if (error) throw error;
-  return data;
-}
-
-async function addShiftAttendee(shiftId, robloxId, username) {
-  const { data, error } = await supabase
-    .from('shift_attendees')
-    .insert([{ shift_id: shiftId, roblox_id: robloxId, username }])
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
-
-async function removeShiftAttendee(shiftId, robloxId) {
-  const { error } = await supabase
-    .from('shift_attendees')
-    .delete()
-    .eq('shift_id', shiftId)
-    .eq('roblox_id', robloxId);
-  if (error) throw error;
-  return { success: true };
-}
-
-// -------------------------
-// Express Router
-// -------------------------
 const router = express.Router();
 
 // Get all shifts
@@ -62,7 +20,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get attendees for a shift
+// Get attendees
 router.get('/attendees', async (req, res) => {
   const shiftId = req.query.shiftId;
   if (!shiftId) return res.status(400).json({ error: 'Missing shiftId' });
@@ -76,7 +34,7 @@ router.get('/attendees', async (req, res) => {
   }
 });
 
-// Add an attendee
+// Add attendee
 router.post('/add-attendee', async (req, res) => {
   const { shiftId, robloxId, username } = req.body;
   if (!shiftId || !robloxId || !username)
@@ -91,7 +49,7 @@ router.post('/add-attendee', async (req, res) => {
   }
 });
 
-// Remove an attendee
+// Remove attendee
 router.post('/remove-attendee', async (req, res) => {
   const { shiftId, robloxId } = req.body;
   if (!shiftId || !robloxId)
@@ -106,7 +64,18 @@ router.post('/remove-attendee', async (req, res) => {
   }
 });
 
-// -------------------------
-// Export router only
-// -------------------------
+// Add new shift
+router.post('/add', async (req, res) => {
+  const { shift_time, host, cohost, overseer } = req.body;
+  if (!shift_time) return res.status(400).json({ error: 'Missing shift_time' });
+
+  try {
+    const shift = await addShift({ shift_time, host, cohost, overseer });
+    res.json(shift);
+  } catch (err) {
+    console.error('Error adding shift:', err);
+    res.status(500).json({ error: 'Failed to add shift' });
+  }
+});
+
 module.exports = router;
