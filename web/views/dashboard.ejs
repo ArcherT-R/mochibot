@@ -15,10 +15,7 @@
     box-shadow:0 2px 5px rgba(0,0,0,0.15);
   }
   @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
-  .nav-tabs {
-    background:white; display:flex; justify-content:space-between; align-items:center;
-    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
-  }
+  .nav-tabs { background:white; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap; }
   .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
   .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
   .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
@@ -36,7 +33,6 @@
   .suggestion-item:hover { background:#f0f8ff; }
   .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
 
-  /* Top Players */
   .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
   .player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
   .player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
@@ -44,7 +40,6 @@
   .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
   .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
 
-  /* Shifts */
   .shifts-list { display:flex; flex-direction:column; gap:16px; }
   .shift-item { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
   .shift-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -55,18 +50,11 @@
   .role-label { font-weight:600; color:#555; min-width:80px; }
   .role-name { color:#333; }
 
-  /* Attendees */
   .attendees-container { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-  .attendee-box {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default;
-  }
+  .attendee-box { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default; }
   .attendee-box span { font-weight:500; color:#333; }
   .attendee-box button { background:red; border:none; border-radius:6px; color:white; font-weight:700; padding:2px 6px; cursor:pointer; }
-  .add-attendee-box {
-    display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px;
-    background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s;
-  }
+  .add-attendee-box { display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px; background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s; }
   .add-attendee-box:hover { background:#d0e4ff; }
 
   .tab-content { display:none; }
@@ -85,6 +73,7 @@
 </style>
 </head>
 <body>
+
 <header>Mochi Bar Dashboard</header>
 
 <nav class="nav-tabs">
@@ -102,7 +91,6 @@
 </nav>
 
 <div class="container">
-  <!-- HOME TAB -->
   <div id="home" class="tab-content active">
     <section class="content-section">
       <h2>Top Active This Week</h2>
@@ -110,25 +98,20 @@
     </section>
   </div>
 
-  <!-- PLAYER LIST TAB -->
   <div id="playerlist" class="tab-content">
     <section class="content-section">
       <h2>Player List</h2>
-      <div class="no-data">Player list coming soon...</div>
+      <div id="playerListContainer"></div>
     </section>
   </div>
 
-  <!-- SHIFTS TAB -->
   <div id="shifts" class="tab-content">
     <section class="content-section">
       <h2>Upcoming Shifts & Attendees</h2>
-      <div id="shiftsList" class="shifts-list">
-        <div class="no-data">Loading upcoming shifts...</div>
-      </div>
+      <div id="shiftsList" class="shifts-list"></div>
     </section>
   </div>
 
-  <!-- MY ACCOUNT TAB -->
   <div id="myaccount" class="tab-content">
     <section class="content-section">
       <h2>My Account</h2>
@@ -136,7 +119,6 @@
     </section>
   </div>
 
-  <!-- SETTINGS TAB -->
   <div id="settings" class="tab-content">
     <section class="content-section">
       <h2>Settings</h2>
@@ -149,14 +131,14 @@
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('playerSearch');
   const suggestionsBox = document.getElementById('suggestions');
-  const shiftsList = document.getElementById('shiftsList');
   const topPlayersGrid = document.getElementById('topPlayersGrid');
+  const playerListContainer = document.getElementById('playerListContainer');
+  const shiftsList = document.getElementById('shiftsList');
 
-  // Safe topPlayersData
-  let topPlayersData;
-  try { topPlayersData = <%- JSON.stringify(topPlayers || []) %>; } catch { topPlayersData = []; }
+  // --- Public players data ---
+  const playersData = window.public?.players || [];
 
-  // ------------------- Tabs -------------------
+  // --- Tabs ---
   document.querySelectorAll('.tab-button').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
@@ -166,197 +148,105 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ------------------- Search -------------------
-  input.addEventListener('input', async () => {
-    const q = input.value.trim();
-    if (!q) { suggestionsBox.innerHTML = ''; return; }
-    try {
-      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
-      const players = await res.ok ? await res.json() : [];
-      suggestionsBox.innerHTML = players.map(p => `
-        <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
-               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
-          <span>${p.username}</span>
-        </div>`).join('');
-    } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+  // --- Search ---
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if(!q){ suggestionsBox.innerHTML=''; return; }
+    const filtered = playersData.filter(p => p.username.toLowerCase().includes(q));
+    suggestionsBox.innerHTML = filtered.map(p => `
+      <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+        <img src="${p.avatar_url || 'https://placehold.co/40x40/e0e6f0/5f6c7b?text=U'}" />
+        <span>${p.username}</span>
+      </div>
+    `).join('');
   });
   document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
+    if(!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML='';
   });
 
-  // ------------------- Top Players -------------------
-  function calculateLiveMinutes(player){
-    if(player.ongoing_session_start_time){
-      const elapsed = Date.now() - new Date(player.ongoing_session_start_time).getTime();
-      return elapsed > 0 ? elapsed / 1000 / 60 : 0;
-    }
-    return 0;
-  }
-
-  function getTotalMinutes(player){ return (player.weekly_minutes || 0) + calculateLiveMinutes(player); }
-
-  function formatMinutes(total){
-    if(total < 1) return '0 min';
-    const mins = Math.round(total), h = Math.floor(mins / 60), m = mins % 60;
-    return h > 0 ? `${h} hr ${m} min` : `${m} min`;
-  }
+  // --- Top Players ---
+  function calculateLiveMinutes(player){ return player.ongoing_session_start_time ? Math.max(0,(Date.now()-new Date(player.ongoing_session_start_time))/60000) : 0; }
+  function getTotalMinutes(player){ return (player.weekly_minutes||0)+calculateLiveMinutes(player); }
+  function formatMinutes(total){ const mins=Math.round(total), h=Math.floor(mins/60), m=mins%60; return h>0?`${h} hr ${m} min`:`${m} min`; }
 
   function renderTopPlayers(){
-    if(!topPlayersData.length){
-      topPlayersGrid.innerHTML = '<div class="no-data">No active players data.</div>';
-      return;
-    }
-    const livePlayers = topPlayersData
-      .map(p => ({...p, live_total_minutes: getTotalMinutes(p), is_live: calculateLiveMinutes(p) > 0}))
-      .sort((a,b) => b.live_total_minutes - a.live_total_minutes)
-      .slice(0,3);
-
-    topPlayersGrid.innerHTML = livePlayers.map(p => `
+    if(!playersData.length){ topPlayersGrid.innerHTML='<div class="no-data">No players data.</div>'; return; }
+    const top = playersData.map(p=>({...p, live_total_minutes:getTotalMinutes(p), is_live:calculateLiveMinutes(p)>0}))
+      .sort((a,b)=>b.live_total_minutes-a.live_total_minutes).slice(0,3);
+    topPlayersGrid.innerHTML = top.map(p=>`
       <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-        <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
-             onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+        <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" />
         <div>${p.username}</div>
-        ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
+        ${p.is_live?'<span class="live-status">LIVE</span>':''}
         <div class="time">${formatMinutes(p.live_total_minutes)}</div>
-      </div>`).join('');
+      </div>
+    `).join('');
   }
   renderTopPlayers();
-  setInterval(renderTopPlayers, 5000);
+  setInterval(renderTopPlayers,5000);
 
-  // ------------------- Shifts -------------------
-  function formatShiftTime(ts){
-    const d = new Date(ts * 1000);
-    const now = new Date();
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    let dateStr = d.toDateString() === now.toDateString() ? 'Today'
-                : d.toDateString() === tomorrow.toDateString() ? 'Tomorrow'
-                : d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
-    const timeStr = d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
-    return {date: dateStr, time: timeStr};
+  // --- Player List ---
+  function renderPlayerList(){
+    if(!playersData.length){ playerListContainer.innerHTML='<div class="no-data">No players available.</div>'; return; }
+    playerListContainer.innerHTML = playersData.map(p=>`
+      <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
+        <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" />
+        <div>${p.username}</div>
+        <div class="time">${formatMinutes(getTotalMinutes(p))}</div>
+      </div>
+    `).join('');
+  }
+  renderPlayerList();
+
+  // --- Shifts ---
+  const shiftsData = window.public?.shifts || []; // Array of shift objects with shift.attendees
+  function formatShiftTime(ts){ const d=new Date(ts*1000); const now=new Date(); const tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1); const dateStr=d.toDateString()===now.toDateString()?'Today':d.toDateString()===tomorrow.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}); const timeStr=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true}); return {date:dateStr,time:timeStr}; }
+
+  function renderShifts(){
+    if(!shiftsData.length){ shiftsList.innerHTML='<div class="no-data">No upcoming shifts.</div>'; return; }
+    shiftsList.innerHTML='';
+    shiftsData.forEach((s,i)=>{
+      const shiftId=i;
+      const {date,time}=formatShiftTime(s.time);
+      const div=document.createElement('div'); div.className='shift-item';
+      let rolesHTML=''; if(s.host)rolesHTML+=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host}</span></div>`; 
+      if(s.cohost)rolesHTML+=`<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`; 
+      if(s.overseer)rolesHTML+=`<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${s.overseer}</span></div>`;
+      div.innerHTML=`
+        <div class="shift-header"><span class="shift-icon">📅</span><span class="shift-datetime">${date} at ${time}</span></div>
+        <div class="shift-roles">${rolesHTML}</div>
+        <div class="attendees-container" id="attendees-${shiftId}"></div>
+        <div class="add-attendee-box" id="add-attendee-${shiftId}">+ Add attendee</div>
+      `;
+      shiftsList.appendChild(div);
+      renderShiftAttendees(shiftId,s);
+    });
   }
 
-  async function fetchAttendees(shiftId){
-    const res = await fetch(`/shifts/attendees?shiftId=${shiftId}`);
-    return res.ok ? await res.json() : [];
-  }
-
-  async function renderAttendees(shiftId){
-    const container = document.getElementById(`attendees-${shiftId}`);
-    const addBox = document.getElementById(`add-attendee-${shiftId}`);
-    container.innerHTML = '';
-
-    const attendees = await fetchAttendees(shiftId);
-
-    attendees.forEach(a => {
-      const box = document.createElement('div');
-      box.className = 'attendee-box';
-      box.innerHTML = `<span>${a.username}</span><button data-username="${a.username}">×</button>`;
-      box.querySelector('button').addEventListener('click', async () => {
-        await fetch('/shifts/remove-attendee', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({shiftId, username:a.username})
-        });
-        renderAttendees(shiftId);
-      });
+  function renderShiftAttendees(shiftId,shift){
+    const container=document.getElementById(`attendees-${shiftId}`);
+    const addBox=document.getElementById(`add-attendee-${shiftId}`);
+    container.innerHTML='';
+    const attendees=shift.attendees||[];
+    attendees.forEach(a=>{
+      const box=document.createElement('div'); box.className='attendee-box';
+      box.innerHTML=`<span>${a.username}</span><button data-username="${a.username}">×</button>`;
+      box.querySelector('button').addEventListener('click',()=>{ const idx=attendees.findIndex(p=>p.username===a.username); if(idx>-1){ attendees.splice(idx,1); renderShiftAttendees(shiftId,shift); }});
       container.appendChild(box);
     });
-
-    addBox.onclick = async e => {
-      e.stopPropagation();
+    addBox.onclick=()=>{
       if(addBox.querySelector('select')) return;
-
-      const res = await fetch('/shifts/players');
-      const players = res.ok ? await res.json() : [];
-      const select = document.createElement('select');
-      select.style.width = '100%';
-      select.style.padding = '8px';
-      select.style.fontSize = '14px';
-      select.style.border = '1px solid #42b4ff';
-      select.style.borderRadius = '6px';
-      select.innerHTML = '<option value="">Select player...</option>' + players.map(p => `<option value="${p.username}">${p.username}</option>`).join('');
-
-      addBox.style.background = '#fff';
-      addBox.style.border = '2px solid #42b4ff';
-      addBox.innerHTML = '';
-      addBox.appendChild(select);
-      select.focus();
-
-      select.onchange = async () => {
-        if(select.value){
-          await fetch('/shifts/add-attendee', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({shiftId, username: select.value})
-          });
-          await renderAttendees(shiftId);
-        } else {
-          addBox.style.background = '#e0e6f0';
-          addBox.style.border = '1px dashed #42b4ff';
-          addBox.innerHTML = '+ Add attendee';
-        }
-      };
-
-      select.onblur = () => {
-        setTimeout(() => {
-          if(!select.value){
-            addBox.style.background = '#e0e6f0';
-            addBox.style.border = '1px dashed #42b4ff';
-            addBox.innerHTML = '+ Add attendee';
-          }
-        }, 200);
-      };
+      const select=document.createElement('select'); select.style.width='100%'; select.style.padding='8px'; select.style.fontSize='14px'; select.style.border='1px solid #42b4ff'; select.style.borderRadius='6px';
+      select.innerHTML='<option value="">Select player...</option>'+playersData.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
+      addBox.style.background='#fff'; addBox.style.border='2px solid #42b4ff'; addBox.innerHTML=''; addBox.appendChild(select); select.focus();
+      select.onchange=()=>{ if(select.value){ attendees.push({username:select.value}); renderShiftAttendees(shiftId,shift); }};
+      select.onblur=()=>setTimeout(()=>{ if(!select.value){ addBox.style.background='#e0e6f0'; addBox.style.border='1px dashed #42b4ff'; addBox.innerHTML='+ Add attendee'; }},50);
     };
   }
 
-  async function loadShifts(){
-    shiftsList.innerHTML = `<div class="no-data">Fetching data from Discord...</div>`;
-    try{
-      const res = await fetch('/sessions');
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const sessions = await res.json();
-      const now = Math.floor(Date.now() / 1000);
-      const upcoming = sessions.filter(s => s.time && s.time > now).sort((a,b)=>a.time-b.time);
-
-      if(!upcoming.length){
-        shiftsList.innerHTML = '<div class="no-data">No upcoming shifts are currently scheduled.</div>';
-        return;
-      }
-
-      shiftsList.innerHTML = '';
-      upcoming.forEach((s, index) => {
-        const shiftId = index; // use index as temporary shiftId
-        const {date, time} = formatShiftTime(s.time);
-        const div = document.createElement('div');
-        div.className = 'shift-item';
-
-        let rolesHTML = `<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host || 'TBD'}</span></div>`;
-        if(s.cohost) rolesHTML += `<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`;
-        if(s.overseer) rolesHTML += `<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${s.overseer}</span></div>`;
-
-        div.innerHTML = `
-          <div class="shift-header">
-            <span class="shift-icon">📅</span>
-            <span class="shift-datetime">${date} at ${time}</span>
-          </div>
-          <div class="shift-roles">${rolesHTML}</div>
-          <div class="attendees-container" id="attendees-${shiftId}"></div>
-          <div class="add-attendee-box" id="add-attendee-${shiftId}">+ Add attendee</div>
-        `;
-        shiftsList.appendChild(div);
-
-        renderAttendees(shiftId).catch(console.error);
-      });
-    } catch(err){
-      console.error('Failed to load shifts:', err);
-      shiftsList.innerHTML = '<div class="no-data">Failed to load shifts.</div>';
-    }
-  }
-
-  // Initial load
-  loadShifts();
+  renderShifts();
 });
 </script>
+
 </body>
 </html>
