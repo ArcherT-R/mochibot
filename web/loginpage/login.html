@@ -31,7 +31,7 @@
 
       const json = await res.json();
       if (res.ok) {
-        msg.textContent = 'Login successful!';
+        msg.textContent = `Login successful! Welcome ${json.player.username}`;
       } else {
         msg.textContent = json.error;
       }
