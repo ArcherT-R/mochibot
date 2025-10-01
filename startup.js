@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { startBot } = require('./bot/client');
+const session = require('express-session');
 
 async function main() {
   let client = null;
@@ -21,6 +22,16 @@ async function main() {
   // Initialize Express App
   // ----------------------------
   const app = express();
+
+  // ----------------------------
+  // Session Middleware
+  // ----------------------------
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'supersecretkey',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 day
+  }));
 
   // ----------------------------
   // View Engine Setup
