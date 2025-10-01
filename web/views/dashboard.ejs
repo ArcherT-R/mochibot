@@ -518,62 +518,61 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === shiftModal) closeShiftModal();
   };
 
-  async function loadShifts(){
-    shiftsList.innerHTML = `<div class="no-data">Fetching shifts...</div>`;
-    try{
-      const res = await fetch('/shifts');
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const shifts = await res.json();
-      
-      const now = Date.now();
-      const upcoming = shifts.filter(s => {
-        const shiftTime = s.shift_time || s.time;
-        if(!shiftTime) return false;
-        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-        return timestamp > now;
-      }).sort((a,b)=> {
-        const timeA = a.shift_time || a.time;
-        const timeB = b.shift_time || b.time;
-        const tsA = timeA.toString().length === 10 ? timeA * 1000 : timeA;
-        const tsB = timeB.toString().length === 10 ? timeB * 1000 : timeB;
-        return tsA - tsB;
-      });
+async function loadShifts(){
+  shiftsList.innerHTML = `<div class="no-data">Fetching shifts...</div>`;
+  try{
+    const res = await fetch('/shifts');
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const shifts = await res.json();
 
-      if(!upcoming.length){
-        shiftsList.innerHTML = '<div class="no-data">No upcoming shifts.</div>';
-        return;
-      }
+    const now = Date.now();
 
-      shiftsList.innerHTML = '';
-      upcoming.forEach((shift)=>{
-        const shiftTime = shift.shift_time || shift.time;
-        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-        const {date, time} = formatShiftTime(new Date(timestamp));
-        
-        const card = document.createElement('div');
-        card.className = 'shift-card';
-        card.onclick = () => openShiftModal(shift);
-        
-        card.innerHTML = `
-          <div class="shift-header">
-            <div class="shift-left">
-              <span class="shift-icon">📅</span>
-              <div class="shift-info">
-                <div class="shift-datetime">${date} at ${time}</div>
-                <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
-              </div>
-            </div>
-            <span class="shift-arrow">→</span>
-          </div>
-        `;
-        shiftsList.appendChild(card);
-      });
-      
-    } catch(err){
-      console.error('Failed to load shifts:', err);
-      shiftsList.innerHTML = '<div class="no-data">Failed to load shifts.</div>';
+    // ✅ Show ALL shifts (past + upcoming)
+    const sortedShifts = shifts.sort((a,b)=> {
+      const timeA = a.shift_time || a.time;
+      const timeB = b.shift_time || b.time;
+      const tsA = timeA.toString().length === 10 ? timeA * 1000 : timeA;
+      const tsB = timeB.toString().length === 10 ? timeB * 1000 : timeB;
+      return tsA - tsB;
+    });
+
+    if(!sortedShifts.length){
+      shiftsList.innerHTML = '<div class="no-data">No shifts found.</div>';
+      return;
     }
+
+    shiftsList.innerHTML = '';
+    sortedShifts.forEach((shift)=>{
+      const shiftTime = shift.shift_time || shift.time;
+      const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+      const {date, time} = formatShiftTime(new Date(timestamp));
+      const isPast = timestamp < now; // ✅ Check if it's a past shift
+
+      const card = document.createElement('div');
+      card.className = 'shift-card';
+      card.onclick = () => openShiftModal(shift);
+
+      card.innerHTML = `
+        <div class="shift-header">
+          <div class="shift-left">
+            <span class="shift-icon">📅</span>
+            <div class="shift-info">
+              <div class="shift-datetime">${date} at ${time}</div>
+              <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
+            </div>
+          </div>
+          <span class="shift-arrow">${isPast ? '⏪' : '→'}</span>
+        </div>
+        ${isPast ? '<div style="margin-top:8px;color:#888;font-weight:600;font-size:14px;">Past Shift</div>' : ''}
+      `;
+      shiftsList.appendChild(card);
+    });
+
+  } catch(err){
+    console.error('Failed to load shifts:', err);
+    shiftsList.innerHTML = '<div class="no-data">Failed to load shifts.</div>';
   }
+}
 
   loadShifts();
   setInterval(loadShifts, 60000);
