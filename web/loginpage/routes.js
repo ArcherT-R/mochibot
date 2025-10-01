@@ -1,31 +1,32 @@
 const express = require('express');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const axios = require('axios');
 
 const router = express.Router();
 
-// -------------------- Temporary in-memory stores --------------------
+// -------------------- In-memory stores --------------------
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
 const loginCredentials = [];     // { username, passwordHash }
 
 // -------------------- Serve HTML pages --------------------
-router.get(['/signup', '/signup.html'], (req, res) => {
+router.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'signup.html'));
 });
 
-router.get(['/verify-code', '/verify-code.html'], (req, res) => {
+router.get('/verify-code', (req, res) => {
   res.sendFile(path.join(__dirname, 'verify-code.html'));
 });
 
-router.get(['/set-password', '/set-password.html'], (req, res) => {
+router.get('/set-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'set-password.html'));
 });
 
-router.get(['/login', '/login.html'], (req, res) => {
+router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// -------------------- Signup Flow --------------------
+// -------------------- Signup flow --------------------
 router.post('/start-signup', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: 'Username required' });
@@ -40,27 +41,46 @@ router.post('/start-signup', (req, res) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   pendingVerifications[key] = {
     code,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes expiry
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 min expiry
     verified: false
   };
 
   console.log(`📩 Generated verification code ${code} for ${username}`);
-  res.json({ success: true });
+  res.json({ code });
 });
 
-// -------------------- Verify Code --------------------
-router.post('/verify-code', (req, res) => {
+// -------------------- Roblox Verification --------------------
+router.post('/roblox-verify', async (req, res) => {
   const { username, code } = req.body;
   const key = username.toLowerCase();
-  const entry = pendingVerifications[key];
 
-  if (!entry) return res.status(400).json({ error: 'No pending verification' });
-  if (entry.verified) return res.status(400).json({ error: 'Already verified' });
-  if (Date.now() > entry.expiresAt) return res.status(400).json({ error: 'Code expired' });
-  if (entry.code !== code) return res.status(400).json({ error: 'Invalid code' });
+  if (!username || !code) return res.status(400).json({ error: 'Missing username or code' });
 
-  entry.verified = true;
-  res.json({ success: true });
+  try {
+    // 1. Get Roblox user ID
+    const userResp = await axios.get(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(username)}`);
+    if (userResp.data && userResp.data.Id === 0) return res.status(404).json({ error: 'Roblox user not found' });
+
+    const userId = userResp.data.Id;
+
+    // 2. Get user profile
+    const profileResp = await axios.get(`https://users.roblox.com/v1/users/${userId}`);
+    const description = profileResp.data.description || '';
+
+    // 3. Check if the code is in the description
+    if (!description.includes(code)) return res.status(400).json({ error: 'Verification code not found in Roblox profile' });
+
+    // ✅ Verified
+    if (!pendingVerifications[key]) pendingVerifications[key] = {};
+    pendingVerifications[key].verified = true;
+
+    console.log(`✅ ${username} verified via Roblox`);
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to verify Roblox account' });
+  }
 });
 
 // -------------------- Set Password --------------------
