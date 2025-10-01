@@ -1,6 +1,6 @@
-// /web/routes/dashboard.js
 const express = require("express");
 const router = express.Router();
+const requireLogin = require("../../middleware/requireLogin");
 const {
   getAllPlayers,
   getPlayerByUsername,
@@ -19,9 +19,9 @@ async function attachLiveSessionData(players) {
 }
 
 // ----------------------------
-// Main dashboard
+// Main dashboard (protected)
 // ----------------------------
-router.get("/", async (req, res) => {
+router.get("/", requireLogin, async (req, res) => {
   try {
     const allPlayers = await getAllPlayers();
 
@@ -43,7 +43,32 @@ router.get("/", async (req, res) => {
 });
 
 // ----------------------------
-// Top players API endpoint
+// Player profile page (protected)
+// ----------------------------
+router.get("/player/:username", requireLogin, async (req, res) => {
+  try {
+    const username = req.params.username;
+    const player = await getPlayerByUsername(username);
+    
+    if (!player) return res.status(404).send("Player not found");
+    
+    const sessions = await getPlayerSessions(player.roblox_id);
+    const ongoingSession = await getOngoingSession(player.roblox_id);
+    
+    res.render("player", { 
+      player, 
+      sessions, 
+      shifts: { attended: 0, hosted: 0 }, 
+      ongoingSession 
+    });
+  } catch (err) {
+    console.error("Error loading player page:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// ----------------------------
+// Other endpoints (top players, search) can remain unprotected if desired
 // ----------------------------
 router.get("/top-players", async (req, res) => {
   try {
@@ -59,9 +84,6 @@ router.get("/top-players", async (req, res) => {
   }
 });
 
-// ----------------------------
-// All players API endpoint
-// ----------------------------
 router.get("/players", async (req, res) => {
   try {
     const players = await getAllPlayers();
@@ -72,40 +94,10 @@ router.get("/players", async (req, res) => {
   }
 });
 
-// ----------------------------
-// Player profile page
-// ----------------------------
-router.get("/player/:username", async (req, res) => {
-  try {
-    const username = req.params.username;
-    const player = await getPlayerByUsername(username);
-    
-    if (!player) return res.status(404).send("Player not found");
-    
-    const sessions = await getPlayerSessions(player.roblox_id);
-    const ongoingSession = await getOngoingSession(player.roblox_id);
-    
-    // Pass empty shift data - actual shift counting happens on frontend
-    res.render("player", { 
-      player, 
-      sessions, 
-      shifts: { attended: 0, hosted: 0 }, 
-      ongoingSession 
-    });
-  } catch (err) {
-    console.error("Error loading player page:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// ----------------------------
-// Player search endpoint
-// ----------------------------
 router.get("/search", async (req, res) => {
   try {
     const q = req.query.username?.trim();
     if (!q) return res.json([]);
-    
     const players = await searchPlayersByUsername(q);
     res.json(players || []);
   } catch (err) {
