@@ -581,23 +581,76 @@
 
   window.toggleShiftsList = toggleShiftsList;
 
-Shifts.push(shiftData);
+  // --- Load Player Shifts ---
+  async function loadPlayerShifts() {
+    try {
+      const res = await fetch('/shifts');
+      if (!res.ok) throw new Error('Failed to fetch shifts');
+      
+      const allShifts = await res.json();
+      console.log('All shifts:', allShifts);
+      
+      const now = Date.now();
+      
+      const playerUpcomingShifts = [];
+      const pastAttendedShifts = [];
+      const pastHostedShifts = [];
+      
+      for (const shift of allShifts) {
+        const shiftTime = shift.shift_time || shift.time;
+        if (!shiftTime) continue;
+        
+        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+        
+        let role = null;
+        
+        const hostNormalized = shift.host ? shift.host.replace(/\s/g, '').toLowerCase() : '';
+        if (hostNormalized === normalizedPlayerName) {
+          role = 'Host';
+        }
+        
+        const cohostNormalized = shift.cohost ? shift.cohost.replace(/\s/g, '').toLowerCase() : '';
+        if (cohostNormalized === normalizedPlayerName) {
+          role = 'Co-Host';
+        }
+        
+        const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
+        if (attendeesRes.ok) {
+          const attendees = await attendeesRes.json();
+          const isAttendee = attendees.some(a => a.roblox_id === playerRobloxId);
+          if (isAttendee && !role) {
+            role = 'Attendee';
+          }
+        }
+        
+        if (role) {
+          const shiftData = { ...shift, role, timestamp };
+          
+          if (timestamp > now) {
+            playerUpcomingShifts.push(shiftData);
+          } else {
+            if (role === 'Host' || role === 'Co-Host') {
+              pastHostedShifts.push(shiftData);
+            } else if (role === 'Attendee') {
+              pastAttendedShifts.push(shiftData);
+            }
+          }
         }
       }
       
       playerUpcomingShifts.sort((a, b) => a.timestamp - b.timestamp);
-      allAttendedShifts.sort((a, b) => b.timestamp - a.timestamp);
-      allHostedShifts.sort((a, b) => b.timestamp - a.timestamp);
+      pastAttendedShifts.sort((a, b) => b.timestamp - a.timestamp);
+      pastHostedShifts.sort((a, b) => b.timestamp - a.timestamp);
       
       console.log('Player upcoming shifts:', playerUpcomingShifts);
-      console.log('All attended shifts:', allAttendedShifts);
-      console.log('All hosted shifts:', allHostedShifts);
+      console.log('Past attended shifts:', pastAttendedShifts);
+      console.log('Past hosted shifts:', pastHostedShifts);
       
-      document.getElementById('attended-count').textContent = allAttendedShifts.length;
-      document.getElementById('hosted-count').textContent = allHostedShifts.length;
+      document.getElementById('attended-count').textContent = pastAttendedShifts.length;
+      document.getElementById('hosted-count').textContent = pastHostedShifts.length;
       
-      window.pastAttendedShifts = allAttendedShifts;
-      window.pastHostedShifts = allHostedShifts;
+      window.pastAttendedShifts = pastAttendedShifts;
+      window.pastHostedShifts = pastHostedShifts;
       
       playerShiftsContainer.innerHTML = '';
       if (playerUpcomingShifts.length === 0) {
