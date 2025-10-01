@@ -461,21 +461,25 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const shifts = await res.json();
       
-      console.log('Fetched shifts:', shifts); // Debug log
+      console.log('Fetched shifts:', shifts);
       
       const now = Date.now();
       const upcoming = shifts.filter(s => {
-        // Handle both 'shift_time' and 'time' column names
         const shiftTime = s.shift_time || s.time;
         if(!shiftTime) return false;
-        return new Date(shiftTime).getTime() > now;
+        
+        // Convert Unix timestamp (seconds) to milliseconds
+        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+        return timestamp > now;
       }).sort((a,b)=> {
-        const timeA = new Date(a.shift_time || a.time).getTime();
-        const timeB = new Date(b.shift_time || b.time).getTime();
-        return timeA - timeB;
+        const timeA = a.shift_time || a.time;
+        const timeB = b.shift_time || b.time;
+        const tsA = timeA.toString().length === 10 ? timeA * 1000 : timeA;
+        const tsB = timeB.toString().length === 10 ? timeB * 1000 : timeB;
+        return tsA - tsB;
       });
 
-      console.log('Upcoming shifts:', upcoming); // Debug log
+      console.log('Upcoming shifts:', upcoming);
 
       if(!upcoming.length){
         shiftsList.innerHTML = '<div class="no-data">No upcoming shifts.</div>';
@@ -486,7 +490,9 @@ document.addEventListener('DOMContentLoaded', () => {
       upcoming.forEach((s)=>{
         const shiftId = s.id;
         const shiftTime = s.shift_time || s.time;
-        const {date,time} = formatShiftTime(new Date(shiftTime));
+        // Convert to milliseconds if needed
+        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+        const {date,time} = formatShiftTime(new Date(timestamp));
         
         const card = document.createElement('div');
         card.className = 'shift-card';
