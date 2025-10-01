@@ -1,252 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mochi Bar Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<style>
-  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
-  header {
-    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
-    background-size: 300% 100%;
-    animation: gradientFlow 6s ease infinite;
-    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
-    box-shadow:0 2px 5px rgba(0,0,0,0.15);
-  }
-  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
-  .nav-tabs { background:white; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap; }
-  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
-  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
-  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
-  .tab-button.active { background:#42b4ff; color:white; }
-  .tab-icon { font-size:20px; }
-  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
-  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
-  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
-  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
-  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
-  .search-wrapper input:focus { border-color:#42b4ff; }
-  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
-  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
-  .suggestion-item:last-child { border-bottom:none; }
-  .suggestion-item:hover { background:#f0f8ff; }
-  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mochi Bar Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
+    header {
+      background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
+      background-size: 300% 100%;
+      animation: gradientFlow 6s ease infinite;
+      color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
+      box-shadow:0 2px 5px rgba(0,0,0,0.15);
+    }
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 
-  .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
-  .player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
-  .player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
-  .player-card img { width:80px; height:80px; border-radius:50%; margin-bottom:10px; object-fit:cover; background:#e0e6f0; }
-  .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
-  .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
+    .container { max-width: 1100px; margin: 30px auto; padding: 0 15px; }
+    .search-bar { display:flex; gap:10px; margin-bottom:20px; }
+    .search-bar input {
+      flex:1; padding:10px 14px; font-size:16px; border:1px solid #ccc; border-radius:8px;
+    }
+    .dropdown {
+      padding:10px; font-size:16px; border-radius:8px; border:1px solid #ccc;
+    }
 
-  .shifts-list { display:flex; flex-direction:column; gap:16px; }
-  .shift-item { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
-  .shift-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .shift-icon { font-size:24px; }
-  .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
-  .shift-roles { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
-  .shift-role { display:flex; align-items:center; gap:8px; font-size:15px; }
-  .role-label { font-weight:600; color:#555; min-width:80px; }
-  .role-name { color:#333; }
+    .leaderboard {
+      background:white; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
+      padding:20px; margin-top:30px;
+    }
+    .leaderboard h2 { margin-top:0; font-size:24px; margin-bottom:15px; }
+    .leaderboard-item {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:10px 0; border-bottom:1px solid #eee;
+    }
+    .leaderboard-item:last-child { border-bottom:none; }
+    .player-info { display:flex; align-items:center; gap:10px; }
+    .player-info img { width:40px; height:40px; border-radius:50%; }
 
-  .attendees-container { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
-  .attendee-box { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default; }
-  .attendee-box span { font-weight:500; color:#333; }
-  .attendee-box button { background:red; border:none; border-radius:6px; color:white; font-weight:700; padding:2px 6px; cursor:pointer; }
-  .add-attendee-box { display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px; background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s; }
-  .add-attendee-box:hover { background:#d0e4ff; }
-
-  .tab-content { display:none; }
-  .tab-content.active { display:block; }
-
-  @media(max-width:600px){
-    header { font-size:36px; padding:20px; }
-    h2 { text-align:center; }
-    .top-players-grid { grid-template-columns:1fr; }
-    .nav-tabs { flex-direction:column; gap:10px; }
-    .nav-buttons { width:100%; justify-content:center; }
-    .search-wrapper { width:100%; max-width:100%; }
-    .tab-button { padding:10px 16px; font-size:14px; }
-    .shift-header { flex-direction:column; align-items:flex-start; }
-  }
-</style>
+    .live-time {
+      font-weight: bold;
+      color: #1a85e6;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
+  <header>Mochi Bar Dashboard</header>
 
-<header>Mochi Bar Dashboard</header>
+  <div class="container">
+    <!-- Search and Dropdown -->
+    <div class="search-bar">
+      <input type="text" id="playerSearch" placeholder="Search players by username...">
+      <select id="playerDropdown" class="dropdown">
+        <option value="">Select Player</option>
+      </select>
+    </div>
 
-<nav class="nav-tabs">
-  <div class="nav-buttons">
-    <button class="tab-button active" data-tab="home"><span class="tab-icon">🏠</span>Home</button>
-    <button class="tab-button" data-tab="playerlist"><span class="tab-icon">👥</span>Player List</button>
-    <button class="tab-button" data-tab="shifts"><span class="tab-icon">📅</span>Shifts</button>
-    <button class="tab-button" data-tab="myaccount"><span class="tab-icon">👤</span>My Account</button>
-    <button class="tab-button" data-tab="settings"><span class="tab-icon">⚙️</span>Settings</button>
-  </div>
-  <div class="search-wrapper">
-    <input type="text" id="playerSearch" placeholder="Search Roblox username...">
-    <div id="suggestions" class="suggestions"></div>
-  </div>
-</nav>
-
-<div class="container">
-  <div id="home" class="tab-content active">
-    <section class="content-section">
-      <h2>Top Active This Week</h2>
-      <div id="topPlayersGrid" class="top-players-grid"></div>
-    </section>
+    <!-- Leaderboard -->
+    <div class="leaderboard">
+      <h2>🏆 Top Weekly Players</h2>
+      <div id="leaderboardList"></div>
+    </div>
   </div>
 
-  <div id="playerlist" class="tab-content">
-    <section class="content-section">
-      <h2>Player List</h2>
-      <div id="playerListContainer"></div>
-    </section>
-  </div>
+  <!-- Inject public data -->
+  <script>
+    window.public = <%- JSON.stringify(public) %>;
+  </script>
 
-  <div id="shifts" class="tab-content">
-    <section class="content-section">
-      <h2>Upcoming Shifts & Attendees</h2>
-      <div id="shiftsList" class="shifts-list"></div>
-    </section>
-  </div>
+  <script>
+    const players = window.public.players || [];
+    const topPlayers = window.public.topPlayers || [];
 
-  <div id="myaccount" class="tab-content">
-    <section class="content-section">
-      <h2>My Account</h2>
-      <div class="no-data">Account settings coming soon...</div>
-    </section>
-  </div>
-
-  <div id="settings" class="tab-content">
-    <section class="content-section">
-      <h2>Settings</h2>
-      <div class="no-data">Settings panel coming soon...</div>
-    </section>
-  </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('playerSearch');
-  const suggestionsBox = document.getElementById('suggestions');
-  const topPlayersGrid = document.getElementById('topPlayersGrid');
-  const playerListContainer = document.getElementById('playerListContainer');
-  const shiftsList = document.getElementById('shiftsList');
-
-  // --- Public players data ---
-  const playersData = window.public?.players || [];
-
-  // --- Tabs ---
-  document.querySelectorAll('.tab-button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(btn.dataset.tab).classList.add('active');
+    // Populate dropdown
+    const dropdown = document.getElementById('playerDropdown');
+    players.forEach(player => {
+      const option = document.createElement('option');
+      option.value = player.username;
+      option.textContent = player.username;
+      dropdown.appendChild(option);
     });
-  });
 
-  // --- Search ---
-  input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if(!q){ suggestionsBox.innerHTML=''; return; }
-    const filtered = playersData.filter(p => p.username.toLowerCase().includes(q));
-    suggestionsBox.innerHTML = filtered.map(p => `
-      <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-        <img src="${p.avatar_url || 'https://placehold.co/40x40/e0e6f0/5f6c7b?text=U'}" />
-        <span>${p.username}</span>
-      </div>
-    `).join('');
-  });
-  document.addEventListener('click', e => {
-    if(!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML='';
-  });
-
-  // --- Top Players ---
-  function calculateLiveMinutes(player){ return player.ongoing_session_start_time ? Math.max(0,(Date.now()-new Date(player.ongoing_session_start_time))/60000) : 0; }
-  function getTotalMinutes(player){ return (player.weekly_minutes||0)+calculateLiveMinutes(player); }
-  function formatMinutes(total){ const mins=Math.round(total), h=Math.floor(mins/60), m=mins%60; return h>0?`${h} hr ${m} min`:`${m} min`; }
-
-  function renderTopPlayers(){
-    if(!playersData.length){ topPlayersGrid.innerHTML='<div class="no-data">No players data.</div>'; return; }
-    const top = playersData.map(p=>({...p, live_total_minutes:getTotalMinutes(p), is_live:calculateLiveMinutes(p)>0}))
-      .sort((a,b)=>b.live_total_minutes-a.live_total_minutes).slice(0,3);
-    topPlayersGrid.innerHTML = top.map(p=>`
-      <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-        <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" />
-        <div>${p.username}</div>
-        ${p.is_live?'<span class="live-status">LIVE</span>':''}
-        <div class="time">${formatMinutes(p.live_total_minutes)}</div>
-      </div>
-    `).join('');
-  }
-  renderTopPlayers();
-  setInterval(renderTopPlayers,5000);
-
-  // --- Player List ---
-  function renderPlayerList(){
-    if(!playersData.length){ playerListContainer.innerHTML='<div class="no-data">No players available.</div>'; return; }
-    playerListContainer.innerHTML = playersData.map(p=>`
-      <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-        <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}" />
-        <div>${p.username}</div>
-        <div class="time">${formatMinutes(getTotalMinutes(p))}</div>
-      </div>
-    `).join('');
-  }
-  renderPlayerList();
-
-  // --- Shifts ---
-  const shiftsData = window.public?.shifts || []; // Array of shift objects with shift.attendees
-  function formatShiftTime(ts){ const d=new Date(ts*1000); const now=new Date(); const tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1); const dateStr=d.toDateString()===now.toDateString()?'Today':d.toDateString()===tomorrow.toDateString()?'Tomorrow':d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}); const timeStr=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true}); return {date:dateStr,time:timeStr}; }
-
-  function renderShifts(){
-    if(!shiftsData.length){ shiftsList.innerHTML='<div class="no-data">No upcoming shifts.</div>'; return; }
-    shiftsList.innerHTML='';
-    shiftsData.forEach((s,i)=>{
-      const shiftId=i;
-      const {date,time}=formatShiftTime(s.time);
-      const div=document.createElement('div'); div.className='shift-item';
-      let rolesHTML=''; if(s.host)rolesHTML+=`<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host}</span></div>`; 
-      if(s.cohost)rolesHTML+=`<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`; 
-      if(s.overseer)rolesHTML+=`<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${s.overseer}</span></div>`;
-      div.innerHTML=`
-        <div class="shift-header"><span class="shift-icon">📅</span><span class="shift-datetime">${date} at ${time}</span></div>
-        <div class="shift-roles">${rolesHTML}</div>
-        <div class="attendees-container" id="attendees-${shiftId}"></div>
-        <div class="add-attendee-box" id="add-attendee-${shiftId}">+ Add attendee</div>
-      `;
-      shiftsList.appendChild(div);
-      renderShiftAttendees(shiftId,s);
+    // Redirect when selecting a player
+    dropdown.addEventListener('change', () => {
+      const username = dropdown.value;
+      if (username) {
+        window.location.href = `/dashboard/player/${encodeURIComponent(username)}`;
+      }
     });
-  }
 
-  function renderShiftAttendees(shiftId,shift){
-    const container=document.getElementById(`attendees-${shiftId}`);
-    const addBox=document.getElementById(`add-attendee-${shiftId}`);
-    container.innerHTML='';
-    const attendees=shift.attendees||[];
-    attendees.forEach(a=>{
-      const box=document.createElement('div'); box.className='attendee-box';
-      box.innerHTML=`<span>${a.username}</span><button data-username="${a.username}">×</button>`;
-      box.querySelector('button').addEventListener('click',()=>{ const idx=attendees.findIndex(p=>p.username===a.username); if(idx>-1){ attendees.splice(idx,1); renderShiftAttendees(shiftId,shift); }});
-      container.appendChild(box);
+    // Search functionality
+    const searchInput = document.getElementById('playerSearch');
+    searchInput.addEventListener('input', async (e) => {
+      const q = e.target.value.trim();
+      if (!q) return;
+
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+      const results = await res.json();
+      dropdown.innerHTML = `<option value="">Select Player</option>`;
+      results.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.username;
+        option.textContent = player.username;
+        dropdown.appendChild(option);
+      });
     });
-    addBox.onclick=()=>{
-      if(addBox.querySelector('select')) return;
-      const select=document.createElement('select'); select.style.width='100%'; select.style.padding='8px'; select.style.fontSize='14px'; select.style.border='1px solid #42b4ff'; select.style.borderRadius='6px';
-      select.innerHTML='<option value="">Select player...</option>'+playersData.map(p=>`<option value="${p.username}">${p.username}</option>`).join('');
-      addBox.style.background='#fff'; addBox.style.border='2px solid #42b4ff'; addBox.innerHTML=''; addBox.appendChild(select); select.focus();
-      select.onchange=()=>{ if(select.value){ attendees.push({username:select.value}); renderShiftAttendees(shiftId,shift); }};
-      select.onblur=()=>setTimeout(()=>{ if(!select.value){ addBox.style.background='#e0e6f0'; addBox.style.border='1px dashed #42b4ff'; addBox.innerHTML='+ Add attendee'; }},50);
-    };
-  }
 
-  renderShifts();
-});
-</script>
+    // Leaderboard rendering
+    const leaderboardContainer = document.getElementById('leaderboardList');
 
+    function formatDuration(seconds) {
+      if (!seconds || seconds <= 0) return '00:00:00';
+      const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    function renderLeaderboard() {
+      leaderboardContainer.innerHTML = '';
+      topPlayers.forEach(player => {
+        const item = document.createElement('div');
+        item.className = 'leaderboard-item';
+
+        const info = document.createElement('div');
+        info.className = 'player-info';
+        const avatar = document.createElement('img');
+        avatar.src = player.avatar_url || 'https://tr.rbxcdn.com/30DAY-AvatarHeadshot/150/150/AvatarHeadshot/Png';
+        const name = document.createElement('span');
+        name.textContent = player.username;
+        info.appendChild(avatar);
+        info.appendChild(name);
+
+        const minutesContainer = document.createElement('div');
+        const weeklyMinutes = document.createElement('div');
+        weeklyMinutes.textContent = `${player.weekly_minutes || 0} min`;
+
+        // Live session time if ongoing
+        if (player.ongoing_session_start_time) {
+          const liveTimer = document.createElement('div');
+          liveTimer.className = 'live-time';
+          const start = new Date(player.ongoing_session_start_time);
+          setInterval(() => {
+            const diffSeconds = Math.floor((Date.now() - start.getTime()) / 1000);
+            liveTimer.textContent = `🟢 ${formatDuration(diffSeconds)}`;
+          }, 1000);
+          minutesContainer.appendChild(liveTimer);
+        }
+
+        minutesContainer.appendChild(weeklyMinutes);
+
+        item.appendChild(info);
+        item.appendChild(minutesContainer);
+        leaderboardContainer.appendChild(item);
+      });
+    }
+
+    renderLeaderboard();
+  </script>
 </body>
 </html>
