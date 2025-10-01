@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const path = require("path");
-const { getPlayerByUsername, createPlayerIfNotExists } = require("./database");
+const { getPlayerByUsername } = require('../../endpoints/database');
 const axios = require("axios");
 
 const router = express.Router();
