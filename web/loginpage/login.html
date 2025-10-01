@@ -7,10 +7,11 @@
 <body>
   <h1>Login</h1>
   <form id="loginForm">
-    <label>Username: <input type="text" name="username" required></label>
-    <label>Password: <input type="password" name="password" required></label>
-    <button type="submit">Login</button>
+    <label>Username: <input type="text" name="username" required></label><br>
+    <label>Password: <input type="password" name="password" required></label><br>
+    <button type="submit">Log In</button>
   </form>
+
   <p id="message"></p>
 
   <script>
@@ -23,18 +24,26 @@
       const username = data.get('username');
       const password = data.get('password');
 
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
+      try {
+        const res = await fetch('/loginpage/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
 
-      const json = await res.json();
-      if (res.ok) {
-        msg.textContent = 'Login successful! Redirecting...';
-        window.location.href = '/dashboard';
-      } else {
-        msg.textContent = json.error;
+        const json = await res.json();
+        if (res.ok) {
+          msg.textContent = `✅ Logged in successfully! Redirecting...`;
+          // Redirect to dashboard after login
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1000);
+        } else {
+          msg.textContent = `❌ ${json.error}`;
+        }
+      } catch (err) {
+        msg.textContent = '❌ An error occurred. Try again.';
+        console.error(err);
       }
     });
   </script>
