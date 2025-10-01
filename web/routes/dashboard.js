@@ -23,18 +23,19 @@ async function attachLiveSessionData(players) {
 // ----------------------------
 router.get("/", async (req, res) => {
   try {
-    // Fetch all players
     const allPlayers = await getAllPlayers();
-    
-    // Top players: sort by weekly_minutes
+
+    // Top players
     const topPlayersRaw = [...allPlayers]
       .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
-      .slice(0, 8); // top 8
-    
-    // Attach live session info
+      .slice(0, 8);
+
     const topPlayers = await attachLiveSessionData(topPlayersRaw);
-    
-    res.render("dashboard", { players: allPlayers, topPlayers });
+
+    // ✅ Pass session player to template
+    const player = req.session?.player || null;
+
+    res.render("dashboard", { players: allPlayers, topPlayers, player });
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
