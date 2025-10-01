@@ -1,30 +1,31 @@
 // /endpoints/sessions.js
 const express = require('express');
 const router = express.Router();
+const { addOrUpdateShift, getAllShifts } = require('./database'); // new DB functions
 
-const GUILD_ID = '1362322934794031104'; // your guild
-const CHANNEL_ID = '1402605903508672554'; // session channel
+const GUILD_ID = '1362322934794031104'; // your Discord guild
+const CHANNEL_ID = '1402605903508672554'; // your session channel
 
-// Resolve mentions or raw usernames to server nickname
+/**
+ * Resolve Discord mention or raw text to a display name
+ */
 async function resolveDiscordName(client, guild, text) {
-  // If text is a mention like <@123456789>
   const mentionMatch = text.match(/^<@!?(\d+)>$/);
   if (mentionMatch) {
     const id = mentionMatch[1];
     try {
       const member = await guild.members.fetch(id).catch(() => null);
-      if (member && member.nickname) return member.nickname;
-      if (member && member.user) return member.user.username;
-    } catch {
-      // ignore
-    }
+      if (member) return member.nickname || member.user.username;
+    } catch {}
   }
-
-  // Otherwise just return the raw text
   return text.trim();
 }
 
 module.exports = (client) => {
+
+  // -------------------------
+  // GET /sessions - Fetch and return upcoming sessions
+  // -------------------------
   router.get('/', async (req, res) => {
     try {
       if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
@@ -39,10 +40,7 @@ module.exports = (client) => {
       const sessions = [];
 
       for (const msg of messages.values()) {
-        let host = null;
-        let cohost = null;
-        let overseer = null;
-        let timestamp = null;
+        let host = null, cohost = null, overseer = null, timestamp = null;
 
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
@@ -60,21 +58,31 @@ module.exports = (client) => {
             case 'overseer':
               overseer = await resolveDiscordName(client, guild, value);
               break;
-            case 'time': // use "Time" instead of "timestamp" based on your example
+            case 'time':
               const tsMatch = value.match(/\d+/);
               if (tsMatch) timestamp = parseInt(tsMatch[0], 10);
               break;
           }
         }
 
-        // Only include if host and timestamp exist
         if (host && timestamp) {
           const session = { host, time: timestamp };
           if (cohost) session.cohost = cohost;
           if (overseer) session.overseer = overseer;
+
+          // Upsert into public.shifts table
+          try {
+            await addOrUpdateShift(session);
+          } catch (dbErr) {
+            console.error('Error saving shift to DB:', dbErr);
+          }
+
           sessions.push(session);
         }
       }
+
+      // Sort by timestamp ascending
+      sessions.sort((a, b) => a.time - b.time);
 
       res.json(sessions);
     } catch (err) {
