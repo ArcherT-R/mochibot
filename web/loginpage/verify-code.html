@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Account</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f7f7f7; display:flex; justify-content:center; align-items:center; height:100vh; }
+  .container { background:white; padding:30px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.1); width:300px; }
+  input { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; }
+  button { width:100%; padding:10px; background:#42b4ff; color:white; border:none; border-radius:5px; cursor:pointer; }
+  button:hover { background:#1a85e6; }
+  .error { color:red; font-size:0.9em; }
+  .success { color:green; font-size:0.9em; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Verify Account</h2>
+  <input type="text" id="username" placeholder="Username">
+  <input type="text" id="code" placeholder="Verification Code">
+  <button id="verifyBtn">Verify</button>
+  <div id="message"></div>
+</div>
+
+<script>
+document.getElementById('verifyBtn').addEventListener('click', async () => {
+  const username = document.getElementById('username').value.trim();
+  const code = document.getElementById('code').value.trim();
+  const message = document.getElementById('message');
+  message.textContent = '';
+
+  if(!username || !code) { message.textContent = 'Please fill both fields'; message.className='error'; return; }
+
+  try {
+    const res = await fetch('/loginpage/verify-code', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username, code })
+    });
+    const data = await res.json();
+    if(data.success){
+      message.textContent = 'Verified! Redirecting to set password...';
+      message.className='success';
+      setTimeout(() => { window.location = `/loginpage/set-password?username=${encodeURIComponent(username)}`; }, 1500);
+    } else {
+      message.textContent = data.error || 'Verification failed';
+      message.className='error';
+    }
+  } catch(err){
+    console.error(err);
+    message.textContent = 'Server error';
+    message.className='error';
+  }
+});
+</script>
+</body>
+</html>
