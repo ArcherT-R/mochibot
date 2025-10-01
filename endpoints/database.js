@@ -332,5 +332,5 @@ module.exports = {
   removeShiftAttendee,
   verifyPlayerPassword,
   updatePlayerPassword,
-  getPlayerByRobloxID
+  getPlayerByRobloxId
 };
