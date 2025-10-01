@@ -14,154 +14,109 @@
       color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
       box-shadow:0 2px 5px rgba(0,0,0,0.15);
     }
+
     @keyframes gradientFlow {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
 
-    .container { max-width: 1100px; margin: 30px auto; padding: 0 15px; }
-    .search-bar { display:flex; gap:10px; margin-bottom:20px; }
-    .search-bar input {
-      flex:1; padding:10px 14px; font-size:16px; border:1px solid #ccc; border-radius:8px;
+    .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
+    h2 { font-size: 28px; margin-bottom: 10px; }
+    .leaderboard, .players-list {
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px;
     }
-    .dropdown {
-      padding:10px; font-size:16px; border-radius:8px; border:1px solid #ccc;
+    .player-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid #eee;
     }
-
-    .leaderboard {
-      background:white; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1);
-      padding:20px; margin-top:30px;
-    }
-    .leaderboard h2 { margin-top:0; font-size:24px; margin-bottom:15px; }
-    .leaderboard-item {
-      display:flex; justify-content:space-between; align-items:center;
-      padding:10px 0; border-bottom:1px solid #eee;
-    }
-    .leaderboard-item:last-child { border-bottom:none; }
-    .player-info { display:flex; align-items:center; gap:10px; }
-    .player-info img { width:40px; height:40px; border-radius:50%; }
-
-    .live-time {
-      font-weight: bold;
-      color: #1a85e6;
-      font-size: 14px;
-    }
+    .player-item:last-child { border-bottom: none; }
+    .player-info { display: flex; align-items: center; gap: 10px; }
+    .player-info img { width: 40px; height: 40px; border-radius: 50%; }
+    .minutes { font-weight: 700; }
+    .search-bar { width: 100%; padding: 10px; font-size: 16px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; }
   </style>
 </head>
 <body>
   <header>Mochi Bar Dashboard</header>
-
   <div class="container">
-    <!-- Search and Dropdown -->
-    <div class="search-bar">
-      <input type="text" id="playerSearch" placeholder="Search players by username...">
-      <select id="playerDropdown" class="dropdown">
-        <option value="">Select Player</option>
-      </select>
-    </div>
 
-    <!-- Leaderboard -->
     <div class="leaderboard">
       <h2>🏆 Top Weekly Players</h2>
-      <div id="leaderboardList"></div>
+      <% if (topPlayers && topPlayers.length > 0) { %>
+        <% topPlayers.forEach(player => { %>
+          <div class="player-item">
+            <div class="player-info">
+              <img src="<%= player.avatar_url %>" alt="">
+              <span><%= player.username %></span>
+            </div>
+            <div class="minutes"><%= player.weekly_minutes || 0 %> min</div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <p>No top players found.</p>
+      <% } %>
+    </div>
+
+    <div class="players-list">
+      <h2>👥 All Players</h2>
+      <input type="text" class="search-bar" id="playerSearch" placeholder="Search players..."/>
+      <div id="playerList">
+        <% if (players && players.length > 0) { %>
+          <% players.forEach(player => { %>
+            <div class="player-item">
+              <div class="player-info">
+                <img src="<%= player.avatar_url %>" alt="">
+                <span><%= player.username %></span>
+              </div>
+              <div class="minutes"><%= player.weekly_minutes || 0 %> min</div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <p>No players found.</p>
+        <% } %>
+      </div>
     </div>
   </div>
 
-  <!-- Inject public data -->
   <script>
-    window.public = <%- JSON.stringify(public) %>;
-  </script>
-
-  <script>
-    const players = window.public.players || [];
-    const topPlayers = window.public.topPlayers || [];
-
-    // Populate dropdown
-    const dropdown = document.getElementById('playerDropdown');
-    players.forEach(player => {
-      const option = document.createElement('option');
-      option.value = player.username;
-      option.textContent = player.username;
-      dropdown.appendChild(option);
-    });
-
-    // Redirect when selecting a player
-    dropdown.addEventListener('change', () => {
-      const username = dropdown.value;
-      if (username) {
-        window.location.href = `/dashboard/player/${encodeURIComponent(username)}`;
-      }
-    });
-
-    // Search functionality
     const searchInput = document.getElementById('playerSearch');
-    searchInput.addEventListener('input', async (e) => {
-      const q = e.target.value.trim();
-      if (!q) return;
+    const playerList = document.getElementById('playerList');
 
-      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+    searchInput.addEventListener('input', async () => {
+      const query = searchInput.value.trim();
+      if (!query) {
+        playerList.innerHTML = `<%= players.map(p => `
+          <div class="player-item">
+            <div class="player-info">
+              <img src="${p.avatar_url}" alt="">
+              <span>${p.username}</span>
+            </div>
+            <div class="minutes">${p.weekly_minutes || 0} min</div>
+          </div>
+        `).join('') %>`;
+        return;
+      }
+
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
       const results = await res.json();
-      dropdown.innerHTML = `<option value="">Select Player</option>`;
-      results.forEach(player => {
-        const option = document.createElement('option');
-        option.value = player.username;
-        option.textContent = player.username;
-        dropdown.appendChild(option);
-      });
+
+      if (!results.length) {
+        playerList.innerHTML = "<p>No players found.</p>";
+        return;
+      }
+
+      playerList.innerHTML = results.map(p => `
+        <div class="player-item">
+          <div class="player-info">
+            <img src="${p.avatar_url}" alt="">
+            <span>${p.username}</span>
+          </div>
+          <div class="minutes">${p.weekly_minutes || 0} min</div>
+        </div>
+      `).join('');
     });
-
-    // Leaderboard rendering
-    const leaderboardContainer = document.getElementById('leaderboardList');
-
-    function formatDuration(seconds) {
-      if (!seconds || seconds <= 0) return '00:00:00';
-      const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-      const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-      const s = String(seconds % 60).padStart(2, '0');
-      return `${h}:${m}:${s}`;
-    }
-
-    function renderLeaderboard() {
-      leaderboardContainer.innerHTML = '';
-      topPlayers.forEach(player => {
-        const item = document.createElement('div');
-        item.className = 'leaderboard-item';
-
-        const info = document.createElement('div');
-        info.className = 'player-info';
-        const avatar = document.createElement('img');
-        avatar.src = player.avatar_url || 'https://tr.rbxcdn.com/30DAY-AvatarHeadshot/150/150/AvatarHeadshot/Png';
-        const name = document.createElement('span');
-        name.textContent = player.username;
-        info.appendChild(avatar);
-        info.appendChild(name);
-
-        const minutesContainer = document.createElement('div');
-        const weeklyMinutes = document.createElement('div');
-        weeklyMinutes.textContent = `${player.weekly_minutes || 0} min`;
-
-        // Live session time if ongoing
-        if (player.ongoing_session_start_time) {
-          const liveTimer = document.createElement('div');
-          liveTimer.className = 'live-time';
-          const start = new Date(player.ongoing_session_start_time);
-          setInterval(() => {
-            const diffSeconds = Math.floor((Date.now() - start.getTime()) / 1000);
-            liveTimer.textContent = `🟢 ${formatDuration(diffSeconds)}`;
-          }, 1000);
-          minutesContainer.appendChild(liveTimer);
-        }
-
-        minutesContainer.appendChild(weeklyMinutes);
-
-        item.appendChild(info);
-        item.appendChild(minutesContainer);
-        leaderboardContainer.appendChild(item);
-      });
-    }
-
-    renderLeaderboard();
   </script>
 </body>
 </html>
