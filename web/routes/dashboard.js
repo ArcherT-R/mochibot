@@ -9,7 +9,17 @@ const {
   searchPlayersByUsername
 } = require("../../endpoints/database");
 
-// Helper: Attach ongoing session data to a list of players
+// Leadership ranks
+const LEADERSHIP_RANKS = [
+  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+  'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+  'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+  'Automation', 'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+];
+
+// ----------------------------
+// Helper: Attach ongoing session data to players
+// ----------------------------
 async function attachLiveSessionData(players) {
   return await Promise.all(players.map(async (player) => {
     const ongoing = await getOngoingSession(player.roblox_id);
@@ -24,12 +34,11 @@ async function attachLiveSessionData(players) {
 router.get("/", requireLogin, async (req, res) => {
   try {
     const allPlayers = await getAllPlayers();
-    // Top players
     const topPlayersRaw = [...allPlayers]
       .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
       .slice(0, 8);
     const topPlayers = await attachLiveSessionData(topPlayersRaw);
-    
+
     const player = req.session?.player || null;
     res.render("dashboard", { players: allPlayers, topPlayers, player });
   } catch (err) {
@@ -39,16 +48,12 @@ router.get("/", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Current user endpoint (protected)
+// Current user endpoint
 // ----------------------------
 router.get("/current-user", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
-    
-    if (!player) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-    
+    if (!player) return res.status(401).json({ error: 'Not authenticated' });
     res.json(player);
   } catch (err) {
     console.error("Error fetching current user:", err);
@@ -57,18 +62,25 @@ router.get("/current-user", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Player profile page (protected)
+// Player profile page
 // ----------------------------
 router.get("/player/:username", requireLogin, async (req, res) => {
   try {
     const username = req.params.username;
+    const currentPlayer = req.session?.player;
+
     const player = await getPlayerByUsername(username);
-    
     if (!player) return res.status(404).send("Player not found");
-    
+
+    // Non-leadership users can only view their own page
+    const isLeader = LEADERSHIP_RANKS.includes(currentPlayer.group_rank || currentPlayer.rank);
+    if (!isLeader && currentPlayer.username !== username) {
+      return res.status(403).send("Access denied");
+    }
+
     const sessions = await getPlayerSessions(player.roblox_id);
     const ongoingSession = await getOngoingSession(player.roblox_id);
-    
+
     res.render("player", { 
       player, 
       sessions, 
@@ -82,14 +94,14 @@ router.get("/player/:username", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Other endpoints
-// ----------------------------
-router.get("/top-players", async (req, res) => {
+// Top players (everyone can view)
+router.get("/top-players", requireLogin, async (req, res) => {
   try {
     const players = await getAllPlayers();
     const withLiveData = await attachLiveSessionData(players);
     const sorted = withLiveData
-      .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
+      .map(p => ({ ...p, live_total_minutes: (p.weekly_minutes || 0) + (p.ongoing_session_start_time ? ((Date.now() - new Date(p.ongoing_session_start_time).getTime()) / 1000 / 60) : 0) }))
+      .sort((a, b) => b.live_total_minutes - a.live_total_minutes)
       .slice(0, 8);
     res.json(sorted);
   } catch (err) {
@@ -98,8 +110,18 @@ router.get("/top-players", async (req, res) => {
   }
 });
 
-router.get("/players", async (req, res) => {
+// ----------------------------
+// Full players list (leadership only)
+router.get("/players", requireLogin, async (req, res) => {
   try {
+    const player = req.session?.player;
+    if (!player) return res.status(401).json({ error: 'Not authenticated' });
+
+    const userRank = player.group_rank || player.rank;
+    if (!LEADERSHIP_RANKS.includes(userRank)) {
+      return res.status(403).json({ error: 'Access denied: Leadership rank required' });
+    }
+
     const players = await getAllPlayers();
     res.json(players);
   } catch (err) {
@@ -108,15 +130,25 @@ router.get("/players", async (req, res) => {
   }
 });
 
-router.get("/search", async (req, res) => {
+// ----------------------------
+// Player search (leadership only)
+router.get("/search", requireLogin, async (req, res) => {
   try {
+    const player = req.session?.player;
+    if (!player) return res.status(401).json({ error: 'Not authenticated' });
+
+    const userRank = player.group_rank || player.rank;
+    if (!LEADERSHIP_RANKS.includes(userRank)) {
+      return res.status(403).json({ error: 'Access denied: Leadership rank required' });
+    }
+
     const q = req.query.username?.trim();
     if (!q) return res.json([]);
     const players = await searchPlayersByUsername(q);
     res.json(players || []);
   } catch (err) {
     console.error("Search error:", err);
-    res.json([]);
+    res.status(500).json([]);
   }
 });
 
