@@ -24,21 +24,35 @@ async function attachLiveSessionData(players) {
 router.get("/", requireLogin, async (req, res) => {
   try {
     const allPlayers = await getAllPlayers();
-
     // Top players
     const topPlayersRaw = [...allPlayers]
       .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
       .slice(0, 8);
-
     const topPlayers = await attachLiveSessionData(topPlayersRaw);
-
-    // ✅ Pass session player to template
+    
     const player = req.session?.player || null;
-
     res.render("dashboard", { players: allPlayers, topPlayers, player });
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
+  }
+});
+
+// ----------------------------
+// Current user endpoint (protected)
+// ----------------------------
+router.get("/current-user", requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    
+    if (!player) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    res.json(player);
+  } catch (err) {
+    console.error("Error fetching current user:", err);
+    res.status(500).json({ error: "Failed to fetch current user" });
   }
 });
 
@@ -68,7 +82,7 @@ router.get("/player/:username", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Other endpoints (top players, search) can remain unprotected if desired
+// Other endpoints
 // ----------------------------
 router.get("/top-players", async (req, res) => {
   try {
