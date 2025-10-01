@@ -9,13 +9,20 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // ✅ Store player in session
+    // Store minimal player info in session
     req.session.player = {
       roblox_id: player.roblox_id,
       username: player.username
     };
 
-    res.json({ success: true, message: 'Logged in successfully' });
+    // ✅ Ensure session is saved before responding
+    req.session.save(err => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ error: 'Failed to save session' });
+      }
+      res.json({ success: true, message: 'Logged in successfully' });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
