@@ -426,11 +426,11 @@
     <h3>Shifts</h3>
     
     <div class="stats-grid">
-      <div class="stat-box">
+      <div class="stat-box" style="cursor:pointer;" onclick="showShiftsModal('attended')">
         <span class="stat-number" id="attended-count"><%= shifts.attended || 0 %></span>
         <span class="stat-label">Attended</span>
       </div>
-      <div class="stat-box">
+      <div class="stat-box" style="cursor:pointer;" onclick="showShiftsModal('hosted')">
         <span class="stat-number" id="hosted-count"><%= shifts.hosted || 0 %></span>
         <span class="stat-label">Hosted</span>
       </div>
@@ -453,6 +453,19 @@
       <span class="close" onclick="closeModal()">&times;</span>
     </div>
     <div class="modal-body" id="modal-body">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Shifts History Modal -->
+<div id="shiftsHistoryModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span id="shifts-modal-header-text"></span>
+      <span class="close" onclick="closeShiftsModal()">&times;</span>
+    </div>
+    <div class="modal-body" id="shifts-modal-body" style="max-height:400px; overflow-y:auto;">
       <!-- filled by JS -->
     </div>
   </div>
@@ -508,6 +521,70 @@
 
   function closeModal() { modal.style.display = 'none'; }
   window.onclick = function(e) { if (e.target === modal) closeModal(); }
+
+  // --- Shifts History Modal ---
+  const shiftsHistoryModal = document.getElementById('shiftsHistoryModal');
+  let allPlayerShifts = [];
+
+  async function loadAllPlayerShifts() {
+    try {
+      // Fetch all past shifts from player_shifts table via backend
+      const res = await fetch(`/dashboard/player-shifts/${playerRobloxId}`);
+      if (!res.ok) throw new Error('Failed to fetch player shifts');
+      allPlayerShifts = await res.json();
+      console.log('Player shift history:', allPlayerShifts);
+    } catch (err) {
+      console.error('Error loading player shifts history:', err);
+      allPlayerShifts = [];
+    }
+  }
+
+  function showShiftsModal(type) {
+    const filtered = allPlayerShifts.filter(s => s.type === type);
+    const title = type === 'attended' ? 'Shifts Attended' : 'Shifts Hosted';
+    
+    document.getElementById('shifts-modal-header-text').textContent = title;
+    
+    const modalBody = document.getElementById('shifts-modal-body');
+    
+    if (filtered.length === 0) {
+      modalBody.innerHTML = '<div class="no-data">No shifts recorded</div>';
+    } else {
+      modalBody.innerHTML = filtered.map(shift => {
+        const date = shift.shift_date ? new Date(shift.shift_date).toLocaleDateString(undefined, {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        }) : 'Unknown date';
+        
+        return `
+          <div class="session-item" style="margin-bottom: 12px;">
+            <div class="session-header">
+              <span class="session-title">${shift.name || 'Shift'}</span>
+            </div>
+            <div class="session-details">
+              ${date}
+              ${shift.host ? `<br>Host: <strong>${shift.host}</strong>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    shiftsHistoryModal.style.display = 'block';
+  }
+
+  function closeShiftsModal() {
+    shiftsHistoryModal.style.display = 'none';
+  }
+
+  window.onclick = function(e) {
+    if (e.target === modal) closeModal();
+    if (e.target === shiftsHistoryModal) closeShiftsModal();
+  };
+
+  window.showShiftsModal = showShiftsModal;
 
   // --- Load Player Shifts (from shifts database + attendees) ---
   async function loadPlayerShifts() {
@@ -600,6 +677,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', loadPlayerShifts);
+  document.addEventListener('DOMContentLoaded', loadAllPlayerShifts);
 </script>
 
 </body>
