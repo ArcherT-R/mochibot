@@ -95,6 +95,7 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
+  // Remove .single() from the insert
   const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
@@ -104,8 +105,7 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
       minutes_played,
       week_start: weekStart
     }])
-    .select()
-    .single();
+    .select();
   if (insertErr) throw insertErr;
 
   const { data: weeklySessions, error: weeklyErr } = await supabase
