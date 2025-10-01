@@ -3,23 +3,334 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login</title>
+<title>Login - Mochi Bar</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #42b4ff 0%, #1a4d8f 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .login-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 420px;
+    padding: 50px 40px;
+    animation: slideIn 0.5s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .logo h1 {
+    font-size: 32px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #42b4ff 0%, #1a4d8f 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .logo p {
+    color: #888;
+    font-size: 14px;
+  }
+
+  .form-group {
+    margin-bottom: 25px;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s;
+    outline: none;
+  }
+
+  .form-group input:focus {
+    border-color: #42b4ff;
+    box-shadow: 0 0 0 3px rgba(66, 180, 255, 0.15);
+  }
+
+  .btn-login {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #42b4ff 0%, #1a4d8f 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+  }
+
+  .btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(66, 180, 255, 0.4);
+  }
+
+  .btn-login:active {
+    transform: translateY(0);
+  }
+
+  .btn-login:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .message {
+    margin-top: 20px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+    display: none;
+  }
+
+  .message.error {
+    background: #fee;
+    color: #c33;
+    border: 1px solid #fcc;
+    display: block;
+  }
+
+  .message.success {
+    background: #efe;
+    color: #3c3;
+    border: 1px solid #cfc;
+    display: block;
+  }
+
+  .divider {
+    text-align: center;
+    margin: 30px 0 20px 0;
+    color: #999;
+    font-size: 13px;
+  }
+
+  .help-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #42b4ff;
+    border: 2px solid #42b4ff;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 15px;
+  }
+
+  .help-btn:hover {
+    background: #42b4ff;
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .help-card {
+    display: none;
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8fbff;
+    border: 2px solid #42b4ff;
+    border-radius: 12px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .help-card.show {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .help-card h3 {
+    color: #1a4d8f;
+    font-size: 18px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .help-item {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .help-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .help-item strong {
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+  }
+
+  .help-item p {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .help-close {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: #666;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.2s;
+  }
+
+  .help-close:hover {
+    background: #f0f0f0;
+  }
+
+  @media (max-width: 480px) {
+    .login-container {
+      padding: 40px 30px;
+    }
+
+    .logo h1 {
+      font-size: 28px;
+    }
+  }
+</style>
 </head>
 <body>
-  <h1>Login</h1>
-  <form id="loginForm">
-    <label>Username: <input type="text" name="username" required></label><br><br>
-    <label>Password: <input type="password" name="password" required></label><br><br>
-    <button type="submit">Login</button>
-  </form>
+  <div class="login-container">
+    <div class="logo">
+      <h1>Mochi Bar</h1>
+      <p>Staff Dashboard Login</p>
+    </div>
 
-  <p id="message" style="color:red;"></p>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Full Roblox username (case-sensitive)" required autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="btn-login" id="loginBtn">Login</button>
+    </form>
+
+    <div id="message" class="message"></div>
+
+    <button type="button" class="help-btn" id="helpBtn">Need Assistance?</button>
+
+    <div class="help-card" id="helpCard">
+      <h3>📞 Need Help?</h3>
+      
+      <div class="help-item">
+        <strong>Need password set/reset?</strong>
+        <p>No worries! Contact @ArcherTheProFYT on Discord, and you'll receive assistance with password resetting.</p>
+      </div>
+
+      <div class="help-item">
+        <strong>Not on the dashboard?</strong>
+        <p>To have access to the dashboard, you must be a Mochi Leader+. Junior Mochi Staff+ are on the dashboard, however, they aren't granted access.</p>
+      </div>
+
+      <button type="button" class="help-close" id="helpClose">Close</button>
+    </div>
+  </div>
 
   <script>
     const form = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const messageEl = document.getElementById('message');
+    const helpBtn = document.getElementById('helpBtn');
+    const helpCard = document.getElementById('helpCard');
+    const helpClose = document.getElementById('helpClose');
+
+    // Toggle help card
+    helpBtn.addEventListener('click', () => {
+      helpCard.classList.toggle('show');
+      helpBtn.textContent = helpCard.classList.contains('show') ? 'Hide Assistance' : 'Need Assistance?';
+    });
+
+    helpClose.addEventListener('click', () => {
+      helpCard.classList.remove('show');
+      helpBtn.textContent = 'Need Assistance?';
+    });
+
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      const data = { username: form.username.value, password: form.password.value };
+      
+      // Disable button and show loading state
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Logging in...';
+      messageEl.style.display = 'none';
+
+      const data = { 
+        username: form.username.value, 
+        password: form.password.value 
+      };
 
       try {
         const res = await fetch('/loginpage/login', {
@@ -27,17 +338,32 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
+        
         const result = await res.json();
-        const msg = document.getElementById('message');
 
         if (result.success) {
-          window.location.href = '/dashboard';
+          messageEl.className = 'message success';
+          messageEl.textContent = 'Login successful! Redirecting...';
+          messageEl.style.display = 'block';
+          
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 500);
         } else {
-          msg.style.color = 'red';
-          msg.textContent = result.error;
+          messageEl.className = 'message error';
+          messageEl.textContent = result.error || 'Login failed';
+          messageEl.style.display = 'block';
+          
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Login';
         }
-      } catch {
-        document.getElementById('message').textContent = 'Error connecting to server.';
+      } catch (err) {
+        messageEl.className = 'message error';
+        messageEl.textContent = 'Error connecting to server. Please try again.';
+        messageEl.style.display = 'block';
+        
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
       }
     });
   </script>
