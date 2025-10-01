@@ -2,34 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Verify Code</title>
+  <title>Verify Roblox Account</title>
 </head>
 <body>
-  <h1>Verify Your Account</h1>
+  <h1>Verify Your Roblox Account</h1>
+  <p>Put the verification code in your Roblox profile description.</p>
+
   <form id="verifyForm">
-    <label>Verification Code: <input type="text" name="code" required></label>
+    <label>Username: <input type="text" name="username" id="username" required></label><br>
+    <label>Verification Code: <input type="text" name="code" id="code" required></label><br>
     <button type="submit">Verify</button>
   </form>
+
   <p id="message"></p>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const username = params.get('username');
     const form = document.getElementById('verifyForm');
     const msg = document.getElementById('message');
 
-    if (!username) {
-      msg.textContent = 'No username provided. Please start signup again.';
-      form.style.display = 'none';
-    }
+    // If username is in query string, prefill
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryUsername = urlParams.get('username');
+    if (queryUsername) document.getElementById('username').value = queryUsername;
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const data = new FormData(form);
-      const code = data.get('code');
+      const username = document.getElementById('username').value;
+      const code = document.getElementById('code').value;
 
       try {
-        const res = await fetch('/loginpage/verify-code', {
+        const res = await fetch('/loginpage/roblox-verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, code })
@@ -37,13 +39,16 @@
 
         const json = await res.json();
         if (res.ok) {
-          msg.textContent = '✅ Verification successful! Redirecting to set password...';
-          window.location.href = `/loginpage/set-password?username=${encodeURIComponent(username)}`;
+          msg.textContent = '✅ Verification successful! Proceed to set a password.';
+          // Redirect to set-password page
+          setTimeout(() => {
+            window.location.href = `/loginpage/set-password?username=${encodeURIComponent(username)}`;
+          }, 1500);
         } else {
-          msg.textContent = json.error;
+          msg.textContent = `❌ ${json.error}`;
         }
       } catch (err) {
-        msg.textContent = '❌ Error verifying code';
+        msg.textContent = '❌ An error occurred. Try again.';
         console.error(err);
       }
     });
