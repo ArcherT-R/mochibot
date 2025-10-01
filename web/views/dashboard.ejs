@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ------------------- Top Players -------------------
-  let topPlayersData = <%- JSON.stringify(topPlayers || []) %>;
+  let topPlayersData = window.topPlayers || [];
 
   function calculateLiveMinutes(player){
     if(player.ongoing_session_start_time){
@@ -199,24 +199,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return h > 0 ? `${h} hr ${m} min` : `${m} min`;
   }
 
-  function renderTopPlayers(){
-    if(!topPlayersData.length){
-      topPlayersGrid.innerHTML = '<div class="no-data">No active players data.</div>';
-      return;
-    }
-    const livePlayers = topPlayersData
-      .map(p => ({...p, live_total_minutes: getTotalMinutes(p), is_live: calculateLiveMinutes(p) > 0}))
-      .sort((a,b) => b.live_total_minutes - a.live_total_minutes)
-      .slice(0,8);
+  async function renderTopPlayers(){
+    try{
+      const res = await fetch('/dashboard/top-players');
+      topPlayersData = res.ok ? await res.json() : topPlayersData;
+      if(!topPlayersData.length){
+        topPlayersGrid.innerHTML = '<div class="no-data">No active players data.</div>';
+        return;
+      }
+      const livePlayers = topPlayersData
+        .map(p => ({...p, live_total_minutes: getTotalMinutes(p), is_live: calculateLiveMinutes(p) > 0}))
+        .sort((a,b) => b.live_total_minutes - a.live_total_minutes)
+        .slice(0,8);
 
-    topPlayersGrid.innerHTML = livePlayers.map(p => `
-      <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-        <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
-             onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-        <div>${p.username}</div>
-        ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
-        <div class="time">${formatMinutes(p.live_total_minutes)}</div>
-      </div>`).join('');
+      topPlayersGrid.innerHTML = livePlayers.map(p => `
+        <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
+               onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+          <div>${p.username}</div>
+          ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
+          <div class="time">${formatMinutes(p.live_total_minutes)}</div>
+        </div>`).join('');
+    } catch(err){ console.error(err); }
   }
   renderTopPlayers();
   setInterval(renderTopPlayers, 5000);
@@ -236,16 +240,13 @@ document.addEventListener('DOMContentLoaded', () => {
                onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
           <div>${p.username}</div>
         </div>`).join('');
-    } catch(err){
-      console.error(err);
-      fullPlayerList.innerHTML = '<div class="no-data">Failed to load players.</div>';
-    }
+    } catch(err){ console.error(err); fullPlayerList.innerHTML = '<div class="no-data">Failed to load players.</div>'; }
   }
   renderFullPlayers();
 
   // ------------------- Shifts -------------------
   function formatShiftTime(ts){
-    const d = new Date(ts * 1000);
+    const d = new Date(ts);
     const now = new Date();
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
     let dateStr = d.toDateString() === now.toDateString() ? 'Today'
@@ -263,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function renderAttendees(shiftId){
     const container = document.getElementById(`attendees-${shiftId}`);
     const addBox = document.getElementById(`add-attendee-${shiftId}`);
+    if(!container || !addBox) return;
     container.innerHTML = '';
 
     const attendees = await fetchAttendees(shiftId);
@@ -311,22 +313,16 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({shiftId, robloxId, username})
           });
           await renderAttendees(shiftId);
-        } else {
-          addBox.style.background = '#e0e6f0';
-          addBox.style.border = '1px dashed #42b4ff';
-          addBox.innerHTML = '+ Add attendee';
-        }
+        } else resetAddBox();
       };
 
-      select.onblur = () => {
-        setTimeout(() => {
-          if(!select.value){
-            addBox.style.background = '#e0e6f0';
-            addBox.style.border = '1px dashed #42b4ff';
-            addBox.innerHTML = '+ Add attendee';
-          }
-        }, 200);
-      };
+      select.onblur = () => setTimeout(resetAddBox, 200);
+
+      function resetAddBox(){
+        addBox.style.background = '#e0e6f0';
+        addBox.style.border = '1px dashed #42b4ff';
+        addBox.innerHTML = '+ Add attendee';
+      }
     };
   }
 
@@ -336,8 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/shifts');
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const shifts = await res.json();
-      const now = Math.floor(Date.now()/1000);
-      const upcoming = shifts.filter(s => s.time && s.time > now).sort((a,b)=>a.time-b.time);
+      const now = Date.now();
+      const upcoming = shifts.filter(s => s.time && new Date(s.time).getTime() > now).sort((a,b)=>new Date(a.time)-new Date(b.time));
 
       if(!upcoming.length){
         shiftsList.innerHTML = '<div class="no-data">No upcoming shifts.</div>';
@@ -347,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
       shiftsList.innerHTML = '';
       upcoming.forEach((s,index)=>{
         const shiftId = s.id ?? index;
-        const {date,time} = formatShiftTime(s.time);
+        const {date,time} = formatShiftTime(new Date(s.time));
         const div = document.createElement('div');
         div.className = 'shift-item';
 
@@ -375,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadShifts();
+  setInterval(loadShifts, 60000); // refresh shifts every 60s
 });
 </script>
 </body>
