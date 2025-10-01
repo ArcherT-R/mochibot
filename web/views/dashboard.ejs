@@ -263,7 +263,7 @@
   <div id="myaccount" class="tab-content">
     <section class="content-section">
       <h2>My Account</h2>
-      <div class="no-data">Account settings coming soon...</div>
+      <div id="accountTab" class="my-account"></div>
     </section>
   </div>
 
@@ -274,6 +274,20 @@
       <div class="no-data">Settings panel coming soon...</div>
     </section>
   </div>
+</div>
+
+<!-- My Account -->
+<div id="my-account">
+  <h2>My Account</h2>
+  <% if (player) { %>
+    <p><strong>Username:</strong> <%= player.username %></p>
+    <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
+    <p><strong>Group Rank:</strong> <%= player.group_rank %></p>
+    <img src="<%= player.avatar_url %>" alt="Avatar" style="width:100px;"/>
+    <p><strong>Weekly Minutes:</strong> <%= player.weekly_minutes %></p>
+  <% } else { %>
+    <p>Please log in to view your account.</p>
+  <% } %>
 </div>
 
 <!-- Shift Modal -->
