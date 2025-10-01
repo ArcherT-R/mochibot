@@ -396,15 +396,17 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
 
-      // Check access permissions
-      if (tab === 'playerlist' && !hasLeadershipRank()) {
-        alert('Access Denied: Player List requires Leadership rank');
-        return;
-      }
+      // Check access permissions - only after user is loaded
+      if (currentUser) {
+        if (tab === 'playerlist' && !hasLeadershipRank()) {
+          alert('Access Denied: Player List requires Leadership rank');
+          return;
+        }
 
-      if (tab === 'settings' && !hasExecutiveRank()) {
-        alert('Access Denied: Settings requires Chairman or Vice Chairman rank');
-        return;
+        if (tab === 'settings' && !hasExecutiveRank()) {
+          alert('Access Denied: Settings requires Chairman or Vice Chairman rank');
+          return;
+        }
       }
 
       document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
