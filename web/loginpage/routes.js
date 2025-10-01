@@ -5,7 +5,7 @@ const axios = require('axios');
 
 const router = express.Router();
 
-// -------------------- In-memory stores --------------------
+// -------------------- Temporary in-memory stores --------------------
 const pendingVerifications = {}; // { username: { code, expiresAt, verified } }
 const loginCredentials = [];     // { username, passwordHash }
 
@@ -26,8 +26,8 @@ router.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// -------------------- Signup flow --------------------
-router.post('/start-signup', (req, res) => {
+// -------------------- Start Signup (generate verification code) --------------------
+router.post('/start-signup', async (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: 'Username required' });
 
@@ -46,37 +46,38 @@ router.post('/start-signup', (req, res) => {
   };
 
   console.log(`📩 Generated verification code ${code} for ${username}`);
-  res.json({ code });
+  res.json({ success: true, code });
 });
 
-// -------------------- Roblox Verification --------------------
-router.post('/roblox-verify', async (req, res) => {
-  const { username, code } = req.body;
+// -------------------- Verify Roblox Ownership --------------------
+router.post('/verify-code', async (req, res) => {
+  const { username } = req.body;
   const key = username.toLowerCase();
+  const entry = pendingVerifications[key];
 
-  if (!username || !code) return res.status(400).json({ error: 'Missing username or code' });
+  if (!entry) return res.status(400).json({ error: 'No pending verification' });
+  if (entry.verified) return res.status(400).json({ error: 'Already verified' });
+  if (Date.now() > entry.expiresAt) return res.status(400).json({ error: 'Code expired' });
 
   try {
-    // 1. Get Roblox user ID
-    const userResp = await axios.get(`https://api.roblox.com/users/get-by-username?username=${encodeURIComponent(username)}`);
-    if (userResp.data && userResp.data.Id === 0) return res.status(404).json({ error: 'Roblox user not found' });
+    // 1️⃣ Get Roblox userId
+    const userRes = await axios.post('https://users.roblox.com/v1/usernames/users', {
+      usernames: [username],
+      excludeBannedUsers: true
+    });
+    const userId = userRes.data.data[0]?.id;
+    if (!userId) return res.status(400).json({ error: 'Roblox username not found' });
 
-    const userId = userResp.data.Id;
+    // 2️⃣ Check description for verification code
+    const profileRes = await axios.get(`https://users.roblox.com/v1/users/${userId}`);
+    const description = profileRes.data.description || '';
 
-    // 2. Get user profile
-    const profileResp = await axios.get(`https://users.roblox.com/v1/users/${userId}`);
-    const description = profileResp.data.description || '';
+    if (!description.includes(entry.code)) {
+      return res.status(400).json({ error: 'Verification code not found on Roblox profile' });
+    }
 
-    // 3. Check if the code is in the description
-    if (!description.includes(code)) return res.status(400).json({ error: 'Verification code not found in Roblox profile' });
-
-    // ✅ Verified
-    if (!pendingVerifications[key]) pendingVerifications[key] = {};
-    pendingVerifications[key].verified = true;
-
-    console.log(`✅ ${username} verified via Roblox`);
+    entry.verified = true;
     res.json({ success: true });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to verify Roblox account' });
