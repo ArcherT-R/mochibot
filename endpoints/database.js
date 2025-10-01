@@ -240,26 +240,55 @@ async function getOngoingSession(roblox_id) {
 }
 
 // -------------------------
-// Shifts from Discord
+// Shifts
 // -------------------------
 
 async function getAllShifts() {
   const { data, error } = await supabase
-    .from("shifts")
-    .select("*")
-    .order("time", { ascending: true });
+    .from('shifts')
+    .select('*')
+    .order('shift_time', { ascending: true });
   if (error) throw error;
   return data;
 }
 
-async function addOrUpdateShift({ host, cohost, overseer, time }) {
+async function addShift({ shift_time, host, cohost, overseer }) {
   const { data, error } = await supabase
-    .from("shifts")
-    .upsert([{ host, cohost, overseer, time }], { onConflict: ["host", "time"] })
+    .from('shifts')
+    .insert([{ shift_time, host, cohost, overseer }])
     .select()
     .single();
   if (error) throw error;
   return data;
+}
+
+async function getShiftAttendees(shiftId) {
+  const { data, error } = await supabase
+    .from('shift_attendees')
+    .select('*')
+    .eq('shift_id', shiftId);
+  if (error) throw error;
+  return data;
+}
+
+async function addShiftAttendee(shiftId, robloxId, username) {
+  const { data, error } = await supabase
+    .from('shift_attendees')
+    .insert([{ shift_id: shiftId, roblox_id: robloxId, username }])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function removeShiftAttendee(shiftId, robloxId) {
+  const { error } = await supabase
+    .from('shift_attendees')
+    .delete()
+    .eq('shift_id', shiftId)
+    .eq('roblox_id', robloxId);
+  if (error) throw error;
+  return { success: true };
 }
 
 // -------------------------
@@ -279,5 +308,8 @@ module.exports = {
   deletePlayerLiveSession,
   getOngoingSession,
   getAllShifts,
-  addOrUpdateShift,
+  addShift,
+  getShiftAttendees,
+  addShiftAttendee,
+  removeShiftAttendee,
 };
