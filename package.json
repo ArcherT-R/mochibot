@@ -20,7 +20,9 @@
     "axios": "^1.6.0",
     "node-fetch": "^2.6.11",
     "node-schedule": "^2.1.1",
-    "@supabase/supabase-js": "^2.45.0"
+    "@supabase/supabase-js": "^2.45.0",
+    "bcrypt": "^5.1.0"
+
   },
   "engines": {
     "node": ">=18"
