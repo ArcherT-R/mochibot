@@ -348,7 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/dashboard/current-user');
       if (res.ok) {
         currentUser = await res.json();
-        console.log('Current user rank:', currentUser.group_rank);
+        const rank = currentUser.group_rank || currentUser.rank;
+        console.log('Current user data:', currentUser);
+        console.log('Current user rank:', rank);
+        console.log('Has Leadership Rank:', hasLeadershipRank());
+        console.log('Has Chief Rank:', hasChiefRank());
+        console.log('Has Executive Rank:', hasExecutiveRank());
         updateTabAccess();
       }
     } catch (err) {
@@ -357,23 +362,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function hasLeadershipRank() {
-    if (!currentUser || !currentUser.group_rank) return false;
-    return LEADERSHIP_RANKS.includes(currentUser.group_rank);
+    if (!currentUser) return false;
+    const rank = currentUser.group_rank || currentUser.rank;
+    if (!rank) return false;
+    return LEADERSHIP_RANKS.includes(rank);
   }
 
   function hasChiefRank() {
-    if (!currentUser || !currentUser.group_rank) return false;
-    return CHIEF_RANKS.includes(currentUser.group_rank);
+    if (!currentUser) return false;
+    const rank = currentUser.group_rank || currentUser.rank;
+    if (!rank) return false;
+    return CHIEF_RANKS.includes(rank);
   }
 
   function hasCorporateRank() {
-    if (!currentUser || !currentUser.group_rank) return false;
-    return CORPORATE_RANKS.includes(currentUser.group_rank);
+    if (!currentUser) return false;
+    const rank = currentUser.group_rank || currentUser.rank;
+    if (!rank) return false;
+    return CORPORATE_RANKS.includes(rank);
   }
 
   function hasExecutiveRank() {
-    if (!currentUser || !currentUser.group_rank) return false;
-    return EXECUTIVE_RANKS.includes(currentUser.group_rank);
+    if (!currentUser) return false;
+    const rank = currentUser.group_rank || currentUser.rank;
+    if (!rank) return false;
+    return EXECUTIVE_RANKS.includes(rank);
   }
 
   function updateTabAccess() {
