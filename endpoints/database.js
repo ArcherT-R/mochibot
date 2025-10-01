@@ -284,6 +284,18 @@ async function removeShiftAttendee(shiftId, robloxId) {
   return { success: true };
 }
 
+// Add this to your database.js file, before the module.exports section
+
+async function getPlayerByRobloxId(roblox_id) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("roblox_id", roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
 // -------------------------
 // Exports
 // -------------------------
@@ -319,5 +331,6 @@ module.exports = {
   addShiftAttendee,
   removeShiftAttendee,
   verifyPlayerPassword,
-  updatePlayerPassword
+  updatePlayerPassword,
+  getPlayerByRobloxID
 };
