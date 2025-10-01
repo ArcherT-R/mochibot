@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const livePlayers = topPlayersData
         .map(p => ({...p, live_total_minutes: getTotalMinutes(p), is_live: calculateLiveMinutes(p) > 0}))
         .sort((a,b) => b.live_total_minutes - a.live_total_minutes)
-        .slice(0,8);
+        .slice(0,3);
 
       topPlayersGrid.innerHTML = livePlayers.map(p => `
         <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
