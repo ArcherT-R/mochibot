@@ -241,6 +241,11 @@
       <h2>Top Active This Week</h2>
       <div id="topPlayersGrid" class="top-players-grid"></div>
     </section>
+    
+    <section class="content-section">
+      <h2>Top 3 Shift Leaders</h2>
+      <div id="topShiftLeaders" class="top-players-grid"></div>
+    </section>
   </div>
 
   <!-- PLAYER LIST TAB -->
@@ -391,6 +396,87 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   renderTopPlayers();
   setInterval(renderTopPlayers, 5000);
+
+  // ------------------- Top Shift Leaders -------------------
+  async function renderTopShiftLeaders(){
+    try{
+      const shiftsRes = await fetch('/shifts');
+      const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
+      
+      const attendeesPromises = shifts.map(async shift => {
+        try {
+          const res = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
+          return res.ok ? await res.json() : [];
+        } catch {
+          return [];
+        }
+      });
+      
+      const allAttendeesArrays = await Promise.all(attendeesPromises);
+      
+      // Count shift participation per username
+      const participationCount = {};
+      
+      shifts.forEach((shift, index) => {
+        const attendees = allAttendeesArrays[index];
+        
+        // Count host
+        if (shift.host && shift.host !== 'TBD') {
+          participationCount[shift.host] = (participationCount[shift.host] || 0) + 1;
+        }
+        
+        // Count co-host
+        if (shift.cohost) {
+          participationCount[shift.cohost] = (participationCount[shift.cohost] || 0) + 1;
+        }
+        
+        // Count overseer
+        if (shift.overseer) {
+          participationCount[shift.overseer] = (participationCount[shift.overseer] || 0) + 1;
+        }
+        
+        // Count attendees
+        attendees.forEach(attendee => {
+          participationCount[attendee.username] = (participationCount[attendee.username] || 0) + 1;
+        });
+      });
+      
+      // Convert to array and sort
+      const sortedLeaders = Object.entries(participationCount)
+        .map(([username, count]) => ({ username, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
+      
+      const topShiftLeadersGrid = document.getElementById('topShiftLeaders');
+      
+      if(!sortedLeaders.length){
+        topShiftLeadersGrid.innerHTML = '<div class="no-data">No shift participation data.</div>';
+        return;
+      }
+      
+      // Fetch player details for avatars
+      const playersRes = await fetch('/dashboard/players');
+      const allPlayers = playersRes.ok ? await playersRes.json() : [];
+      
+      topShiftLeadersGrid.innerHTML = sortedLeaders.map(leader => {
+        const player = allPlayers.find(p => p.username === leader.username);
+        const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
+        
+        return `
+          <div class="player-card" onclick="window.location='/dashboard/player/${leader.username}'">
+            <img src="${avatarUrl}"
+                 onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+            <div>${leader.username}</div>
+            <div class="time">${leader.count} shift${leader.count !== 1 ? 's' : ''}</div>
+          </div>`;
+      }).join('');
+    } catch(err){ 
+      console.error('Error loading shift leaders:', err); 
+      document.getElementById('topShiftLeaders').innerHTML = '<div class="no-data">Failed to load shift leaders.</div>';
+    }
+  }
+  renderTopShiftLeaders();
+  setInterval(renderTopShiftLeaders, 60000);
 
   // ------------------- Full Player List -------------------
   async function renderFullPlayers(){
