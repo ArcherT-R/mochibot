@@ -35,6 +35,7 @@
   .suggestion-item:last-child { border-bottom:none; }
   .suggestion-item:hover { background:#f0f8ff; }
   .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+  .no-data { text-align:center; color:#888; padding:20px; font-style:italic; }
 
   /* Top Players */
   .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
@@ -44,30 +45,128 @@
   .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
   .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
 
-  /* Shifts */
+  /* Shifts - Collapsible Cards */
   .shifts-list { display:flex; flex-direction:column; gap:16px; }
-  .shift-item { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
-  .shift-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .shift-icon { font-size:24px; }
+  .shift-card { 
+    background:#fff; 
+    border-radius:12px; 
+    border:1px solid #e0e6f0; 
+    box-shadow:0 2px 8px rgba(0,0,0,0.08); 
+    overflow:hidden;
+    transition:all 0.3s;
+  }
+  .shift-card:hover { box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+  .shift-card.expanded { border-color:#42b4ff; }
+  
+  .shift-summary {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:18px 20px;
+    cursor:pointer;
+    background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%);
+    border-left:4px solid #42b4ff;
+    transition:background 0.2s;
+  }
+  .shift-summary:hover { background:linear-gradient(135deg,#e6f3ff 0%,#d9edff 100%); }
+  
+  .shift-summary-left { display:flex; align-items:center; gap:12px; flex:1; }
+  .shift-icon { font-size:28px; }
+  .shift-info { display:flex; flex-direction:column; gap:4px; }
   .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
-  .shift-roles { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
-  .shift-role { display:flex; align-items:center; gap:8px; font-size:15px; }
-  .role-label { font-weight:600; color:#555; min-width:80px; }
+  .shift-host-preview { font-size:14px; color:#555; }
+  .shift-expand-icon { 
+    font-size:24px; 
+    color:#42b4ff; 
+    transition:transform 0.3s;
+    user-select:none;
+  }
+  .shift-card.expanded .shift-expand-icon { transform:rotate(180deg); }
+  
+  .shift-details {
+    max-height:0;
+    overflow:hidden;
+    transition:max-height 0.4s ease-out, padding 0.4s ease-out;
+    background:#fafbfc;
+  }
+  .shift-card.expanded .shift-details {
+    max-height:1000px;
+    padding:20px;
+    border-top:1px solid #e0e6f0;
+  }
+  
+  .shift-roles { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .shift-role { 
+    display:flex; 
+    align-items:center; 
+    gap:10px; 
+    padding:8px 12px;
+    background:#fff;
+    border-radius:8px;
+    border:1px solid #e0e6f0;
+  }
+  .role-label { font-weight:600; color:#555; min-width:90px; }
   .role-name { color:#333; }
 
-  /* Attendees */
-  .attendees-container { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  /* Attendees Section */
+  .attendees-section { margin-top:20px; }
+  .attendees-header { 
+    font-weight:700; 
+    font-size:16px; 
+    color:#333; 
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .attendee-count {
+    background:#42b4ff;
+    color:white;
+    padding:2px 8px;
+    border-radius:12px;
+    font-size:12px;
+    font-weight:700;
+  }
+  .attendees-container { display:flex; flex-direction:column; gap:8px; }
   .attendee-box {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 16px; border-radius:10px; background:#f9f9f9; border:1px solid #ddd; cursor:default;
+    display:flex; 
+    justify-content:space-between; 
+    align-items:center;
+    padding:10px 14px; 
+    border-radius:8px; 
+    background:#fff; 
+    border:1px solid #e0e6f0;
+    transition:all 0.2s;
   }
+  .attendee-box:hover { background:#f9f9f9; border-color:#42b4ff; }
   .attendee-box span { font-weight:500; color:#333; }
-  .attendee-box button { background:red; border:none; border-radius:6px; color:white; font-weight:700; padding:2px 6px; cursor:pointer; }
-  .add-attendee-box {
-    display:flex; justify-content:center; align-items:center; padding:12px; border-radius:10px;
-    background:#e0e6f0; cursor:pointer; font-weight:600; color:#1a85e6; border:1px dashed #42b4ff; transition:background 0.2s;
+  .attendee-box button { 
+    background:#ff4444; 
+    border:none; 
+    border-radius:6px; 
+    color:white; 
+    font-weight:700; 
+    padding:4px 10px; 
+    cursor:pointer;
+    transition:background 0.2s;
   }
-  .add-attendee-box:hover { background:#d0e4ff; }
+  .attendee-box button:hover { background:#cc0000; }
+  
+  .add-attendee-box {
+    display:flex; 
+    justify-content:center; 
+    align-items:center; 
+    padding:12px; 
+    border-radius:8px;
+    background:#e6f3ff; 
+    cursor:pointer; 
+    font-weight:600; 
+    color:#1a85e6; 
+    border:2px dashed #42b4ff; 
+    transition:all 0.2s;
+    margin-top:8px;
+  }
+  .add-attendee-box:hover { background:#d0e4ff; border-color:#1a85e6; }
 
   .tab-content { display:none; }
   .tab-content.active { display:block; }
@@ -80,7 +179,8 @@
     .nav-buttons { width:100%; justify-content:center; }
     .search-wrapper { width:100%; max-width:100%; }
     .tab-button { padding:10px 16px; font-size:14px; }
-    .shift-header { flex-direction:column; align-items:flex-start; }
+    .shift-summary { flex-direction:column; align-items:flex-start; gap:10px; }
+    .shift-summary-left { width:100%; }
   }
 </style>
 </head>
@@ -114,14 +214,14 @@
   <div id="playerlist" class="tab-content">
     <section class="content-section">
       <h2>Player List</h2>
-      <div id="fullPlayerList"></div>
+      <div id="fullPlayerList" class="top-players-grid"></div>
     </section>
   </div>
 
   <!-- SHIFTS TAB -->
   <div id="shifts" class="tab-content">
     <section class="content-section">
-      <h2>Upcoming Shifts & Attendees</h2>
+      <h2>Upcoming Shifts</h2>
       <div id="shiftsList" class="shifts-list"></div>
     </section>
   </div>
@@ -176,12 +276,13 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`).join('');
     } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
   });
+  
   document.addEventListener('click', e => {
     if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
   });
 
   // ------------------- Top Players -------------------
-  let topPlayersData = window.topPlayers || [];
+  let topPlayersData = [];
 
   function calculateLiveMinutes(player){
     if(player.ongoing_session_start_time){
@@ -265,15 +366,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById(`attendees-${shiftId}`);
     const addBox = document.getElementById(`add-attendee-${shiftId}`);
     if(!container || !addBox) return;
-    container.innerHTML = '';
-
+    
     const attendees = await fetchAttendees(shiftId);
+    
+    // Update count badge
+    const countBadge = document.getElementById(`attendee-count-${shiftId}`);
+    if(countBadge) countBadge.textContent = attendees.length;
+    
+    container.innerHTML = '';
 
     attendees.forEach(a => {
       const box = document.createElement('div');
       box.className = 'attendee-box';
       box.innerHTML = `<span>${a.username}</span><button data-robloxid="${a.roblox_id}">×</button>`;
-      box.querySelector('button').addEventListener('click', async () => {
+      box.querySelector('button').addEventListener('click', async (e) => {
+        e.stopPropagation();
         await fetch('/shifts/remove-attendee', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
@@ -319,11 +426,32 @@ document.addEventListener('DOMContentLoaded', () => {
       select.onblur = () => setTimeout(resetAddBox, 200);
 
       function resetAddBox(){
-        addBox.style.background = '#e0e6f0';
-        addBox.style.border = '1px dashed #42b4ff';
+        addBox.style.background = '#e6f3ff';
+        addBox.style.border = '2px dashed #42b4ff';
         addBox.innerHTML = '+ Add attendee';
       }
     };
+  }
+
+  function toggleShift(shiftId){
+    const card = document.getElementById(`shift-card-${shiftId}`);
+    if(!card) return;
+    
+    const isExpanded = card.classList.contains('expanded');
+    
+    if(isExpanded){
+      card.classList.remove('expanded');
+    } else {
+      // Collapse all other shifts
+      document.querySelectorAll('.shift-card').forEach(c => c.classList.remove('expanded'));
+      card.classList.add('expanded');
+      
+      // Load attendees if not already loaded
+      const attendeesContainer = document.getElementById(`attendees-${shiftId}`);
+      if(attendeesContainer && attendeesContainer.children.length === 0){
+        renderAttendees(shiftId);
+      }
+    }
   }
 
   async function loadShifts(){
@@ -333,7 +461,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const shifts = await res.json();
       const now = Date.now();
-      const upcoming = shifts.filter(s => s.time && new Date(s.time).getTime() > now).sort((a,b)=>new Date(a.time)-new Date(b.time));
+      const upcoming = shifts.filter(s => s.shift_time && new Date(s.shift_time).getTime() > now)
+        .sort((a,b)=>new Date(a.shift_time)-new Date(b.shift_time));
 
       if(!upcoming.length){
         shiftsList.innerHTML = '<div class="no-data">No upcoming shifts.</div>';
@@ -341,29 +470,47 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       shiftsList.innerHTML = '';
-      upcoming.forEach((s,index)=>{
-        const shiftId = s.id ?? index;
-        const {date,time} = formatShiftTime(new Date(s.time));
-        const div = document.createElement('div');
-        div.className = 'shift-item';
+      upcoming.forEach((s)=>{
+        const shiftId = s.id;
+        const {date,time} = formatShiftTime(new Date(s.shift_time));
+        
+        const card = document.createElement('div');
+        card.className = 'shift-card';
+        card.id = `shift-card-${shiftId}`;
 
         let rolesHTML = `<div class="shift-role"><span class="role-label">📋 Host:</span><span class="role-name">${s.host || 'TBD'}</span></div>`;
         if(s.cohost) rolesHTML += `<div class="shift-role"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${s.cohost}</span></div>`;
         if(s.overseer) rolesHTML += `<div class="shift-role"><span class="role-label">👁️ Overseer:</span><span class="role-name">${s.overseer}</span></div>`;
 
-        div.innerHTML = `
-          <div class="shift-header">
-            <span class="shift-icon">📅</span>
-            <span class="shift-datetime">${date} at ${time}</span>
+        card.innerHTML = `
+          <div class="shift-summary" onclick="toggleShift(${shiftId})">
+            <div class="shift-summary-left">
+              <span class="shift-icon">📅</span>
+              <div class="shift-info">
+                <div class="shift-datetime">${date} at ${time}</div>
+                <div class="shift-host-preview">Host: ${s.host || 'TBD'}</div>
+              </div>
+            </div>
+            <span class="shift-expand-icon">▼</span>
           </div>
-          <div class="shift-roles">${rolesHTML}</div>
-          <div class="attendees-container" id="attendees-${shiftId}"></div>
-          <div class="add-attendee-box" id="add-attendee-${shiftId}">+ Add attendee</div>
+          <div class="shift-details">
+            <div class="shift-roles">${rolesHTML}</div>
+            <div class="attendees-section">
+              <div class="attendees-header">
+                Attendees
+                <span class="attendee-count" id="attendee-count-${shiftId}">0</span>
+              </div>
+              <div class="attendees-container" id="attendees-${shiftId}"></div>
+              <div class="add-attendee-box" id="add-attendee-${shiftId}">+ Add attendee</div>
+            </div>
+          </div>
         `;
-        shiftsList.appendChild(div);
-
-        renderAttendees(shiftId).catch(console.error);
+        shiftsList.appendChild(card);
       });
+      
+      // Make toggleShift globally accessible
+      window.toggleShift = toggleShift;
+      
     } catch(err){
       console.error('Failed to load shifts:', err);
       shiftsList.innerHTML = '<div class="no-data">Failed to load shifts.</div>';
@@ -371,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadShifts();
-  setInterval(loadShifts, 60000); // refresh shifts every 60s
+  setInterval(loadShifts, 60000);
 });
 </script>
 </body>
