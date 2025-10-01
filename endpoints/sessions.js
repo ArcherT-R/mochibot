@@ -1,14 +1,9 @@
-// endpoints/sessions.js
 const express = require('express');
-const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
+const { addShift } = require('./database');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const GUILD_ID = '1362322934794031104';
+const CHANNEL_ID = '1402605903508672554';
 
-const GUILD_ID = '1362322934794031104'; // your Discord guild
-const CHANNEL_ID = '1402605903508672554'; // session messages channel
-
-// Resolve mentions or raw usernames to nickname
 async function resolveDiscordName(client, guild, text) {
   const mentionMatch = text.match(/^<@!?(\d+)>$/);
   if (mentionMatch) {
@@ -22,27 +17,9 @@ async function resolveDiscordName(client, guild, text) {
   return text.trim();
 }
 
-// Upsert shift into Supabase
-async function upsertShift({ host, cohost, overseer, timestamp }) {
-  if (!host || !timestamp) return;
-
-  const { data, error } = await supabase
-    .from('shifts')
-    .upsert(
-      {
-        host,
-        cohost: cohost || null,
-        overseer: overseer || null,
-        shift_time: new Date(timestamp * 1000).toISOString()
-      },
-      { onConflict: ['host', 'shift_time'] } // prevent duplicates for same host + time
-    );
-
-  if (error) console.error('Supabase upsert error:', error);
-  return data;
-}
-
 module.exports = (client) => {
+  const router = express.Router();
+
   router.get('/', async (req, res) => {
     try {
       if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
@@ -57,7 +34,10 @@ module.exports = (client) => {
       const sessions = [];
 
       for (const msg of messages.values()) {
-        let host = null, cohost = null, overseer = null, timestamp = null;
+        let host = null;
+        let cohost = null;
+        let overseer = null;
+        let timestamp = null;
 
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
@@ -83,18 +63,23 @@ module.exports = (client) => {
         }
 
         if (host && timestamp) {
-          // Log to Supabase
-          await upsertShift({ host, cohost, overseer, timestamp });
-
-          // Prepare response for dashboard
-          const session = { host, time: timestamp };
-          if (cohost) session.cohost = cohost;
-          if (overseer) session.overseer = overseer;
+          const session = { host, cohost, overseer, shift_time: new Date(timestamp * 1000).toISOString() };
           sessions.push(session);
+
+          // Log directly to database
+          try {
+            await addShift({
+              shift_time: timestamp,
+              host,
+              cohost,
+              overseer
+            });
+          } catch (err) {
+            console.error('Failed to log shift to DB:', err);
+          }
         }
       }
 
-      // Return all sessions
       res.json(sessions);
     } catch (err) {
       console.error('Error fetching sessions:', err);
