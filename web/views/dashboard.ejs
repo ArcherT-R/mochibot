@@ -460,9 +460,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/shifts');
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const shifts = await res.json();
+      
+      console.log('Fetched shifts:', shifts); // Debug log
+      
       const now = Date.now();
-      const upcoming = shifts.filter(s => s.shift_time && new Date(s.shift_time).getTime() > now)
-        .sort((a,b)=>new Date(a.shift_time)-new Date(b.shift_time));
+      const upcoming = shifts.filter(s => {
+        // Handle both 'shift_time' and 'time' column names
+        const shiftTime = s.shift_time || s.time;
+        if(!shiftTime) return false;
+        return new Date(shiftTime).getTime() > now;
+      }).sort((a,b)=> {
+        const timeA = new Date(a.shift_time || a.time).getTime();
+        const timeB = new Date(b.shift_time || b.time).getTime();
+        return timeA - timeB;
+      });
+
+      console.log('Upcoming shifts:', upcoming); // Debug log
 
       if(!upcoming.length){
         shiftsList.innerHTML = '<div class="no-data">No upcoming shifts.</div>';
@@ -472,7 +485,8 @@ document.addEventListener('DOMContentLoaded', () => {
       shiftsList.innerHTML = '';
       upcoming.forEach((s)=>{
         const shiftId = s.id;
-        const {date,time} = formatShiftTime(new Date(s.shift_time));
+        const shiftTime = s.shift_time || s.time;
+        const {date,time} = formatShiftTime(new Date(shiftTime));
         
         const card = document.createElement('div');
         card.className = 'shift-card';
