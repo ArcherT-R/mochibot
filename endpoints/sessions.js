@@ -1,31 +1,48 @@
-// /endpoints/sessions.js
+// endpoints/sessions.js
 const express = require('express');
 const router = express.Router();
-const { addOrUpdateShift, getAllShifts } = require('./database'); // new DB functions
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 const GUILD_ID = '1362322934794031104'; // your Discord guild
-const CHANNEL_ID = '1402605903508672554'; // your session channel
+const CHANNEL_ID = '1402605903508672554'; // session messages channel
 
-/**
- * Resolve Discord mention or raw text to a display name
- */
+// Resolve mentions or raw usernames to nickname
 async function resolveDiscordName(client, guild, text) {
   const mentionMatch = text.match(/^<@!?(\d+)>$/);
   if (mentionMatch) {
     const id = mentionMatch[1];
     try {
       const member = await guild.members.fetch(id).catch(() => null);
-      if (member) return member.nickname || member.user.username;
+      if (member && member.nickname) return member.nickname;
+      if (member && member.user) return member.user.username;
     } catch {}
   }
   return text.trim();
 }
 
-module.exports = (client) => {
+// Upsert shift into Supabase
+async function upsertShift({ host, cohost, overseer, timestamp }) {
+  if (!host || !timestamp) return;
 
-  // -------------------------
-  // GET /sessions - Fetch and return upcoming sessions
-  // -------------------------
+  const { data, error } = await supabase
+    .from('shifts')
+    .upsert(
+      {
+        host,
+        cohost: cohost || null,
+        overseer: overseer || null,
+        shift_time: new Date(timestamp * 1000).toISOString()
+      },
+      { onConflict: ['host', 'shift_time'] } // prevent duplicates for same host + time
+    );
+
+  if (error) console.error('Supabase upsert error:', error);
+  return data;
+}
+
+module.exports = (client) => {
   router.get('/', async (req, res) => {
     try {
       if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
@@ -66,24 +83,18 @@ module.exports = (client) => {
         }
 
         if (host && timestamp) {
+          // Log to Supabase
+          await upsertShift({ host, cohost, overseer, timestamp });
+
+          // Prepare response for dashboard
           const session = { host, time: timestamp };
           if (cohost) session.cohost = cohost;
           if (overseer) session.overseer = overseer;
-
-          // Upsert into public.shifts table
-          try {
-            await addOrUpdateShift(session);
-          } catch (dbErr) {
-            console.error('Error saving shift to DB:', dbErr);
-          }
-
           sessions.push(session);
         }
       }
 
-      // Sort by timestamp ascending
-      sessions.sort((a, b) => a.time - b.time);
-
+      // Return all sessions
       res.json(sessions);
     } catch (err) {
       console.error('Error fetching sessions:', err);
