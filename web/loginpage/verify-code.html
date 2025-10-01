@@ -13,15 +13,13 @@
   <p id="message"></p>
 
   <script>
+    const params = new URLSearchParams(window.location.search);
+    const username = params.get('username');
     const form = document.getElementById('verifyForm');
     const msg = document.getElementById('message');
 
-    // Get username from query string
-    const params = new URLSearchParams(window.location.search);
-    const username = params.get('username');
-
     if (!username) {
-      msg.textContent = 'Username missing! Go back to signup.';
+      msg.textContent = 'No username provided. Please start signup again.';
       form.style.display = 'none';
     }
 
@@ -30,20 +28,23 @@
       const data = new FormData(form);
       const code = data.get('code');
 
-      const res = await fetch('/loginpage/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, code })
-      });
+      try {
+        const res = await fetch('/loginpage/verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, code })
+        });
 
-      const json = await res.json();
-      if (res.ok) {
-        msg.textContent = '✅ Verified! Redirecting to set your password...';
-        setTimeout(() => {
-          window.location.href = `/loginpage/set-password.html?username=${encodeURIComponent(username)}`;
-        }, 1000);
-      } else {
-        msg.textContent = json.error;
+        const json = await res.json();
+        if (res.ok) {
+          msg.textContent = '✅ Verification successful! Redirecting to set password...';
+          window.location.href = `/loginpage/set-password?username=${encodeURIComponent(username)}`;
+        } else {
+          msg.textContent = json.error;
+        }
+      } catch (err) {
+        msg.textContent = '❌ Error verifying code';
+        console.error(err);
       }
     });
   </script>
