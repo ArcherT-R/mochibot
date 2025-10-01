@@ -259,23 +259,19 @@
     </section>
   </div>
 
-<!-- MY ACCOUNT TAB -->
-  <div id="myaccount" class="tab-content">
-    <section class="content-section">
-      <h2>My Account</h2>
-      <% if (typeof player !== 'undefined' && player) { %>
-        <p><strong>Username:</strong> <%= player.username %></p>
-        <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
-        <p><strong>Group Rank:</strong> <%= player.group_rank %></p>
-        <% if (player.avatar_url) { %>
-          <img src="<%= player.avatar_url %>" alt="Avatar" style="width:100px;"/>
-        <% } %>
-        <p><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %></p>
-      <% } else { %>
-        <p>Please log in to view your account.</p>
-      <% } %>
-    </section>
-  </div>
+<!-- My Account -->
+<div id="my-account">
+  <h2>My Account</h2>
+  <% if (player) { %>
+    <p><strong>Username:</strong> <%= player.username %></p>
+    <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
+    <p><strong>Group Rank:</strong> <%= player.group_rank %></p>
+    <img src="<%= player.avatar_url || 'https://placehold.co/100x100/e0e6f0/5f6c7b?text=U' %>" alt="Avatar" style="width:100px; border-radius:50%;"/>
+    <p><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %></p>
+  <% } else { %>
+    <p>Please log in to view your account.</p>
+  <% } %>
+</div>
 
   <!-- SETTINGS TAB -->
   <div id="settings" class="tab-content">
