@@ -269,11 +269,8 @@
     <section class="content-section">
       <h2>My Account</h2>
       <% if (player) { %>
-        <p><strong>Username:</strong> <%= player.username %></p>
-        <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
-        <p><strong>Group Rank:</strong> <%= player.group_rank %></p>
-        <img src="<%= player.avatar_url || 'https://placehold.co/100x100/e0e6f0/5f6c7b?text=U' %>" alt="Avatar" style="width:100px; border-radius:50%;"/>
-        <p><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %></p>
+        <p>View your full profile and session stats:</p>
+        <a href="/dashboard/player/<%= player.username %>" class="btn btn-primary">Go to My Profile</a>
       <% } else { %>
         <p>Please log in to view your account.</p>
       <% } %>
