@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Verify Roblox Profile</title>
+  <title>Verify Code</title>
 </head>
 <body>
-  <h1>Verify Your Roblox Profile</h1>
-  <p>Enter the verification code you added to your Roblox profile description.</p>
+  <h1>Verify Code</h1>
   <form id="verifyForm">
-    <input type="hidden" id="username">
+    <label>Username: <input type="text" name="username" required></label>
     <label>Verification Code: <input type="text" name="code" required></label>
     <button type="submit">Verify</button>
   </form>
@@ -17,19 +16,14 @@
   <script>
     const form = document.getElementById('verifyForm');
     const msg = document.getElementById('message');
-    const usernameInput = document.getElementById('username');
 
-    // Get username from query string
-    const params = new URLSearchParams(window.location.search);
-    const username = params.get('username');
-    usernameInput.value = username;
-
-    form.addEventListener('submit', async e => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const data = new FormData(form);
+      const username = data.get('username');
       const code = data.get('code');
 
-      const res = await fetch('/loginpage/verify-roblox', {
+      const res = await fetch('/loginpage/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, code })
@@ -37,10 +31,8 @@
 
       const json = await res.json();
       if (res.ok) {
-        msg.textContent = '✅ Profile verified! Redirecting to set password...';
-        setTimeout(() => {
-          window.location.href = `/loginpage/set-password?username=${encodeURIComponent(username)}`;
-        }, 1500);
+        msg.textContent = 'Code verified! Proceed to set password.';
+        window.location.href = `/loginpage/set-password?username=${encodeURIComponent(username)}`;
       } else {
         msg.textContent = json.error;
       }
