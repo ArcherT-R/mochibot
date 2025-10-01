@@ -33,9 +33,10 @@
         });
         const result = await res.json();
         const msg = document.getElementById('message');
+
         if (result.success) {
-          msg.style.color = 'green';
-          msg.textContent = 'Logged in successfully!';
+          // ✅ Redirect to dashboard after successful login
+          window.location.href = '/dashboard';
         } else {
           msg.style.color = 'red';
           msg.textContent = result.error;
