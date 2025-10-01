@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Verify Account</title>
+  <title>Verify Code</title>
 </head>
 <body>
   <h1>Verify Account</h1>
   <form id="verifyForm">
-    <input type="hidden" id="username" name="username">
     <label>Verification Code: <input type="text" name="code" required></label>
     <button type="submit">Verify</button>
   </form>
@@ -17,17 +16,14 @@
     const form = document.getElementById('verifyForm');
     const msg = document.getElementById('message');
 
-    // Prefill username from query
     const params = new URLSearchParams(window.location.search);
-    document.getElementById('username').value = params.get('username') || '';
+    const username = params.get('username');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const data = new FormData(form);
-      const username = data.get('username');
-      const code = data.get('code');
+      const code = form.code.value;
 
-      const res = await fetch('/verify-code', {
+      const res = await fetch('/loginpage/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, code })
@@ -35,8 +31,8 @@
 
       const json = await res.json();
       if (res.ok) {
-        msg.textContent = 'Verified! Proceed to set password.';
-        window.location.href = `/set-password.html?username=${encodeURIComponent(username)}`;
+        msg.textContent = `Verified! Proceed to set a password.`;
+        window.location.href = `/loginpage/set-password.html?username=${encodeURIComponent(username)}`;
       } else {
         msg.textContent = json.error;
       }
@@ -44,3 +40,4 @@
   </script>
 </body>
 </html>
+
