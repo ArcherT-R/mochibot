@@ -1,105 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mochi Login</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .login-container {
-      background-color: #fff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      width: 300px;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      background-color: #4CAF50;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-    .message {
-      margin-top: 10px;
-      text-align: center;
-      color: red;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
 </head>
 <body>
-
-<div class="login-container">
-  <h2>Login</h2>
+  <h1>Login</h1>
   <form id="loginForm">
-    <input type="text" id="username" placeholder="Username" required>
-    <input type="password" id="password" placeholder="Password" required>
+    <label>Username: <input type="text" name="username" required></label><br><br>
+    <label>Password: <input type="password" name="password" required></label><br><br>
     <button type="submit">Login</button>
-    <div class="message" id="message"></div>
   </form>
-</div>
 
-<script>
-  const form = document.getElementById('loginForm');
-  const messageDiv = document.getElementById('message');
+  <p id="message" style="color:red;"></p>
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    messageDiv.textContent = '';
+  <script>
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+      const data = {
+        username: form.username.value,
+        password: form.password.value
+      };
 
-    try {
-      const res = await fetch('/loginpage/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        messageDiv.style.color = 'green';
-        messageDiv.textContent = 'Login successful!';
-        // Redirect to dashboard or profile page
-        setTimeout(() => {
-          window.location.href = `/dashboard?username=${encodeURIComponent(username)}`;
-        }, 1000);
-      } else {
-        messageDiv.style.color = 'red';
-        messageDiv.textContent = data.error || 'Login failed';
+      try {
+        const res = await fetch('/loginpage/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        const msg = document.getElementById('message');
+        if (result.success) {
+          msg.style.color = 'green';
+          msg.textContent = 'Logged in successfully!';
+        } else {
+          msg.style.color = 'red';
+          msg.textContent = result.error;
+        }
+      } catch (err) {
+        document.getElementById('message').textContent = 'Error connecting to server.';
       }
-    } catch (err) {
-      console.error(err);
-      messageDiv.style.color = 'red';
-      messageDiv.textContent = 'An error occurred';
-    }
-  });
-</script>
-
+    });
+  </script>
 </body>
 </html>
