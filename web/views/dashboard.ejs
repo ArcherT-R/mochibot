@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
     'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
     'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
-    'Mochi Director', 'Mochi Assistant Director', 'Mochi Senior Moderator'
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Assistant Director', 'Mochi Senior Moderator'
   ];
 
   async function loadCurrentUser() {
@@ -211,7 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         currentUser = await res.json();
         userGroupRank = currentUser.group_rank || '';
-        console.log('Current user:', currentUser.username, 'Rank:', userGroupRank);
+        console.log('Current user loaded:', currentUser.username, 'Rank:', userGroupRank);
+        console.log('Password available:', currentUser.password ? 'Yes' : 'No');
         updateTabAccess();
         renderMyAccount();
       }
