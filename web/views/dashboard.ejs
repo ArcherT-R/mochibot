@@ -298,8 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const LEADERSHIP_RANKS = [
     'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
   ];
   const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
   const DIRECTOR_PLUS = [
@@ -398,8 +397,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add event listener for clicking outside the modal to close it
   window.addEventListener('click', function(e) {
     const announcementsModal = document.getElementById('announcementsModal');
+    const newAnnouncementModal = document.getElementById('newAnnouncementModal');
+    
     if (e.target === announcementsModal) {
       closeAnnouncementsModal();
+    }
+    
+    if (e.target === newAnnouncementModal) {
+      closeNewAnnouncementModal();
     }
   });
   

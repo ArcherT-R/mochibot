@@ -15,9 +15,8 @@ const {
 // Leadership ranks (word-based)
 // ----------------------------
 const LEADERSHIP_RANKS = [
-  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-  'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-  'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
+  'Chairman', 'Vice Chairman', 'Chief Administrative Officer',
+  'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
 ];
 
 // ----------------------------
