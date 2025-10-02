@@ -391,38 +391,43 @@ document.addEventListener('DOMContentLoaded', () => {
   let userGroupRank = 0;
 
   // ------------------- Get Current User -------------------
-  async function loadCurrentUser() {
-    try {
-      const res = await fetch('/dashboard/current-user');
-      if (res.ok) {
-        currentUser = await res.json();
-        userGroupRank = currentUser.group_rank_number || 0;
-        console.log('Current user rank:', userGroupRank);
-        updateTabAccess();
-      }
-    } catch (err) {
-      console.error('Failed to load current user:', err);
-    }
+   async function loadCurrentUser() {
+   try {
+     const res = await fetch('/dashboard/current-user');
+     if (res.ok) {
+       currentUser = await res.json();
+       // Use group_rank instead of group_rank_number
+       userGroupRank = typeof currentUser.group_rank === 'string' 
+         ? parseInt(currentUser.group_rank) 
+         : currentUser.group_rank || 0;
+
+       console.log('Current user rank:', userGroupRank);
+       updateTabAccess();
+     }
+   } catch (err) {
+     console.error('Failed to load current user:', err);
+   }
+ }
+ function updateTabAccess() {
+  const playerlistTab = document.querySelector('[data-tab="playerlist"]');
+  const settingsTab = document.querySelector('[data-tab="settings"]');
+
+  const rank = Number(userGroupRank) || 0; // ensure it's a number
+
+  // Player List - requires rank 230+
+  if (rank < 230) {
+    playerlistTab.style.opacity = '0.5';
+    playerlistTab.style.cursor = 'not-allowed';
+    playerlistTab.title = 'Requires rank 230+';
   }
 
-  function updateTabAccess() {
-    const playerlistTab = document.querySelector('[data-tab="playerlist"]');
-    const settingsTab = document.querySelector('[data-tab="settings"]');
-
-    // Player List - requires rank 230+
-    if (userGroupRank < 230) {
-      playerlistTab.style.opacity = '0.5';
-      playerlistTab.style.cursor = 'not-allowed';
-      playerlistTab.title = 'Requires rank 230+';
-    }
-
-    // Settings - requires rank 253+ (Vice Chairman+)
-    if (userGroupRank < 253) {
-      settingsTab.style.opacity = '0.5';
-      settingsTab.style.cursor = 'not-allowed';
-      settingsTab.title = 'Requires Vice Chairman+ (253+)';
-    }
+  // Settings - requires rank 253+ (Vice Chairman+)
+  if (rank < 253) {
+    settingsTab.style.opacity = '0.5';
+    settingsTab.style.cursor = 'not-allowed';
+    settingsTab.title = 'Requires Vice Chairman+ (253+)';
   }
+}
 
   // ------------------- Tabs -------------------
   document.querySelectorAll('.tab-button').forEach(btn => {
