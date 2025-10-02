@@ -297,6 +297,186 @@ async function getPlayerByRobloxId(roblox_id) {
 }
 
 // -------------------------
+// Birthdays
+// -------------------------
+
+async function setBirthday(roblox_id, username, birthday) {
+  const { data, error } = await supabase
+    .from('player_birthdays')
+    .upsert([{ roblox_id, username, birthday }], { onConflict: 'roblox_id' })
+    .select();
+  if (error) throw error;
+  return data;
+}
+
+async function getBirthday(roblox_id) {
+  const { data, error } = await supabase
+    .from('player_birthdays')
+    .select('*')
+    .eq('roblox_id', roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+async function getAllBirthdays() {
+  const { data, error } = await supabase
+    .from('player_birthdays')
+    .select('*')
+    .order('birthday', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+async function deleteBirthday(roblox_id) {
+  const { error } = await supabase
+    .from('player_birthdays')
+    .delete()
+    .eq('roblox_id', roblox_id);
+  if (error) throw error;
+  return { success: true };
+}
+
+// -------------------------
+// Weekly Reset & History
+// -------------------------
+
+async function saveWeeklyHistory() {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  // Get all players
+  const { data: players, error: playersErr } = await supabase
+    .from('players')
+    .select('roblox_id, username, weekly_minutes');
+  if (playersErr) throw playersErr;
+
+  // Get all shifts for the week
+  const { data: shifts, error: shiftsErr } = await supabase
+    .from('shifts')
+    .select('*')
+    .gte('shift_time', Math.floor(weekStart.getTime() / 1000))
+    .lte('shift_time', Math.floor(weekEnd.getTime() / 1000));
+  if (shiftsErr) throw shiftsErr;
+
+  // Count shifts per player
+  const shiftCounts = {};
+  
+  for (const shift of shifts || []) {
+    // Count hosts
+    if (shift.host && shift.host !== 'TBD') {
+      if (!shiftCounts[shift.host]) shiftCounts[shift.host] = { hosted: 0, attended: 0 };
+      shiftCounts[shift.host].hosted++;
+    }
+    
+    // Count cohosts as hosted
+    if (shift.cohost) {
+      if (!shiftCounts[shift.cohost]) shiftCounts[shift.cohost] = { hosted: 0, attended: 0 };
+      shiftCounts[shift.cohost].hosted++;
+    }
+    
+    // Count attendees
+    const { data: attendees } = await supabase
+      .from('shift_attendees')
+      .select('username')
+      .eq('shift_id', shift.id);
+    
+    for (const attendee of attendees || []) {
+      if (!shiftCounts[attendee.username]) shiftCounts[attendee.username] = { hosted: 0, attended: 0 };
+      shiftCounts[attendee.username].attended++;
+    }
+  }
+
+  // Save history for each player
+  const historyRecords = players.map(p => ({
+    week_start: weekStart.toISOString().split('T')[0],
+    week_end: weekEnd.toISOString().split('T')[0],
+    roblox_id: p.roblox_id,
+    username: p.username,
+    total_minutes: p.weekly_minutes || 0,
+    shifts_hosted: shiftCounts[p.username]?.hosted || 0,
+    shifts_attended: shiftCounts[p.username]?.attended || 0
+  }));
+
+  const { error: insertErr } = await supabase
+    .from('weekly_history')
+    .insert(historyRecords);
+  if (insertErr) throw insertErr;
+
+  return historyRecords.length;
+}
+
+async function resetWeeklyData() {
+  // Save current week's data first
+  const playersAffected = await saveWeeklyHistory();
+
+  // Reset all players' weekly_minutes
+  const { error: resetErr } = await supabase
+    .from('players')
+    .update({ weekly_minutes: 0 })
+    .neq('roblox_id', 0); // Update all
+
+  if (resetErr) throw resetErr;
+
+  // Clear player_live table
+  const { error: clearErr } = await supabase
+    .from('player_live')
+    .delete()
+    .neq('roblox_id', 0); // Delete all
+
+  if (clearErr) throw clearErr;
+
+  // Log the reset
+  const { error: logErr } = await supabase
+    .from('weekly_reset_log')
+    .insert([{
+      reset_date: new Date().toISOString(),
+      players_affected: playersAffected
+    }]);
+  if (logErr) throw logErr;
+
+  return { success: true, playersAffected };
+}
+
+async function getLastResetDate() {
+  const { data, error } = await supabase
+    .from('weekly_reset_log')
+    .select('*')
+    .order('reset_date', { ascending: false })
+    .limit(1)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+async function getLastWeekHistory() {
+  const { data, error } = await supabase
+    .from('weekly_history')
+    .select('*')
+    .order('week_start', { ascending: false })
+    .limit(100); // Adjust as needed
+  
+  if (error) throw error;
+  
+  // Group by week
+  const weeks = {};
+  for (const record of data || []) {
+    const key = record.week_start;
+    if (!weeks[key]) weeks[key] = [];
+    weeks[key].push(record);
+  }
+  
+  // Get the most recent week
+  const latestWeek = Object.keys(weeks).sort().reverse()[0];
+  return weeks[latestWeek] || [];
+}
+
+// -------------------------
 // Exports
 // -------------------------
 module.exports = {
@@ -332,5 +512,13 @@ module.exports = {
   removeShiftAttendee,
   verifyPlayerPassword,
   updatePlayerPassword,
-  getPlayerByRobloxId
+  getPlayerByRobloxId,
+  setBirthday,
+  getBirthday,
+  getAllBirthdays,
+  deleteBirthday,
+  saveWeeklyHistory,
+  resetWeeklyData,
+  getLastResetDate,
+  getLastWeekHistory
 };
