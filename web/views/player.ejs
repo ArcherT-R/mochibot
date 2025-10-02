@@ -141,6 +141,18 @@
     flex-direction: column;
     gap: 12px;
   }
+  
+  .label-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #e6f3ff;
+    color: #1a85e6;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
 
   .info-item {
     background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
@@ -284,6 +296,18 @@
     letter-spacing: 0.5px;
     opacity: 0.9;
   }
+  
+  .label-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #42b4ff;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
 
   /* Modal */
   .modal {
@@ -403,6 +427,14 @@
         <span class="info-label">Weekly Playtime</span>
         <span class="info-value"><%= Math.floor(player.weekly_minutes / 60) %> hrs <%= player.weekly_minutes % 60 %> min</span>
       </div>
+      <div class="info-item">
+        <span class="info-label">Labels</span>
+        <span class="info-value" id="playerLabels">Loading...</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Birthday</span>
+        <span class="info-value" id="playerBirthday">Loading...</span>
+      </div>
     </div>
   </div>
 
@@ -413,7 +445,7 @@
     <% if (ongoingSession) { 
        const startTime = new Date(ongoingSession.session_start_time).getTime();
     %>
-      <div class="session-item ongoing" id="ongoing-session-box" onclick="showOngoingSessionModal(<%= startTime %>)">
+      <div class="session-item ongoing" id="ongoing-session-box" onclick="showOngoingSessionModal(document.getElementById('session-start-time').value)">
         <div class="session-header">
           <span class="session-title live">Ongoing Session</span>
           <span class="session-badge">LIVE</span>
@@ -429,7 +461,7 @@
     <div class="sessions-scroll">
       <% if (sessions && sessions.length > 0) { %>
         <% sessions.slice(0, 10).forEach((s, index) => { %>
-          <div class="session-item" onclick="showSessionDetails(<%= index %>)">
+          <div class="session-item" onclick="showSessionDetails(<%= index %>, '<%= s.session_start %>')">
             <div class="session-header">
               <span class="session-title">Past Session</span>
             </div>
@@ -546,13 +578,13 @@
   // --- Modal logic ---
   const modal = document.getElementById('sessionModal');
 
-  function showSessionDetails(index) {
+  function showSessionDetails(index, startTime) {
     const session = allSessions[index];
     if (!session) return;
     document.getElementById('modal-header-text').textContent = `Session Details`;
     document.getElementById('modal-body').innerHTML = `
       <p><strong>Duration:</strong> ${session.minutes_played} minutes</p>
-      <p><strong>Started:</strong> ${new Date(session.session_start).toLocaleString()}</p>
+      <p><strong>Started:</strong> ${new Date(startTime).toLocaleString()}</p>
       <p><strong>Ended:</strong> ${new Date(session.session_end).toLocaleString()}</p>
     `;
     modal.style.display = 'block';
@@ -731,9 +763,59 @@
     }
   }
 
+  async function loadPlayerLabels() {
+    try {
+      const res = await fetch(`/settings/labels/${playerRobloxId}`);
+      if (!res.ok) {
+        document.getElementById('playerLabels').textContent = 'None';
+        return;
+      }
+      
+      const labels = await res.json();
+      if (labels.length === 0) {
+        document.getElementById('playerLabels').textContent = 'None';
+      } else {
+        document.getElementById('playerLabels').innerHTML = labels.map(label => 
+          `<span class="label-badge">${label}</span>`
+        ).join(' ');
+      }
+    } catch (err) {
+      console.error('Error loading labels:', err);
+      document.getElementById('playerLabels').textContent = 'Error loading labels';
+    }
+  }
+
+  async function loadPlayerBirthday() {
+    try {
+      const res = await fetch('/settings/birthdays');
+      if (!res.ok) {
+        document.getElementById('playerBirthday').textContent = 'Not set';
+        return;
+      }
+      
+      const birthdays = await res.json();
+      const playerBirthday = birthdays.find(b => b.roblox_id === parseInt(playerRobloxId));
+      
+      if (!playerBirthday) {
+        document.getElementById('playerBirthday').textContent = 'Not set';
+      } else {
+        const bday = new Date(playerBirthday.birthday);
+        document.getElementById('playerBirthday').textContent = bday.toLocaleDateString(undefined, {
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+    } catch (err) {
+      console.error('Error loading birthday:', err);
+      document.getElementById('playerBirthday').textContent = 'Error loading birthday';
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     checkBirthday();
     loadPlayerShifts();
+    loadPlayerLabels();
+    loadPlayerBirthday();
   });
 </script>
 

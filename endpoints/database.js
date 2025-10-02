@@ -43,6 +43,71 @@ async function getAllPlayerLabels() {
   if (error) throw error;
   return data;
 }
+
+// -------------------------
+// Player Birthdays
+// -------------------------
+
+async function getPlayerBirthday(roblox_id) {
+  const { data, error } = await supabase
+    .from('player_birthdays')
+    .select('birthday')
+    .eq('roblox_id', roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data?.birthday || null;
+}
+
+async function setPlayerBirthday(roblox_id, username, birthday) {
+  // Check if birthday already exists
+  const { data: existing } = await supabase
+    .from('player_birthdays')
+    .select('id')
+    .eq('roblox_id', roblox_id)
+    .single();
+
+  if (existing) {
+    // Update existing birthday
+    const { data, error } = await supabase
+      .from('player_birthdays')
+      .update({ birthday })
+      .eq('roblox_id', roblox_id)
+      .select();
+    if (error) throw error;
+    return data;
+  } else {
+    // Insert new birthday
+    const { data, error } = await supabase
+      .from('player_birthdays')
+      .insert([{ roblox_id, username, birthday }])
+      .select();
+    if (error) throw error;
+    return data;
+  }
+}
+
+// -------------------------
+// Announcements
+// -------------------------
+
+async function getAnnouncements() {
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('timestamp', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function addAnnouncement({ title, content, author, timestamp }) {
+  const { data, error } = await supabase
+    .from('announcements')
+    .insert([{ title, content, author, timestamp }])
+    .select();
+  if (error) throw error;
+  return data;
+}
+
 // -------------------------
 // Players
 // -------------------------
@@ -553,6 +618,17 @@ module.exports = {
   updatePlayerPassword,
   getPlayerByRobloxId,
   setBirthday,
+  // Player labels functions
+  getPlayerLabels,
+  addPlayerLabel,
+  removePlayerLabel,
+  getAllPlayerLabels,
+  // Player birthdays functions
+  getPlayerBirthday,
+  setPlayerBirthday,
+  // Announcements functions
+  getAnnouncements,
+  addAnnouncement,
   getBirthday,
   getAllBirthdays,
   deleteBirthday,

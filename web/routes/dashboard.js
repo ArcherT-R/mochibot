@@ -6,7 +6,9 @@ const {
   getPlayerByUsername,
   getPlayerSessions,
   getOngoingSession,
-  searchPlayersByUsername
+  searchPlayersByUsername,
+  getAnnouncements,
+  addAnnouncement
 } = require("../../endpoints/database");
 
 // ----------------------------
@@ -45,6 +47,48 @@ router.get("/", requireLogin, async (req, res) => {
   } catch (err) {
     console.error("Error loading dashboard:", err);
     res.status(500).send("Internal Server Error");
+  }
+});
+
+// ----------------------------
+// Announcements endpoints
+// ----------------------------
+router.get("/announcements", requireLogin, async (req, res) => {
+  try {
+    const announcements = await getAnnouncements();
+    res.json(announcements);
+  } catch (err) {
+    console.error("Error fetching announcements:", err);
+    res.status(500).json({ error: "Failed to fetch announcements" });
+  }
+});
+
+router.post("/announcements", requireLogin, async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const player = req.session?.player;
+    
+    // Verify user is in leadership
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: "Only leadership can create announcements" });
+    }
+    
+    if (!title || !content) {
+      return res.status(400).json({ error: "Title and content are required" });
+    }
+    
+    const announcement = {
+      title,
+      content,
+      author: player.username,
+      timestamp: new Date().toISOString()
+    };
+    
+    await addAnnouncement(announcement);
+    res.status(201).json(announcement);
+  } catch (err) {
+    console.error("Error creating announcement:", err);
+    res.status(500).json({ error: "Failed to create announcement" });
   }
 });
 

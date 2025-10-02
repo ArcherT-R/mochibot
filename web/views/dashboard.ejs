@@ -109,22 +109,42 @@
   .btn { padding:10px 20px; background:#42b4ff; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s; }
   .btn:hover { background:#1a85e6; transform:translateY(-2px); }
   .btn.small { padding:6px 12px; font-size:14px; }
+  .announcement-box { background:#f0f8ff; border-left:4px solid #42b4ff; padding:15px; border-radius:8px; margin-bottom:15px; }
+  .announcement-title { font-weight:700; font-size:18px; color:#1a85e6; margin-bottom:8px; }
+  .announcement-content { margin-bottom:10px; }
+  .announcement-meta { display:flex; justify-content:space-between; font-size:12px; color:#666; }
+  .announcement-actions { display:flex; gap:10px; justify-content:flex-end; }
+  .announcements-modal-list { max-height:400px; overflow-y:auto; margin:15px 0; }
+  .announcement-item { border-bottom:1px solid #e0e6f0; padding:15px 0; }
+  .announcement-item:last-child { border-bottom:none; }
+  .announcement-form { display:flex; flex-direction:column; gap:15px; }
+  .announcement-form input, .announcement-form textarea { width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; }
+  .announcement-form textarea { min-height:100px; resize:vertical; }
+  .announcement-form-actions { display:flex; justify-content:flex-end; gap:10px; }
   @media(max-width:600px){
     header { font-size:36px; padding:20px; }
     h2 { text-align:center; }
     .top-players-grid { grid-template-columns:1fr; }
     .nav-tabs { flex-direction:column; gap:10px; }
-    .nav-buttons { width:100%; justify-content:center; }
+    .nav-buttons { width:100%; justify-content:center; flex-wrap:wrap; }
     .search-wrapper { width:100%; max-width:100%; }
     .tab-button { padding:10px 16px; font-size:14px; }
-    .shift-header { flex-direction:column; align-items:flex-start; gap:10px; }
-    .modal-content { margin:10% auto; width:95%; }
+    .shift-card { padding:15px; }
+    .shift-header { flex-direction:row; align-items:center; gap:10px; }
+    .shift-left { flex-wrap:nowrap; }
+    .shift-info { flex:1; }
+    .shift-datetime { font-size:16px; }
+    .shift-host-preview { font-size:13px; }
+    .modal-content { margin:5% auto; width:95%; }
     .modal-header, .modal-body { padding:20px; }
     .player-table-wrapper { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .player-table { font-size:12px; min-width:550px; }
-    .player-table th, .player-table td { padding:10px 8px; }
+    .player-table { font-size:12px; min-width:100%; table-layout:fixed; }
+    .player-table th, .player-table td { padding:10px 8px; word-break:break-word; }
     .player-table .player-avatar { width:32px; height:32px; }
-    .player-table .player-info { gap:8px; }
+    .player-table .player-info { gap:8px; flex-wrap:wrap; }
+    .filter-button { padding:8px 12px; font-size:12px; margin-bottom:5px; }
+    .player-table th:nth-child(3), .player-table td:nth-child(3),
+    .player-table th:nth-child(5), .player-table td:nth-child(5) { display:none; }
   }
 </style>
 </head>
@@ -145,6 +165,16 @@
 </nav>
 <div class="container">
   <div id="home" class="tab-content active">
+    <section class="content-section">
+      <h2>Announcements</h2>
+      <div id="announcementsContainer">
+        <div id="latestAnnouncement" class="announcement-box"></div>
+        <div class="announcement-actions">
+          <button id="viewAllAnnouncementsBtn" class="btn">View All</button>
+          <button id="newAnnouncementBtn" class="btn" style="display:none;">New Announcement</button>
+        </div>
+      </div>
+    </section>
     <section class="content-section"><h2>Top Active This Week</h2><div id="topPlayersGrid" class="top-players-grid"></div></section>
     <section class="content-section"><h2>Top 3 Shift Leaders</h2><div id="topShiftLeaders" class="top-players-grid"></div></section>
     <section class="content-section"><h2>Upcoming Birthdays</h2><div id="upcomingBirthdays" class="top-players-grid"></div></section>
@@ -206,6 +236,38 @@
     </div>
   </div>
 </div>
+
+<div id="announcementsModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title">Announcements</span>
+      <span class="close" onclick="closeAnnouncementsModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div id="announcementsModalList" class="announcements-modal-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="newAnnouncementModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title">New Announcement</span>
+      <span class="close" onclick="closeNewAnnouncementModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="announcementForm" class="announcement-form">
+        <input type="text" id="announcementTitle" placeholder="Announcement Title" required>
+        <textarea id="announcementContent" placeholder="Announcement Content" required></textarea>
+        <div class="announcement-form-actions">
+          <button type="button" class="btn" onclick="closeNewAnnouncementModal()">Cancel</button>
+          <button type="submit" class="btn">Post Announcement</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -217,6 +279,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const shiftModal = document.getElementById('shiftModal');
   const accountInfo = document.getElementById('accountInfo');
   const settingsPanel = document.getElementById('settingsPanel');
+  const latestAnnouncement = document.getElementById('latestAnnouncement');
+  const newAnnouncementBtn = document.getElementById('newAnnouncementBtn');
+  const viewAllAnnouncementsBtn = document.getElementById('viewAllAnnouncementsBtn');
+  
+  // Add event listeners for announcement buttons
+  viewAllAnnouncementsBtn.addEventListener('click', openAnnouncementsModal);
+  newAnnouncementBtn.addEventListener('click', openNewAnnouncementModal);
+  document.getElementById('announcementForm').addEventListener('submit', submitNewAnnouncement);
 
   let currentShiftId = null;
   let currentUser = null;
@@ -224,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentPlayerFilter = 'all';
   let allPlayersData = [];
   let playerShiftStats = {};
+  let announcements = [];
 
   const LEADERSHIP_RANKS = [
     'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
@@ -247,11 +318,126 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Current user loaded:', currentUser.username, 'Rank:', userGroupRank);
         updateTabAccess();
         renderMyAccount();
+        
+        // Show new announcement button if user is in leadership ranks
+        if (LEADERSHIP_RANKS.includes(userGroupRank)) {
+          newAnnouncementBtn.style.display = 'block';
+        }
+        
+        // Load announcements
+        loadAnnouncements();
       }
     } catch (err) {
       console.error('Failed to load current user:', err);
       userGroupRank = '';
     }
+  }
+  
+  async function loadAnnouncements() {
+    try {
+      // This would be replaced with an actual API call in production
+      // For now, we'll use mock data
+      announcements = [
+        {
+          id: 1,
+          title: 'Welcome to the New Dashboard',
+          content: 'We\'ve updated the dashboard with new features including mobile support and performance improvements.',
+          author: 'System',
+          date: new Date().toISOString()
+        }
+      ];
+      
+      renderLatestAnnouncement();
+    } catch (err) {
+      console.error('Failed to load announcements:', err);
+    }
+  }
+  
+  function renderLatestAnnouncement() {
+    if (announcements.length === 0) {
+      latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
+      return;
+    }
+    
+    const latest = announcements[0];
+    const date = new Date(latest.date);
+    
+    latestAnnouncement.innerHTML = `
+      <div class="announcement-title">${latest.title}</div>
+      <div class="announcement-content">${latest.content}</div>
+      <div class="announcement-meta">
+        <span>By: ${latest.author}</span>
+        <span>${date.toLocaleDateString()}</span>
+      </div>
+    `;
+  }
+  
+  function openAnnouncementsModal() {
+    const modal = document.getElementById('announcementsModal');
+    const modalList = document.getElementById('announcementsModalList');
+    
+    modalList.innerHTML = '';
+    
+    if (announcements.length === 0) {
+      modalList.innerHTML = '<p>No announcements available.</p>';
+    } else {
+      announcements.forEach(announcement => {
+        const date = new Date(announcement.date);
+        const item = document.createElement('div');
+        item.className = 'announcement-item';
+        item.innerHTML = `
+          <div class="announcement-title">${announcement.title}</div>
+          <div class="announcement-content">${announcement.content}</div>
+          <div class="announcement-meta">
+            <span>By: ${announcement.author}</span>
+            <span>${date.toLocaleDateString()}</span>
+          </div>
+        `;
+        modalList.appendChild(item);
+      });
+    }
+    
+    modal.style.display = 'block';
+  }
+  
+  function closeAnnouncementsModal() {
+    document.getElementById('announcementsModal').style.display = 'none';
+  }
+  
+  function openNewAnnouncementModal() {
+    document.getElementById('newAnnouncementModal').style.display = 'block';
+  }
+  
+  function closeNewAnnouncementModal() {
+    document.getElementById('newAnnouncementModal').style.display = 'none';
+  }
+  
+  function submitNewAnnouncement(event) {
+    event.preventDefault();
+    
+    const title = document.getElementById('announcementTitle').value;
+    const content = document.getElementById('announcementContent').value;
+    
+    if (!title || !content) return;
+    
+    // In production, this would be an API call to save the announcement
+    const newAnnouncement = {
+      id: Date.now(),
+      title,
+      content,
+      author: currentUser.username,
+      date: new Date().toISOString()
+    };
+    
+    // Add to the beginning of the array
+    announcements.unshift(newAnnouncement);
+    
+    // Update the UI
+    renderLatestAnnouncement();
+    
+    // Close the modal and reset form
+    closeNewAnnouncementModal();
+    document.getElementById('announcementForm').reset();
   }
 
   function renderMyAccount() {
@@ -384,6 +570,13 @@ document.addEventListener('DOMContentLoaded', () => {
       playerlistTab.style.cursor = 'pointer';
       playerlistTab.title = '';
       playerlistTab.dataset.disabled = 'false';
+      
+      // Preload player list data when user has access
+      setTimeout(() => {
+        if (!allPlayersData.length) {
+          loadPlayerList();
+        }
+      }, 1000);
     }
 
     if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
@@ -959,33 +1152,73 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      shiftsList.innerHTML = '';
-      sortedShifts.forEach((shift)=>{
+      // Group shifts by day of the week
+      const shiftsByDay = {};
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      
+      sortedShifts.forEach(shift => {
         const shiftTime = shift.shift_time || shift.time;
         const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-        const {date, time} = formatShiftTime(new Date(timestamp));
-        const isPast = timestamp < now;
-
-        const card = document.createElement('div');
-        card.className = 'shift-card';
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', () => openShiftModal(shift));
-
-        card.innerHTML = `
-          <div class="shift-header">
-            <div class="shift-left">
-              <span class="shift-icon">📅</span>
-              <div class="shift-info">
-                <div class="shift-datetime">${date} at ${time}</div>
-                <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
-              </div>
-            </div>
-            <span class="shift-arrow">${isPast ? '⏪' : '→'}</span>
-          </div>
-          ${isPast ? '<div style="margin-top:8px;color:#888;font-weight:600;font-size:14px;">Past Shift</div>' : ''}
-        `;
-        shiftsList.appendChild(card);
+        const shiftDate = new Date(timestamp);
+        const dayOfWeek = dayNames[shiftDate.getDay()];
+        
+        if (!shiftsByDay[dayOfWeek]) {
+          shiftsByDay[dayOfWeek] = [];
+        }
+        
+        shiftsByDay[dayOfWeek].push(shift);
       });
+
+      shiftsList.innerHTML = '';
+      
+      // Create sections for each day that has shifts
+      for (const dayOfWeek of dayNames) {
+        if (shiftsByDay[dayOfWeek] && shiftsByDay[dayOfWeek].length > 0) {
+          // Create day header
+          const dayHeader = document.createElement('div');
+          dayHeader.className = 'attendee-category-title';
+          dayHeader.textContent = dayOfWeek;
+          shiftsList.appendChild(dayHeader);
+          
+          // Create container for this day's shifts
+          const dayShiftsContainer = document.createElement('div');
+          dayShiftsContainer.className = 'shifts-list';
+          shiftsList.appendChild(dayShiftsContainer);
+          
+          // Add shifts for this day
+          shiftsByDay[dayOfWeek].forEach((shift) => {
+            const shiftTime = shift.shift_time || shift.time;
+            const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+            const {date, time} = formatShiftTime(new Date(timestamp));
+            const isPast = timestamp < now;
+
+            const card = document.createElement('div');
+            card.className = 'shift-card';
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', () => openShiftModal(shift));
+
+            card.innerHTML = `
+              <div class="shift-header">
+                <div class="shift-left">
+                  <span class="shift-icon">📅</span>
+                  <div class="shift-info">
+                    <div class="shift-datetime">${date} at ${time}</div>
+                    <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
+                  </div>
+                </div>
+                <span class="shift-arrow">${isPast ? '⏪' : '→'}</span>
+              </div>
+              ${isPast ? '<div style="margin-top:8px;color:#888;font-weight:600;font-size:14px;">Past Shift</div>' : ''}
+            `;
+            dayShiftsContainer.appendChild(card);
+          });
+          
+          // Add spacing after each day section
+          const spacer = document.createElement('div');
+          spacer.style.marginBottom = '20px';
+          shiftsList.appendChild(spacer);
+        }
+      }
 
     } catch(err){
       console.error('Failed to load shifts:', err);
