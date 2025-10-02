@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       document.getElementById('modalAttendeeCount').textContent = attendees.length;
       
-      // Categorize attendees
+      // Categorize attendees using the constants
       const management = attendees.filter(a => MANAGEMENT_RANKS.includes(a.group_rank));
       const publicRelations = attendees.filter(a => CORPORATE_RANKS.includes(a.group_rank));
       const others = attendees.filter(a => 
