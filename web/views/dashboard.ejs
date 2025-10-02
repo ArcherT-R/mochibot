@@ -163,21 +163,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentShiftId = null;
   let currentUser = null;
-  let userGroupRank = 0;
+  let userGroupRank = '';
+
+  const LEADERSHIP_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
+  ];
+  const CORPORATE_RANKS = [
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
+  ];
+  const CHIEF_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Automation'
+  ];
+  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+  const DIRECTOR_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Mochi Director', 'Mochi Assistant Director', 'Mochi Senior Moderator'
+  ];
 
   async function loadCurrentUser() {
     try {
       const res = await fetch('/dashboard/current-user');
       if (res.ok) {
         currentUser = await res.json();
-        userGroupRank = parseInt(currentUser.group_rank) || parseInt(currentUser.group_rank_number) || 0;
+        userGroupRank = currentUser.group_rank || '';
         console.log('Current user:', currentUser.username, 'Rank:', userGroupRank);
         updateTabAccess();
         renderMyAccount();
       }
     } catch (err) {
       console.error('Failed to load current user:', err);
-      userGroupRank = 0;
+      userGroupRank = '';
     }
   }
 
@@ -202,10 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerlistTab = document.querySelector('[data-tab="playerlist"]');
     const settingsTab = document.querySelector('[data-tab="settings"]');
 
-    if (userGroupRank < 230) {
+    if (!DIRECTOR_PLUS.includes(userGroupRank)) {
       playerlistTab.style.opacity = '0.5';
       playerlistTab.style.cursor = 'not-allowed';
-      playerlistTab.title = 'Requires rank 230+';
+      playerlistTab.title = 'Requires Mochi Director+';
       playerlistTab.dataset.disabled = 'true';
     } else {
       playerlistTab.style.opacity = '1';
@@ -214,10 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
       playerlistTab.dataset.disabled = 'false';
     }
 
-    if (userGroupRank < 253) {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
       settingsTab.style.opacity = '0.5';
       settingsTab.style.cursor = 'not-allowed';
-      settingsTab.title = 'Requires Vice Chairman+ (253+)';
+      settingsTab.title = 'Requires Vice Chairman+';
       settingsTab.dataset.disabled = 'true';
     } else {
       settingsTab.style.opacity = '1';
@@ -236,13 +257,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const tab = btn.dataset.tab;
 
-      if (tab === 'playerlist' && userGroupRank < 230) {
-        alert('Access Denied: Player List requires rank 230+');
+      if (tab === 'playerlist' && !DIRECTOR_PLUS.includes(userGroupRank)) {
+        alert('Access Denied: Player List requires Mochi Director+');
         return;
       }
 
-      if (tab === 'settings' && userGroupRank < 253) {
-        alert('Access Denied: Settings requires Vice Chairman+ (253+)');
+      if (tab === 'settings' && !EXECUTIVE_RANKS.includes(userGroupRank)) {
+        alert('Access Denied: Settings requires Vice Chairman+');
         return;
       }
 
@@ -471,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentShift.overseer === currentUser.username
       );
       
-      const canEdit = userGroupRank >= 230 || isShiftLeader;
+      const canEdit = DIRECTOR_PLUS.includes(userGroupRank) || isShiftLeader;
       
       document.getElementById('modalAttendeeCount').textContent = attendees.length;
       
@@ -510,10 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const res = await fetch('/dashboard/players');
           const allPlayers = res.ok ? await res.json() : [];
           
-          const eligiblePlayers = allPlayers.filter(p => {
-            const rank = parseInt(p.group_rank) || parseInt(p.group_rank_number) || 0;
-            return rank >= 230;
-          });
+          const eligiblePlayers = allPlayers.filter(p => DIRECTOR_PLUS.includes(p.group_rank));
           
           const select = document.createElement('select');
           select.style.width = '100%';
@@ -686,8 +704,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(renderUpcomingBirthdays, 300000);
 
   window.openBirthdaysManager = async function() {
-    if (userGroupRank < 253) {
-      alert('Access Denied: Birthday management requires Vice Chairman+ (253+)');
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Birthday management requires Vice Chairman+');
       return;
     }
 
@@ -748,8 +766,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.setBirthdayFor = async function(robloxId, username) {
-    if (userGroupRank < 253) {
-      alert('Access Denied: Birthday management requires Vice Chairman+ (253+)');
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Birthday management requires Vice Chairman+');
       return;
     }
 
@@ -782,8 +800,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.deleteBirthday = async function(robloxId) {
-    if (userGroupRank < 253) {
-      alert('Access Denied: Birthday management requires Vice Chairman+ (253+)');
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Birthday management requires Vice Chairman+');
       return;
     }
 
@@ -801,8 +819,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.openWeeklyResetStatus = async function() {
-    if (userGroupRank < 253) {
-      alert('Access Denied: Weekly reset requires Vice Chairman+ (253+)');
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Weekly reset requires Vice Chairman+');
       return;
     }
 
@@ -838,8 +856,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.manualReset = async function() {
-    if (userGroupRank < 253) {
-      alert('Access Denied: Manual reset requires Vice Chairman+ (253+)');
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Manual reset requires Vice Chairman+');
       return;
     }
 
@@ -861,8 +879,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.openLastWeekHistory = async function() {
-    if (userGroupRank < 253) {
-      alert('Access Denied: History requires Vice Chairman+ (253+)');
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: History requires Vice Chairman+');
       return;
     }
 
