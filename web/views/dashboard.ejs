@@ -335,17 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function loadAnnouncements() {
     try {
-      // This would be replaced with an actual API call in production
-      // For now, we'll use mock data
-      announcements = [
-        {
-          id: 1,
-          title: 'Welcome to the New Dashboard',
-          content: 'We\'ve updated the dashboard with new features including mobile support and performance improvements.',
-          author: 'System',
-          date: new Date().toISOString()
-        }
-      ];
+      const response = await fetch('/dashboard/announcements');
+      announcements = await response.json();
       
       renderLatestAnnouncement();
     } catch (err) {
@@ -404,6 +395,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('announcementsModal').style.display = 'none';
   }
   
+  // Add event listener for clicking outside the modal to close it
+  window.addEventListener('click', function(e) {
+    const announcementsModal = document.getElementById('announcementsModal');
+    if (e.target === announcementsModal) {
+      closeAnnouncementsModal();
+    }
+  });
+  
   function openNewAnnouncementModal() {
     document.getElementById('newAnnouncementModal').style.display = 'block';
   }
@@ -412,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('newAnnouncementModal').style.display = 'none';
   }
   
-  function submitNewAnnouncement(event) {
+  async function submitNewAnnouncement(event) {
     event.preventDefault();
     
     const title = document.getElementById('announcementTitle').value;
@@ -420,24 +419,39 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (!title || !content) return;
     
-    // In production, this would be an API call to save the announcement
-    const newAnnouncement = {
-      id: Date.now(),
-      title,
-      content,
-      author: currentUser.username,
-      date: new Date().toISOString()
-    };
-    
-    // Add to the beginning of the array
-    announcements.unshift(newAnnouncement);
-    
-    // Update the UI
-    renderLatestAnnouncement();
-    
-    // Close the modal and reset form
-    closeNewAnnouncementModal();
-    document.getElementById('announcementForm').reset();
+    try {
+      // Save to Supabase via API
+      const response = await fetch('/dashboard/announcements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title,
+          content,
+          author: currentUser.username
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save announcement');
+      }
+      
+      const newAnnouncement = await response.json();
+      
+      // Add to the beginning of the array
+      announcements.unshift(newAnnouncement);
+      
+      // Update the UI
+      renderLatestAnnouncement();
+      
+      // Close the modal and reset form
+      closeNewAnnouncementModal();
+      document.getElementById('announcementForm').reset();
+    } catch (error) {
+      console.error('Error saving announcement:', error);
+      alert('Failed to save announcement. Please try again.');
+    }
   }
 
   function renderMyAccount() {

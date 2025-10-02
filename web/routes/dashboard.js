@@ -77,14 +77,7 @@ router.post("/announcements", requireLogin, async (req, res) => {
       return res.status(400).json({ error: "Title and content are required" });
     }
     
-    const announcement = {
-      title,
-      content,
-      author: player.username,
-      timestamp: new Date().toISOString()
-    };
-    
-    await addAnnouncement(announcement);
+    const announcement = await addAnnouncement(title, content, player.username);
     res.status(201).json(announcement);
   } catch (err) {
     console.error("Error creating announcement:", err);

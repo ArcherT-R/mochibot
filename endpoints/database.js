@@ -94,18 +94,25 @@ async function getAnnouncements() {
   const { data, error } = await supabase
     .from('announcements')
     .select('*')
-    .order('timestamp', { ascending: false });
+    .order('created_at', { ascending: false });
+  
   if (error) throw error;
   return data || [];
 }
 
-async function addAnnouncement({ title, content, author, timestamp }) {
+async function addAnnouncement(title, content, author) {
   const { data, error } = await supabase
     .from('announcements')
-    .insert([{ title, content, author, timestamp }])
+    .insert([{ 
+      title, 
+      content, 
+      author, 
+      created_at: new Date().toISOString() 
+    }])
     .select();
+  
   if (error) throw error;
-  return data;
+  return data[0];
 }
 
 // -------------------------
