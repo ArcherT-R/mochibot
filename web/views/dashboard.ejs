@@ -24,6 +24,9 @@
   .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
   .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
   .tab-button.active { background:#42b4ff; color:white; }
+  .filter-button { display:flex; align-items:center; gap:8px; padding:10px 20px; background:white; border:2px solid #e0e6f0; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; color:#555; transition:all 0.3s; }
+  .filter-button:hover { background:#f0f8ff; color:#42b4ff; border-color:#42b4ff; }
+  .filter-button.active { background:#42b4ff; color:white; border-color:#42b4ff; }
   .tab-icon { font-size:20px; }
   .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
   h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
@@ -150,11 +153,11 @@
     <section class="content-section">
       <h2>Player List</h2>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
-        <button class="tab-button active" data-filter="all" onclick="filterPlayerList('all')">All Players</button>
-        <button class="tab-button" data-filter="Management" onclick="filterPlayerList('Management')">Management</button>
-        <button class="tab-button" data-filter="Public Relations" onclick="filterPlayerList('Public Relations')">Public Relations</button>
-        <button class="tab-button" data-filter="Operations" onclick="filterPlayerList('Operations')">Operations</button>
-        <button class="tab-button" data-filter="Human Resources" onclick="filterPlayerList('Human Resources')">Human Resources</button>
+        <button class="filter-button active" data-filter="all" onclick="filterPlayerList('all')">All Players</button>
+        <button class="filter-button" data-filter="Management" onclick="filterPlayerList('Management')">Management</button>
+        <button class="filter-button" data-filter="Public Relations" onclick="filterPlayerList('Public Relations')">Public Relations</button>
+        <button class="filter-button" data-filter="Operations" onclick="filterPlayerList('Operations')">Operations</button>
+        <button class="filter-button" data-filter="Human Resources" onclick="filterPlayerList('Human Resources')">Human Resources</button>
       </div>
       <div class="player-table-wrapper">
         <table class="player-table">
