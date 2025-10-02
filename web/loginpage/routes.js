@@ -10,6 +10,7 @@ router.get('/login', (req, res) => {
 });
 
 // Login handler
+// Login handler
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -20,12 +21,16 @@ router.post('/login', async (req, res) => {
     if (!player)
       return res.status(401).json({ error: 'Invalid username or password' });
 
-    // Plain-text password check (use bcrypt in production)
+    // Plain-text password check
     if (player.password !== password)
       return res.status(401).json({ error: 'Invalid username or password' });
 
-    // ✅ Store player in session
-    req.session.player = player;
+    // ✅ Explicitly store only the fields we need in session
+    req.session.player = {
+      roblox_id: player.roblox_id,
+      username: player.username,
+      group_rank: player.group_rank // this should be the word like "Vice Chairman"
+    };
 
     res.json({ success: true, message: 'Logged in successfully' });
   } catch (err) {
