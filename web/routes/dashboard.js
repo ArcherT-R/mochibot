@@ -1,1130 +1,170 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mochi Bar Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<link rel="icon" type="image/png" href="https://i.ibb.co/S4NjLxNL/Gemini-Generated-Image-hbcyjkhbcyjkhbcy-removebg-preview.png">
-<style>
-  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
-  header {
-    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
-    background-size: 300% 100%;
-    animation: gradientFlow 6s ease infinite;
-    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
-    box-shadow:0 2px 5px rgba(0,0,0,0.15);
+const express = require("express");
+const router = express.Router();
+const requireLogin = require("../../middleware/requireLogin");
+const {
+  getAllPlayers,
+  getPlayerByUsername,
+  getPlayerSessions,
+  getOngoingSession,
+  searchPlayersByUsername
+} = require("../../endpoints/database");
+
+// ----------------------------
+// Leadership ranks (word-based)
+// ----------------------------
+const LEADERSHIP_RANKS = [
+  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+  'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+  'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
+];
+
+// ----------------------------
+// Helper: Attach ongoing session data to players
+// ----------------------------
+async function attachLiveSessionData(players) {
+  return await Promise.all(players.map(async (player) => {
+    const ongoing = await getOngoingSession(player.roblox_id);
+    player.ongoing_session_start_time = ongoing?.session_start_time || null;
+    return player;
+  }));
+}
+
+// ----------------------------
+// Main dashboard (protected)
+// ----------------------------
+router.get("/", requireLogin, async (req, res) => {
+  try {
+    const allPlayers = await getAllPlayers();
+    const topPlayersRaw = [...allPlayers]
+      .sort((a, b) => (b.weekly_minutes || 0) - (a.weekly_minutes || 0))
+      .slice(0, 8);
+    const topPlayers = await attachLiveSessionData(topPlayersRaw);
+
+    const player = req.session?.player || null;
+    res.render("dashboard", { players: allPlayers, topPlayers, player });
+  } catch (err) {
+    console.error("Error loading dashboard:", err);
+    res.status(500).send("Internal Server Error");
   }
-  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
-  .nav-tabs {
-    background:white; display:flex; justify-content:space-between; align-items:center;
-    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
-  }
-  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
-  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
-  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
-  .tab-button.active { background:#42b4ff; color:white; }
-  .tab-icon { font-size:20px; }
-  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
-  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
-  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
-  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
-  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
-  .search-wrapper input:focus { border-color:#42b4ff; }
-  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
-  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
-  .suggestion-item:last-child { border-bottom:none; }
-  .suggestion-item:hover { background:#f0f8ff; }
-  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
-  .no-data { text-align:center; color:#888; padding:20px; font-style:italic; }
-  .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
-  .player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
-  .player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
-  .player-card img { width:80px; height:80px; border-radius:50%; margin-bottom:10px; object-fit:cover; background:#e0e6f0; }
-  .player-card .avatar-wrapper { position:relative; display:inline-block; }
-  .player-card .birthday-badge { position:absolute; bottom:0; right:0; background:white; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 2px 6px rgba(0,0,0,0.2); }
-  .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
-  .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
-  .player-table-wrapper { width:100%; overflow-x:auto; }
-  .player-table { width:100%; border-collapse:collapse; min-width:600px; }
-  .player-table th { background:linear-gradient(135deg,#42b4ff 0%,#1a85e6 100%); color:white; padding:12px; text-align:left; font-weight:600; text-transform:uppercase; font-size:13px; letter-spacing:0.5px; }
-  .player-table td { padding:12px; border-bottom:1px solid #e0e6f0; }
-  .player-table tr:hover { background:#f0f8ff; }
-  .player-table .player-info { display:flex; align-items:center; gap:12px; }
-  .player-table .player-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; }
-  .player-table .player-name { font-weight:600; color:#333; }
-  .player-table .player-rank { color:#666; font-size:13px; }
-  .attendee-category { margin-bottom:20px; }
-  .attendee-category-title { font-size:14px; font-weight:700; color:#1a85e6; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
-  .shifts-list { display:flex; flex-direction:column; gap:16px; }
-  .shift-card { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:all 0.3s; }
-  .shift-card:hover { transform:translateX(5px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
-  .shift-header { display:flex; justify-content:space-between; align-items:center; }
-  .shift-left { display:flex; align-items:center; gap:12px; flex:1; }
-  .shift-icon { font-size:28px; }
-  .shift-info { display:flex; flex-direction:column; gap:4px; }
-  .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
-  .shift-host-preview { font-size:14px; color:#555; }
-  .shift-arrow { font-size:20px; color:#42b4ff; }
-  .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); animation:fadeIn 0.3s; }
-  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-  .modal-content { background-color:white; margin:5% auto; padding:0; border-radius:12px; width:90%; max-width:600px; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation:slideIn 0.3s; max-height:85vh; overflow-y:auto; }
-  @keyframes slideIn { from{transform:translateY(-50px);opacity:0} to{transform:translateY(0);opacity:1} }
-  .modal-header { display:flex; justify-content:space-between; align-items:center; padding:25px 30px; border-bottom:2px solid #42b4ff; background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); }
-  .modal-title { font-size:24px; font-weight:700; color:#1a85e6; }
-  .close { color:#aaa; font-size:32px; font-weight:bold; cursor:pointer; transition:color 0.2s; line-height:1; }
-  .close:hover { color:#333; }
-  .modal-body { padding:25px 30px; }
-  .shift-roles-section { margin-bottom:25px; }
-  .shift-roles-section h4 { font-size:16px; font-weight:700; color:#333; margin:0 0 12px 0; text-transform:uppercase; letter-spacing:0.5px; }
-  .role-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f9f9f9; border-radius:8px; border:1px solid #e0e6f0; margin-bottom:8px; }
-  .role-label { font-weight:600; color:#555; min-width:90px; }
-  .role-name { color:#333; }
-  .attendees-section h4 { font-size:16px; font-weight:700; color:#333; margin:0 0 12px 0; display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.5px; }
-  .attendee-count { background:#42b4ff; color:white; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700; }
-  .attendees-container { display:flex; flex-direction:column; gap:8px; }
-  .attendee-box { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:8px; background:#fff; border:1px solid #e0e6f0; transition:all 0.2s; }
-  .attendee-box:hover { background:#f9f9f9; border-color:#42b4ff; }
-  .attendee-box span { font-weight:500; color:#333; }
-  .attendee-box button { background:#ff4444; border:none; border-radius:6px; color:white; font-weight:700; padding:4px 10px; cursor:pointer; transition:background 0.2s; }
-  .attendee-box button:hover { background:#cc0000; }
-  .add-attendee-box { display:flex; justify-content:center; align-items:center; padding:12px; border-radius:8px; background:#e6f3ff; cursor:pointer; font-weight:600; color:#1a85e6; border:2px dashed #42b4ff; transition:all 0.2s; margin-top:8px; }
-  .add-attendee-box:hover { background:#d0e4ff; border-color:#1a85e6; }
-  .settings-btn { display:flex; align-items:center; gap:12px; padding:15px 20px; background:white; border:2px solid #42b4ff; border-radius:10px; cursor:pointer; font-size:16px; font-weight:600; color:#1a85e6; transition:all 0.3s; text-align:left; }
-  .settings-btn:hover { background:#42b4ff; color:white; transform:translateY(-2px); box-shadow:0 4px 12px rgba(66,180,255,0.3); }
-  .settings-btn span:first-child { font-size:24px; }
-  .tab-content { display:none; }
-  .tab-content.active { display:block; }
-  .settings-panel { display:none; background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; margin-top:20px; }
-  .settings-tabs { display:flex; gap:10px; margin-bottom:20px; border-bottom:2px solid #e0e6f0; }
-  .settings-tab { padding:10px 20px; background:transparent; border:none; border-bottom:3px solid transparent; cursor:pointer; font-size:15px; font-weight:600; color:#555; transition:all 0.3s; }
-  .settings-tab:hover { color:#42b4ff; }
-  .settings-tab.active { color:#42b4ff; border-bottom-color:#42b4ff; }
-  .settings-content { padding:20px 0; }
-  .profile-link { color:#42b4ff; text-decoration:none; font-weight:600; }
-  .profile-link:hover { text-decoration:underline; }
-  .btn { padding:10px 20px; background:#42b4ff; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s; }
-  .btn:hover { background:#1a85e6; transform:translateY(-2px); }
-  .btn.small { padding:6px 12px; font-size:14px; }
-  @media(max-width:600px){
-    header { font-size:36px; padding:20px; }
-    h2 { text-align:center; }
-    .top-players-grid { grid-template-columns:1fr; }
-    .nav-tabs { flex-direction:column; gap:10px; }
-    .nav-buttons { width:100%; justify-content:center; }
-    .search-wrapper { width:100%; max-width:100%; }
-    .tab-button { padding:10px 16px; font-size:14px; }
-    .shift-header { flex-direction:column; align-items:flex-start; gap:10px; }
-    .modal-content { margin:10% auto; width:95%; }
-    .modal-header, .modal-body { padding:20px; }
-    .player-table-wrapper { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .player-table { font-size:12px; min-width:550px; }
-    .player-table th, .player-table td { padding:10px 8px; }
-    .player-table .player-avatar { width:32px; height:32px; }
-    .player-table .player-info { gap:8px; }
-  }
-</style>
-</head>
-<body>
-<header>Mochi Bar Dashboard</header>
-<nav class="nav-tabs">
-  <div class="nav-buttons">
-    <button class="tab-button active" data-tab="home"><span class="tab-icon">🏠</span>Home</button>
-    <button class="tab-button" data-tab="playerlist"><span class="tab-icon">👥</span>Player List</button>
-    <button class="tab-button" data-tab="shifts"><span class="tab-icon">📅</span>Shifts</button>
-    <button class="tab-button" data-tab="myaccount"><span class="tab-icon">👤</span>My Account</button>
-    <button class="tab-button" data-tab="settings"><span class="tab-icon">⚙️</span>Settings</button>
-  </div>
-  <div class="search-wrapper">
-    <input type="text" id="playerSearch" placeholder="Search Roblox username...">
-    <div id="suggestions" class="suggestions"></div>
-  </div>
-</nav>
-<div class="container">
-  <div id="home" class="tab-content active">
-    <section class="content-section"><h2>Top Active This Week</h2><div id="topPlayersGrid" class="top-players-grid"></div></section>
-    <section class="content-section"><h2>Top 3 Shift Leaders</h2><div id="topShiftLeaders" class="top-players-grid"></div></section>
-    <section class="content-section"><h2>Upcoming Birthdays</h2><div id="upcomingBirthdays" class="top-players-grid"></div></section>
-  </div>
-  <div id="playerlist" class="tab-content">
-    <section class="content-section"><h2>Player List</h2><div class="player-table-wrapper"><table class="player-table"><thead><tr><th>Player</th><th>Rank</th><th>Weekly Minutes</th><th>Roblox ID</th></tr></thead><tbody id="fullPlayerList"></tbody></table></div></section>
-  </div>
-  <div id="shifts" class="tab-content">
-    <section class="content-section"><h2>Weekly Shifts</h2><div id="shiftsList" class="shifts-list"></div></section>
-  </div>
-  <div id="myaccount" class="tab-content">
-    <section class="content-section"><h2>My Account</h2><div id="accountInfo"></div><div id="settingsPanel" class="settings-panel"></div></section>
-  </div>
-  <div id="settings" class="tab-content">
-    <section class="content-section"><h2>Settings</h2><div style="display:flex; flex-direction:column; gap:15px; max-width:400px;">
-      <button class="settings-btn" onclick="openBirthdaysManager()"><span>🎂</span><span>Manage Birthdays</span></button>
-      <button class="settings-btn" onclick="openWeeklyResetStatus()"><span>📊</span><span>Check Weekly Reset Status</span></button>
-      <button class="settings-btn" onclick="openLastWeekHistory()"><span>📅</span><span>View Last Week's Data</span></button>
-    </div></section>
-  </div>
-</div>
-<div id="shiftModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header"><span class="modal-title" id="modalShiftTitle"></span><span class="close" onclick="closeShiftModal()">&times;</span></div>
-    <div class="modal-body">
-      <div class="shift-roles-section"><h4>Shift Roles</h4><div id="modalRoles"></div></div>
-      <div class="attendees-section"><h4>Attendees <span class="attendee-count" id="modalAttendeeCount">0</span></h4><div class="attendees-container" id="modalAttendees"></div><div class="add-attendee-box" id="modalAddAttendee">+ Add attendee</div></div>
-    </div>
-  </div>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('playerSearch');
-  const suggestionsBox = document.getElementById('suggestions');
-  const shiftsList = document.getElementById('shiftsList');
-  const topPlayersGrid = document.getElementById('topPlayersGrid');
-  const fullPlayerList = document.getElementById('fullPlayerList');
-  const shiftModal = document.getElementById('shiftModal');
-  const accountInfo = document.getElementById('accountInfo');
-  const settingsPanel = document.getElementById('settingsPanel');
-
-  let currentShiftId = null;
-  let currentUser = null;
-  let userGroupRank = '';
-
-  const LEADERSHIP_RANKS = [
-    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
-  ];
-  const CORPORATE_RANKS = [
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
-  ];
-  const MANAGEMENT_RANKS = [
-    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
-  ];
-  const CHIEF_RANKS = [
-    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Automation'
-  ];
-  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
-  const DIRECTOR_PLUS = [
-    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
-    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Assistant Director', 'Mochi Senior Moderator'
-  ];
-
-  async function loadCurrentUser() {
-    try {
-      const res = await fetch('/dashboard/current-user');
-      if (res.ok) {
-        currentUser = await res.json();
-        userGroupRank = currentUser.group_rank || '';
-        console.log('Current user loaded:', currentUser.username, 'Rank:', userGroupRank);
-        console.log('Password available:', currentUser.password ? 'Yes' : 'No');
-        updateTabAccess();
-        renderMyAccount();
-      }
-    } catch (err) {
-      console.error('Failed to load current user:', err);
-      userGroupRank = '';
-    }
-  }
-
-  function renderMyAccount() {
-    if (currentUser) {
-      accountInfo.innerHTML = `
-        <p><strong>Username:</strong> ${currentUser.username}</p>
-        <p><a href="/dashboard/player/${currentUser.username}" class="profile-link">View Profile</a></p>
-        <button id="userSettingsBtn" class="btn">User Settings</button>
-      `;
-
-      const userSettingsBtn = document.getElementById('userSettingsBtn');
-      if (userSettingsBtn) {
-        userSettingsBtn.addEventListener('click', toggleUserSettingsPanel);
-      }
-    } else {
-      accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
-    }
-  }
-
-  function toggleUserSettingsPanel() {
-    if (settingsPanel.style.display === 'none' || settingsPanel.style.display === '') {
-      renderSettingsPanel();
-      settingsPanel.style.display = 'block';
-    } else {
-      settingsPanel.style.display = 'none';
-    }
-  }
-
-  function renderSettingsPanel() {
-    settingsPanel.innerHTML = `
-      <div class="settings-tabs">
-        <button class="settings-tab active" data-tab="account">Account Details</button>
-        <button class="settings-tab" data-tab="security">Security</button>
-      </div>
-      <div class="settings-content" id="settingsContent"></div>
-    `;
-
-    const tabs = settingsPanel.querySelectorAll('.settings-tab');
-    const content = document.getElementById('settingsContent');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        const selected = tab.dataset.tab;
-        if (selected === 'account') renderAccountDetails(content);
-        if (selected === 'security') renderSecurity(content);
-      });
-    });
-
-    renderAccountDetails(content);
-  }
-
-  function renderAccountDetails(container) {
-    if (!currentUser) {
-      container.innerHTML = '<p>No user data available.</p>';
-      return;
-    }
-
-    const hasPassword = currentUser.password && currentUser.password.length > 0;
-
-    container.innerHTML = `
-      <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
-      ${hasPassword ? `
-        <p><strong>Password:</strong> 
-          <span id="passwordField" style="font-family:monospace;">${maskPassword(currentUser.password)}</span>
-        </p>
-        <button id="revealPasswordBtn" class="btn small">Hold to Reveal</button>
-      ` : '<p><strong>Password:</strong> Not set</p>'}
-    `;
-
-    if (!hasPassword) return;
-
-    const passwordField = document.getElementById('passwordField');
-    const revealBtn = document.getElementById('revealPasswordBtn');
-
-    if (!passwordField || !revealBtn) return;
-
-    let isRevealing = false;
-
-    const showPassword = () => {
-      isRevealing = true;
-      passwordField.textContent = currentUser.password || '';
-      revealBtn.style.background = '#1a85e6';
-    };
-    
-    const hidePassword = () => {
-      isRevealing = false;
-      passwordField.textContent = maskPassword(currentUser.password);
-      revealBtn.style.background = '#42b4ff';
-    };
-
-    revealBtn.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      showPassword();
-    });
-    
-    revealBtn.addEventListener('mouseup', hidePassword);
-    revealBtn.addEventListener('mouseleave', hidePassword);
-
-    revealBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      showPassword();
-    });
-    
-    revealBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      hidePassword();
-    });
-    
-    revealBtn.addEventListener('touchcancel', hidePassword);
-  }
-
-  function maskPassword(pwd) {
-    if (!pwd) return '';
-    return '•'.repeat(pwd.length);
-  }
-
-  function renderSecurity(container) {
-    container.innerHTML = `
-      <p>⚠️ Security options coming soon.</p>
-    `;
-  }
-
-  function updateTabAccess() {
-    const playerlistTab = document.querySelector('[data-tab="playerlist"]');
-    const settingsTab = document.querySelector('[data-tab="settings"]');
-
-    if (!DIRECTOR_PLUS.includes(userGroupRank)) {
-      playerlistTab.style.opacity = '0.5';
-      playerlistTab.style.cursor = 'not-allowed';
-      playerlistTab.title = 'Requires Mochi Director+';
-      playerlistTab.dataset.disabled = 'true';
-    } else {
-      playerlistTab.style.opacity = '1';
-      playerlistTab.style.cursor = 'pointer';
-      playerlistTab.title = '';
-      playerlistTab.dataset.disabled = 'false';
-    }
-
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      settingsTab.style.opacity = '0.5';
-      settingsTab.style.cursor = 'not-allowed';
-      settingsTab.title = 'Requires Vice Chairman+';
-      settingsTab.dataset.disabled = 'true';
-    } else {
-      settingsTab.style.opacity = '1';
-      settingsTab.style.cursor = 'pointer';
-      settingsTab.title = '';
-      settingsTab.dataset.disabled = 'false';
-    }
-  }
-
-  document.querySelectorAll('.tab-button').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      if (btn.dataset.disabled === 'true') {
-        e.preventDefault();
-        return;
-      }
-
-      const tab = btn.dataset.tab;
-
-      if (tab === 'playerlist' && !DIRECTOR_PLUS.includes(userGroupRank)) {
-        alert('Access Denied: Player List requires Mochi Director+');
-        return;
-      }
-
-      if (tab === 'settings' && !EXECUTIVE_RANKS.includes(userGroupRank)) {
-        alert('Access Denied: Settings requires Vice Chairman+');
-        return;
-      }
-
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(tab).classList.add('active');
-    });
-  });
-
-  loadCurrentUser();
-
-  input.addEventListener('input', async () => {
-    const q = input.value.trim();
-    if (!q) { suggestionsBox.innerHTML = ''; return; }
-    try {
-      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
-      const players = res.ok ? await res.json() : [];
-      suggestionsBox.innerHTML = players.map(p => `
-        <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
-          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
-               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
-          <span>${p.username}</span>
-        </div>`).join('');
-    } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
-  });
-  
-  document.addEventListener('click', e => {
-    if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
-  });
-
-  let topPlayersData = [];
-
-  function calculateLiveMinutes(player){
-    if(player.ongoing_session_start_time){
-      const elapsed = Date.now() - new Date(player.ongoing_session_start_time).getTime();
-      return elapsed > 0 ? elapsed / 1000 / 60 : 0;
-    }
-    return 0;
-  }
-
-  function getTotalMinutes(player){ return (player.weekly_minutes || 0) + calculateLiveMinutes(player); }
-
-  function formatMinutes(total){
-    if(total < 1) return '0 min';
-    const mins = Math.round(total), h = Math.floor(mins / 60), m = mins % 60;
-    return h > 0 ? `${h} hr ${m} min` : `${m} min`;
-  }
-
-  async function renderTopPlayers(){
-    try{
-      const res = await fetch('/dashboard/top-players');
-      topPlayersData = res.ok ? await res.json() : topPlayersData;
-      if(!topPlayersData.length){
-        topPlayersGrid.innerHTML = '<div class="no-data">No active players data.</div>';
-        return;
-      }
-      const livePlayers = topPlayersData
-        .map(p => ({...p, live_total_minutes: getTotalMinutes(p), is_live: calculateLiveMinutes(p) > 0}))
-        .sort((a,b) => b.live_total_minutes - a.live_total_minutes)
-        .slice(0,3);
-
-      topPlayersGrid.innerHTML = livePlayers.map(p => `
-        <div class="player-card" onclick="window.location='/dashboard/player/${p.username}'">
-          <img src="${p.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
-               onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-          <div>${p.username}</div>
-          ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
-          <div class="time">${formatMinutes(p.live_total_minutes)}</div>
-        </div>`).join('');
-    } catch(err){ console.error(err); }
-  }
-  renderTopPlayers();
-  setInterval(renderTopPlayers, 5000);
-
-  async function renderTopShiftLeaders(){
-    try{
-      const shiftsRes = await fetch('/shifts');
-      const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
-      
-      const attendeesPromises = shifts.map(async shift => {
-        try {
-          const res = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
-          return res.ok ? await res.json() : [];
-        } catch {
-          return [];
-        }
-      });
-      
-      const allAttendeesArrays = await Promise.all(attendeesPromises);
-      
-      const participationCount = {};
-      
-      shifts.forEach((shift, index) => {
-        const attendees = allAttendeesArrays[index];
-        
-        if (shift.host && shift.host !== 'TBD') {
-          participationCount[shift.host] = (participationCount[shift.host] || 0) + 1;
-        }
-        
-        if (shift.cohost) {
-          participationCount[shift.cohost] = (participationCount[shift.cohost] || 0) + 1;
-        }
-        
-        if (shift.overseer) {
-          participationCount[shift.overseer] = (participationCount[shift.overseer] || 0) + 1;
-        }
-        
-        attendees.forEach(attendee => {
-          participationCount[attendee.username] = (participationCount[attendee.username] || 0) + 1;
-        });
-      });
-      
-      const sortedLeaders = Object.entries(participationCount)
-        .map(([username, count]) => ({ username, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3);
-      
-      const topShiftLeadersGrid = document.getElementById('topShiftLeaders');
-      
-      if(!sortedLeaders.length){
-        topShiftLeadersGrid.innerHTML = '<div class="no-data">No shift participation data.</div>';
-        return;
-      }
-      
-      const playersRes = await fetch('/dashboard/players');
-      const allPlayers = playersRes.ok ? await playersRes.json() : [];
-      
-      topShiftLeadersGrid.innerHTML = sortedLeaders.map(leader => {
-        const player = allPlayers.find(p => p.username === leader.username);
-        const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
-        
-        return `
-          <div class="player-card" onclick="window.location='/dashboard/player/${leader.username}'">
-            <img src="${avatarUrl}"
-                 onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-            <div>${leader.username}</div>
-            <div class="time">${leader.count} shift${leader.count !== 1 ? 's' : ''}</div>
-          </div>`;
-      }).join('');
-    } catch(err){ 
-      console.error('Error loading shift leaders:', err); 
-      document.getElementById('topShiftLeaders').innerHTML = '<div class="no-data">Failed to load shift leaders.</div>';
-    }
-  }
-  renderTopShiftLeaders();
-  setInterval(renderTopShiftLeaders, 60000);
-
-  async function renderFullPlayers(){
-    try {
-      const res = await fetch('/dashboard/players');
-      const players = res.ok ? await res.json() : [];
-      if(!players.length){
-        fullPlayerList.innerHTML = '<tr><td colspan="4" class="no-data">No players found.</td></tr>';
-        return;
-      }
-      fullPlayerList.innerHTML = players.map(p => {
-        const hours = Math.floor((p.weekly_minutes || 0) / 60);
-        const mins = (p.weekly_minutes || 0) % 60;
-        return `
-          <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${p.username}'">
-            <td>
-              <div class="player-info">
-                <img class="player-avatar" src="${p.avatar_url || 'https://placehold.co/40x40/e0e6f0/5f6c7b?text=U'}"
-                     onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
-                <div>
-                  <div class="player-name">${p.username}</div>
-                </div>
-              </div>
-            </td>
-            <td><span class="player-rank">${p.group_rank || 'Unknown'}</span></td>
-            <td>${hours}h ${mins}m</td>
-            <td>${p.roblox_id}</td>
-          </tr>`;
-      }).join('');
-    } catch(err){ console.error(err); fullPlayerList.innerHTML = '<tr><td colspan="4" class="no-data">Failed to load players.</td></tr>'; }
-  }
-  renderFullPlayers();
-
-  function formatShiftTime(ts){
-    const d = new Date(ts);
-    const now = new Date();
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-    let dateStr = d.toDateString() === now.toDateString() ? 'Today'
-                : d.toDateString() === tomorrow.toDateString() ? 'Tomorrow'
-                : d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
-    const timeStr = d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
-    return {date: dateStr, time: timeStr};
-  }
-
-  async function openShiftModal(shift) {
-    currentShiftId = shift.id;
-    const shiftTime = shift.shift_time || shift.time;
-    const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-    const {date, time} = formatShiftTime(new Date(timestamp));
-    
-    document.getElementById('modalShiftTitle').textContent = `${date} at ${time}`;
-    
-    let rolesHTML = `<div class="role-item"><span class="role-label">📋 Host:</span><span class="role-name">${shift.host || 'TBD'}</span></div>`;
-    if(shift.cohost) rolesHTML += `<div class="role-item"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${shift.cohost}</span></div>`;
-    if(shift.overseer) rolesHTML += `<div class="role-item"><span class="role-label">👁️ Overseer:</span><span class="role-name">${shift.overseer}</span></div>`;
-    document.getElementById('modalRoles').innerHTML = rolesHTML;
-    
-    await renderModalAttendees();
-    
-    shiftModal.style.display = 'block';
-  }
-
-  async function renderModalAttendees() {
-    if (!currentShiftId) return;
-    
-    const container = document.getElementById('modalAttendees');
-    const addBox = document.getElementById('modalAddAttendee');
-    
-    try {
-      const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
-      const attendees = res.ok ? await res.json() : [];
-      
-      const shiftRes = await fetch('/shifts');
-      const shifts = shiftRes.ok ? await shiftRes.json() : [];
-      const currentShift = shifts.find(s => s.id === currentShiftId);
-      
-      const isShiftLeader = currentShift && currentUser && (
-        currentShift.host === currentUser.username ||
-        currentShift.cohost === currentUser.username ||
-        currentShift.overseer === currentUser.username
-      );
-      
-      const canEdit = DIRECTOR_PLUS.includes(userGroupRank) || isShiftLeader;
-      
-      document.getElementById('modalAttendeeCount').textContent = attendees.length;
-      
-      // Categorize attendees
-      const management = attendees.filter(a => MANAGEMENT_RANKS.includes(a.group_rank));
-      const publicRelations = attendees.filter(a => CORPORATE_RANKS.includes(a.group_rank));
-      const others = attendees.filter(a => 
-        !MANAGEMENT_RANKS.includes(a.group_rank) && 
-        !CORPORATE_RANKS.includes(a.group_rank)
-      );
-      
-      container.innerHTML = '';
-      
-      // Render Management category
-      if (management.length > 0) {
-        const managementDiv = document.createElement('div');
-        managementDiv.className = 'attendee-category';
-        managementDiv.innerHTML = '<div class="attendee-category-title">Management</div>';
-        
-        management.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          managementDiv.appendChild(box);
-        });
-        
-        container.appendChild(managementDiv);
-      }
-      
-      // Render Public Relations category
-      if (publicRelations.length > 0) {
-        const prDiv = document.createElement('div');
-        prDiv.className = 'attendee-category';
-        prDiv.innerHTML = '<div class="attendee-category-title">Public Relations</div>';
-        
-        publicRelations.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          prDiv.appendChild(box);
-        });
-        
-        container.appendChild(prDiv);
-      }
-      
-      // Render Others category
-      if (others.length > 0) {
-        const othersDiv = document.createElement('div');
-        othersDiv.className = 'attendee-category';
-        othersDiv.innerHTML = '<div class="attendee-category-title">Other Attendees</div>';
-        
-        others.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          othersDiv.appendChild(box);
-        });
-        
-        container.appendChild(othersDiv);
-      }
-
-      if (canEdit) {
-        addBox.style.display = 'flex';
-        addBox.onclick = async e => {
-          e.stopPropagation();
-          if(addBox.querySelector('select')) return;
-
-          const res = await fetch('/dashboard/players');
-          const allPlayers = res.ok ? await res.json() : [];
-          
-          const eligiblePlayers = allPlayers.filter(p => DIRECTOR_PLUS.includes(p.group_rank));
-          
-          const select = document.createElement('select');
-          select.style.width = '100%';
-          select.style.padding = '8px';
-          select.style.fontSize = '14px';
-          select.style.border = '1px solid #42b4ff';
-          select.style.borderRadius = '6px';
-          select.innerHTML = '<option value="">Select player (Mochi Director+)...</option>' + eligiblePlayers.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username} - ${p.group_rank}</option>`).join('');
-
-          addBox.style.background = '#fff';
-          addBox.style.border = '2px solid #42b4ff';
-          addBox.innerHTML = '';
-          addBox.appendChild(select);
-          select.focus();
-
-          select.onchange = async () => {
-            if(select.value){
-              const [robloxId, username] = select.value.split('|');
-              await fetch('/shifts/add-attendee', {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({shiftId: currentShiftId, robloxId, username})
-              });
-              await renderModalAttendees();
-            } else resetAddBox();
-          };
-
-          select.onblur = () => setTimeout(resetAddBox, 200);
-
-          function resetAddBox(){
-            addBox.style.background = '#e6f3ff';
-            addBox.style.border = '2px dashed #42b4ff';
-            addBox.innerHTML = '+ Add attendee';
-          }
-        };
-      } else {
-        addBox.style.display = 'none';
-      }
-    } catch(err) {
-      console.error('Error loading attendees:', err);
-    }
-  }
-  
-  function createAttendeeBox(attendee, canEdit) {
-    const box = document.createElement('div');
-    box.className = 'attendee-box';
-    
-    if (canEdit) {
-      box.innerHTML = `<span>${attendee.username}</span><button data-robloxid="${attendee.roblox_id}">×</button>`;
-      const removeBtn = box.querySelector('button');
-      if (removeBtn) {
-        removeBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await fetch('/shifts/remove-attendee', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({shiftId: currentShiftId, robloxId: attendee.roblox_id})
-          });
-          renderModalAttendees();
-        });
-      }
-    } else {
-      box.innerHTML = `<span>${attendee.username}</span>`;
-    }
-    
-    return box;
-  }
-
-  window.closeShiftModal = function() {
-    shiftModal.style.display = 'none';
-    currentShiftId = null;
-  };
-
-  window.onclick = function(e) {
-    if (e.target === shiftModal) closeShiftModal();
-  };
-
-  async function loadShifts(){
-    shiftsList.innerHTML = `<div class="no-data">Fetching shifts...</div>`;
-    try{
-      const res = await fetch('/shifts');
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const shifts = await res.json();
-
-      const now = Date.now();
-
-      const sortedShifts = shifts.sort((a,b)=> {
-        const timeA = a.shift_time || a.time;
-        const timeB = b.shift_time || b.time;
-        const tsA = timeA.toString().length === 10 ? timeA * 1000 : timeA;
-        const tsB = timeB.toString().length === 10 ? timeB * 1000 : timeB;
-        return tsA - tsB;
-      });
-
-      if(!sortedShifts.length){
-        shiftsList.innerHTML = '<div class="no-data">No shifts found.</div>';
-        return;
-      }
-
-      shiftsList.innerHTML = '';
-      sortedShifts.forEach((shift)=>{
-        const shiftTime = shift.shift_time || shift.time;
-        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-        const {date, time} = formatShiftTime(new Date(timestamp));
-        const isPast = timestamp < now;
-
-        const card = document.createElement('div');
-        card.className = 'shift-card';
-        card.style.cursor = 'pointer';
-        card.addEventListener('click', () => openShiftModal(shift));
-
-        card.innerHTML = `
-          <div class="shift-header">
-            <div class="shift-left">
-              <span class="shift-icon">📅</span>
-              <div class="shift-info">
-                <div class="shift-datetime">${date} at ${time}</div>
-                <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
-              </div>
-            </div>
-            <span class="shift-arrow">${isPast ? '⏪' : '→'}</span>
-          </div>
-          ${isPast ? '<div style="margin-top:8px;color:#888;font-weight:600;font-size:14px;">Past Shift</div>' : ''}
-        `;
-        shiftsList.appendChild(card);
-      });
-
-    } catch(err){
-      console.error('Failed to load shifts:', err);
-      shiftsList.innerHTML = '<div class="no-data">Failed to load shifts.</div>';
-    }
-  }
-
-  loadShifts();
-  setInterval(loadShifts, 60000);
-
-  async function renderUpcomingBirthdays() {
-    try {
-      const res = await fetch('/settings/birthdays');
-      if (!res.ok) {
-        document.getElementById('upcomingBirthdays').innerHTML = '<div class="no-data">Unable to load birthdays</div>';
-        return;
-      }
-      
-      const birthdays = await res.json();
-      const today = new Date();
-      
-      const upcoming = birthdays.map(b => {
-        const bday = new Date(b.birthday);
-        const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
-        
-        if (bdayThisYear < today) {
-          bdayThisYear.setFullYear(today.getFullYear() + 1);
-        }
-        
-        const daysUntil = Math.floor((bdayThisYear - today) / (1000 * 60 * 60 * 24));
-        
-        return { ...b, daysUntil, date: bdayThisYear, isToday: daysUntil === 0 };
-      })
-      .filter(b => b.daysUntil <= 30)
-      .sort((a, b) => a.daysUntil - b.daysUntil)
-      .slice(0, 3);
-      
-      const birthdaysGrid = document.getElementById('upcomingBirthdays');
-      
-      if (!upcoming.length) {
-        birthdaysGrid.innerHTML = '<div class="no-data">No birthdays in the next 30 days</div>';
-        return;
-      }
-      
-      const playersRes = await fetch('/dashboard/players');
-      const allPlayers = playersRes.ok ? await playersRes.json() : [];
-      
-      birthdaysGrid.innerHTML = upcoming.map(b => {
-        const player = allPlayers.find(p => p.roblox_id === b.roblox_id);
-        const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
-        const dayText = b.isToday ? 'Today!' : `In ${b.daysUntil} day${b.daysUntil !== 1 ? 's' : ''}`;
-        
-        return `
-          <div class="player-card" onclick="window.location='/dashboard/player/${b.username}'">
-            <div class="avatar-wrapper">
-              <img src="${avatarUrl}" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-              ${b.isToday ? '<span class="birthday-badge">🎂</span>' : ''}
-            </div>
-            <div>${b.username}</div>
-            <div class="time" style="${b.isToday ? 'color:#ff4444;font-weight:700;' : ''}">${dayText}</div>
-          </div>`;
-      }).join('');
-    } catch(err) {
-      console.error('Error loading birthdays:', err);
-      document.getElementById('upcomingBirthdays').innerHTML = '<div class="no-data">Failed to load birthdays</div>';
-    }
-  }
-  
-  renderUpcomingBirthdays();
-  setInterval(renderUpcomingBirthdays, 300000);
-
-  window.openBirthdaysManager = async function() {
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      alert('Access Denied: Birthday management requires Vice Chairman+');
-      return;
-    }
-
-    const modal = document.getElementById('shiftModal');
-    const modalTitle = document.getElementById('modalShiftTitle');
-    const modalBody = document.querySelector('.modal-body');
-    
-    modalTitle.textContent = 'Manage Birthdays';
-    modalBody.innerHTML = `
-      <div style="margin-bottom:20px;">
-        <input type="text" id="bdaySearch" placeholder="Search player..." 
-               style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;">
-        <div id="bdaySearchResults" style="max-height:200px;overflow-y:auto;"></div>
-      </div>
-      <div style="max-height:400px;overflow-y:auto;" id="birthdaysList">
-        <div class="no-data">Loading...</div>
-      </div>
-    `;
-    
-    modal.style.display = 'block';
-    
-    const res = await fetch('/settings/birthdays');
-    const birthdays = res.ok ? await res.json() : [];
-    
-    const list = document.getElementById('birthdaysList');
-    if (!birthdays.length) {
-      list.innerHTML = '<div class="no-data">No birthdays set</div>';
-    } else {
-      list.innerHTML = birthdays.map(b => `
-        <div class="attendee-box">
-          <div>
-            <strong>${b.username}</strong><br>
-            <span style="font-size:13px;color:#666;">${new Date(b.birthday).toLocaleDateString()}</span>
-          </div>
-          <button onclick="deleteBirthday(${b.roblox_id})">×</button>
-        </div>
-      `).join('');
-    }
-    
-    const searchInput = document.getElementById('bdaySearch');
-    const searchResults = document.getElementById('bdaySearchResults');
-    
-    searchInput.addEventListener('input', async () => {
-      const q = searchInput.value.trim();
-      if (!q) { searchResults.innerHTML = ''; return; }
-      
-      const res = await fetch(`/settings/search-players?username=${encodeURIComponent(q)}`);
-      const players = res.ok ? await res.json() : [];
-      
-      searchResults.innerHTML = players.map(p => `
-        <div class="suggestion-item" onclick="setBirthdayFor(${p.roblox_id}, '${p.username}')">
-          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
-               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
-          <span>${p.username}</span>
-        </div>
-      `).join('');
-    });
-  };
-
-  window.setBirthdayFor = async function(robloxId, username) {
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      alert('Access Denied: Birthday management requires Vice Chairman+');
-      return;
-    }
-
-    const birthday = prompt(`Set birthday for ${username} (YYYY-MM-DD):`);
-    if (!birthday) return;
-    
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(birthday)) {
-      alert('Invalid date format. Use YYYY-MM-DD');
-      return;
-    }
-    
-    try {
-      const res = await fetch('/settings/birthdays/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roblox_id: robloxId, username, birthday })
-      });
-      
-      if (res.ok) {
-        alert('Birthday set successfully!');
-        openBirthdaysManager();
-        renderUpcomingBirthdays();
-      } else {
-        alert('Failed to set birthday');
-      }
-    } catch (err) {
-      alert('Error setting birthday');
-    }
-  };
-
-  window.deleteBirthday = async function(robloxId) {
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      alert('Access Denied: Birthday management requires Vice Chairman+');
-      return;
-    }
-
-    if (!confirm('Delete this birthday?')) return;
-    
-    try {
-      const res = await fetch(`/settings/birthdays/${robloxId}`, { method: 'DELETE' });
-      if (res.ok) {
-        openBirthdaysManager();
-        renderUpcomingBirthdays();
-      }
-    } catch (err) {
-      alert('Error deleting birthday');
-    }
-  };
-
-  window.openWeeklyResetStatus = async function() {
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      alert('Access Denied: Weekly reset requires Vice Chairman+');
-      return;
-    }
-
-    const modal = document.getElementById('shiftModal');
-    const modalTitle = document.getElementById('modalShiftTitle');
-    const modalBody = document.querySelector('.modal-body');
-    
-    modalTitle.textContent = 'Weekly Reset Status';
-    modalBody.innerHTML = '<div class="no-data">Loading...</div>';
-    modal.style.display = 'block';
-    
-    try {
-      const res = await fetch('/settings/weekly-reset/status');
-      const data = await res.json();
-      
-      const nextReset = new Date(data.nextReset);
-      const lastReset = data.lastReset ? new Date(data.lastReset) : null;
-      
-      modalBody.innerHTML = `
-        <div style="line-height:2;">
-          <p><strong>Next Reset:</strong> ${nextReset.toLocaleString()}</p>
-          ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>` : ''}
-          <p><strong>Players Affected:</strong> ${data.playersAffected}</p>
-          <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0;">
-          <button onclick="manualReset()" style="width:100%;padding:12px;background:#ff4444;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
-            Manual Reset (Use with caution)
-          </button>
-        </div>
-      `;
-    } catch (err) {
-      modalBody.innerHTML = '<div class="no-data" style="color:#e74c3c;">Failed to load reset status</div>';
-    }
-  };
-
-  window.manualReset = async function() {
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      alert('Access Denied: Manual reset requires Vice Chairman+');
-      return;
-    }
-
-    if (!confirm('Are you sure you want to manually reset weekly data? This will clear all player weekly minutes and save current data to history.')) return;
-    
-    try {
-      const res = await fetch('/settings/weekly-reset/manual', { method: 'POST' });
-      const result = await res.json();
-      
-      if (result.success) {
-        alert(`Reset successful! ${result.playersAffected} players affected.`);
-        openWeeklyResetStatus();
-      } else {
-        alert('Reset failed');
-      }
-    } catch (err) {
-      alert('Error performing reset');
-    }
-  };
-
-  window.openLastWeekHistory = async function() {
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      alert('Access Denied: History requires Vice Chairman+');
-      return;
-    }
-
-    const modal = document.getElementById('shiftModal');
-    const modalTitle = document.getElementById('modalShiftTitle');
-    const modalBody = document.querySelector('.modal-body');
-    
-    modalTitle.textContent = 'Last Week\'s Data';
-    modalBody.innerHTML = '<div class="no-data">Loading...</div>';
-    modal.style.display = 'block';
-    
-    try {
-      const res = await fetch('/settings/weekly-reset/last-week');
-      const history = await res.json();
-      
-      if (!history.length) {
-        modalBody.innerHTML = '<div class="no-data">No historical data available</div>';
-        return;
-      }
-      
-      const weekStart = new Date(history[0].week_start).toLocaleDateString();
-      const weekEnd = new Date(history[0].week_end).toLocaleDateString();
-      
-      const sorted = history.sort((a, b) => b.total_minutes - a.total_minutes);
-      
-      modalBody.innerHTML = `
-        <div style="margin-bottom:15px;text-align:center;color:#666;">
-          Week: ${weekStart} - ${weekEnd}
-        </div>
-        <div style="max-height:500px;overflow-y:auto;">
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f0f8ff;text-align:left;">
-                <th style="padding:8px;">Player</th>
-                <th style="padding:8px;">Minutes</th>
-                <th style="padding:8px;">Hosted</th>
-                <th style="padding:8px;">Attended</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sorted.map(h => {
-                const hours = Math.floor(h.total_minutes / 60);
-                const mins = h.total_minutes % 60;
-                return `
-                  <tr style="border-bottom:1px solid #eee;">
-                    <td style="padding:8px;font-weight:600;">${h.username}</td>
-                    <td style="padding:8px;">${hours}h ${mins}m</td>
-                    <td style="padding:8px;">${h.shifts_hosted}</td>
-                    <td style="padding:8px;">${h.shifts_attended}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-    } catch (err) {
-      modalBody.innerHTML = '<div class="no-data" style="color:#e74c3c;">Failed to load history</div>';
-    }
-  };
 });
-</script>
-</body>
-</html>
+
+// ----------------------------
+// Current user endpoint
+// ----------------------------
+router.get("/current-user", requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!player) return res.status(401).json({ error: 'Not authenticated' });
+
+    console.log('Current user session data:', player);
+
+    res.json({
+      username: player.username,
+      roblox_id: player.roblox_id,
+      password: player.password || null,      
+      group_rank: player.group_rank || 'Guest',
+    });
+  } catch (err) {
+    console.error("Error fetching current user:", err);
+    res.status(500).json({ error: "Failed to fetch current user" });
+  }
+});
+
+// ----------------------------
+// Player profile page
+// ----------------------------
+router.get("/player/:username", requireLogin, async (req, res) => {
+  try {
+    const username = req.params.username;
+    const currentPlayer = req.session?.player;
+
+    const player = await getPlayerByUsername(username);
+    if (!player) return res.status(404).send("Player not found");
+
+    // Leadership check
+    const isLeader = LEADERSHIP_RANKS.includes(currentPlayer.group_rank);
+    if (!isLeader && currentPlayer.username !== username) {
+      return res.status(403).send("Access denied");
+    }
+
+    const sessions = await getPlayerSessions(player.roblox_id);
+    const ongoingSession = await getOngoingSession(player.roblox_id);
+
+    res.render("player", { 
+      player, 
+      sessions, 
+      shifts: { attended: 0, hosted: 0 }, 
+      ongoingSession 
+    });
+  } catch (err) {
+    console.error("Error loading player page:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// ----------------------------
+// Top players (everyone)
+// ----------------------------
+router.get("/top-players", requireLogin, async (req, res) => {
+  try {
+    const players = await getAllPlayers();
+    const withLiveData = await attachLiveSessionData(players);
+    const sorted = withLiveData
+      .map(p => ({
+        ...p,
+        live_total_minutes: (p.weekly_minutes || 0) + 
+          (p.ongoing_session_start_time ? ((Date.now() - new Date(p.ongoing_session_start_time).getTime()) / 1000 / 60) : 0)
+      }))
+      .sort((a, b) => b.live_total_minutes - a.live_total_minutes)
+      .slice(0, 8);
+
+    res.json(sorted);
+  } catch (err) {
+    console.error("Error fetching top players:", err);
+    res.status(500).json({ error: "Failed to fetch top players" });
+  }
+});
+
+// ----------------------------
+// Full players list (leadership only)
+// ----------------------------
+router.get("/players", requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!player) return res.status(401).json({ error: 'Not authenticated' });
+
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: 'Access denied: Leadership rank required' });
+    }
+
+    const players = await getAllPlayers();
+    res.json(players);
+  } catch (err) {
+    console.error("Error fetching players:", err);
+    res.status(500).json({ error: "Failed to fetch players" });
+  }
+});
+
+// ----------------------------
+// Player search (leadership only)
+// ----------------------------
+router.get("/search", requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!player) return res.status(401).json({ error: 'Not authenticated' });
+
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: 'Access denied: Leadership rank required' });
+    }
+
+    const q = req.query.username?.trim();
+    if (!q) return res.json([]);
+    const players = await searchPlayersByUsername(q);
+    res.json(players || []);
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json([]);
+  }
+});
+
+module.exports = router;
