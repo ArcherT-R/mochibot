@@ -54,14 +54,12 @@ router.get("/current-user", requireLogin, async (req, res) => {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
 
-    // Debug log
     console.log('Current user session data:', player);
 
     res.json({
       username: player.username,
       roblox_id: player.roblox_id,
-      group_rank: player.group_rank,
-      rank: player.rank
+      group_rank: player.group_rank || 'Guest', // fallback
     });
   } catch (err) {
     console.error("Error fetching current user:", err);
