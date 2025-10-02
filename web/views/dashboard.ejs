@@ -209,9 +209,22 @@ function renderMyAccount() {
 
     accountInfo.innerHTML = `
       <p><strong>Username:</strong> ${currentUser.username}</p>
-      <p><a href="/settings" style="text-decoration:underline; color:#007bff;">User Settings</a></p>
+      <p><a href="#" id="userSettingsLink" style="text-decoration:underline; color:#007bff;">User Settings</a></p>
       <p><a href="${profileUrl}" style="text-decoration:underline; color:#007bff;">View Profile</a></p>
+      <div id="settingsBox" style="display:none; margin-top:10px; padding:10px; border:1px solid #ccc; border-radius:5px; background:#f9f9f9;">
+        <button id="accountDetailsBtn" style="margin-right:5px;">Account Details</button>
+        <button id="securityBtn">Security</button>
+      </div>
     `;
+
+    const userSettingsLink = document.getElementById('userSettingsLink');
+    const settingsBox = document.getElementById('settingsBox');
+
+    userSettingsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Toggle visibility
+      settingsBox.style.display = settingsBox.style.display === 'none' ? 'block' : 'none';
+    });
   } else {
     accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
   }
