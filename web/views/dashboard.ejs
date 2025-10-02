@@ -203,81 +203,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-function renderMyAccount() {
-  const accountInfo = document.getElementById('accountInfo');
-  if (!currentUser) {
-    accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
-    return;
-  }
-
-  const profileUrl = `/dashboard/player/${currentUser.username}`;
-
-  accountInfo.innerHTML = `
-    <p><strong>Username:</strong> ${currentUser.username}</p>
-    <p><a href="#" id="userSettingsLink" style="text-decoration:underline; color:#007bff;">User Settings</a></p>
-    <p><a href="${profileUrl}" style="text-decoration:underline; color:#007bff;">View Profile</a></p>
-    <div id="settingsPanel" style="display:none; margin-top:10px; padding:15px; border:1px solid #ccc; border-radius:5px; background:#f0f4f8; width:100%;">
-      <div id="settingsTabs" style="margin-bottom:15px; display:flex; gap:10px;">
-        <button class="settings-tab active" data-tab="accountDetails">Account Details</button>
-        <button class="settings-tab" data-tab="security">Security</button>
-      </div>
-      <div id="settingsContent">
-        <!-- Tab content will go here -->
-      </div>
-    </div>
-  `;
-
-  const userSettingsLink = document.getElementById('userSettingsLink');
-  const settingsPanel = document.getElementById('settingsPanel');
-  const settingsTabs = settingsPanel.querySelectorAll('.settings-tab');
-  const settingsContent = document.getElementById('settingsContent');
-
-  userSettingsLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
-    loadTab('accountDetails'); // Default tab
-  });
-
-  settingsTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      settingsTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      loadTab(tab.dataset.tab);
-    });
-  });
-
-  function loadTab(tab) {
-    if (tab === 'accountDetails') {
-      settingsContent.innerHTML = `
-        <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
-        <p>
-          <strong>Password:</strong> 
-          <span id="passwordField">••••••••</span>
-          <button id="revealPasswordBtn" style="margin-left:5px;">Hold to Reveal</button>
-        </p>
-      `;
-
-      const passwordField = document.getElementById('passwordField');
-      const revealBtn = document.getElementById('revealPasswordBtn');
-
-      // Show password while holding the button
-      revealBtn.addEventListener('mousedown', () => {
-        passwordField.textContent = currentUser.password || 'hidden';
-      });
-      revealBtn.addEventListener('mouseup', () => {
-        passwordField.textContent = '••••••••';
-      });
-      revealBtn.addEventListener('mouseleave', () => {
-        passwordField.textContent = '••••••••';
-      });
-
-    } else if (tab === 'security') {
-      settingsContent.innerHTML = `
-        <p>Security settings will go here.</p>
-      `;
+// ------------------- Load Current User -------------------
+  async function loadCurrentUser() {
+    const res = await fetch('/dashboard/current-user');
+    if (res.ok) {
+      currentUser = await res.json();
+      renderMyAccount();
     }
   }
-}
+
+  // ------------------- Render Account Box -------------------
+  function renderMyAccount() {
+    if (currentUser) {
+      accountInfo.innerHTML = `
+        <p><strong>Username:</strong> ${currentUser.username}</p>
+        <p><a href="/dashboard/player/${currentUser.username}" class="profile-link">View Profile</a></p>
+        <button id="userSettingsBtn" class="btn">User Settings</button>
+      `;
+
+      document.getElementById('userSettingsBtn').addEventListener('click', toggleUserSettingsPanel);
+    } else {
+      accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
+    }
+  }
+
+  // ------------------- Settings Panel -------------------
+  function toggleUserSettingsPanel() {
+    if (settingsPanel.style.display === 'none') {
+      renderSettingsPanel();
+      settingsPanel.style.display = 'block';
+    } else {
+      settingsPanel.style.display = 'none';
+    }
+  }
+
+  function renderSettingsPanel() {
+    settingsPanel.innerHTML = `
+      <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="account">Account Details</button>
+        <button class="settings-tab" data-tab="security">Security</button>
+      </div>
+      <div class="settings-content" id="settingsContent"></div>
+    `;
+
+    const tabs = settingsPanel.querySelectorAll('.settings-tab');
+    const content = document.getElementById('settingsContent');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const selected = tab.dataset.tab;
+        if (selected === 'account') renderAccountDetails(content);
+        if (selected === 'security') renderSecurity(content);
+      });
+    });
+
+    renderAccountDetails(content);
+  }
+
+  // ------------------- Account Details -------------------
+  function renderAccountDetails(container) {
+    container.innerHTML = `
+      <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
+      <p><strong>Password:</strong> 
+        <span id="passwordField" style="font-family:monospace;">${maskPassword(currentUser.password)}</span>
+      </p>
+      <button id="revealPasswordBtn" class="btn small">Hold to Reveal</button>
+    `;
+
+    const passwordField = document.getElementById('passwordField');
+    const revealBtn = document.getElementById('revealPasswordBtn');
+
+    const showPassword = () => passwordField.textContent = currentUser.password;
+    const hidePassword = () => passwordField.textContent = maskPassword(currentUser.password);
+
+    // Desktop: hold mouse
+    revealBtn.addEventListener('mousedown', showPassword);
+    revealBtn.addEventListener('mouseup', hidePassword);
+    revealBtn.addEventListener('mouseleave', hidePassword);
+
+    // Mobile: touch and hold
+    revealBtn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      showPassword();
+    });
+    revealBtn.addEventListener('touchend', hidePassword);
+    revealBtn.addEventListener('touchcancel', hidePassword);
+  }
+
+  function maskPassword(pwd) {
+    if (!pwd) return '';
+    return '•'.repeat(pwd.length);
+  }
+
+  // ------------------- Security -------------------
+  function renderSecurity(container) {
+    container.innerHTML = `
+      <p>⚠️ Security options coming soon.</p>
+    `;
+  }
+
+  loadCurrentUser();
+});
 
   function updateTabAccess() {
     const playerlistTab = document.querySelector('[data-tab="playerlist"]');
