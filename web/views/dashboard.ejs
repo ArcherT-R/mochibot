@@ -202,22 +202,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderMyAccount() {
-    const accountInfo = document.getElementById('accountInfo');
-    if (currentUser) {
-      accountInfo.innerHTML = `
-        <p><strong>Username:</strong> ${currentUser.username}</p>
-        <p><strong>Roblox ID:</strong> ${currentUser.roblox_id}</p>
-        <p><strong>Group Rank:</strong> ${currentUser.group_rank}</p>
-        <img src="${currentUser.avatar_url || 'https://placehold.co/100x100/e0e6f0/5f6c7b?text=U'}" 
-             alt="Avatar" style="width:100px; border-radius:50%;"
-             onerror="this.src='https://placehold.co/100x100/e0e6f0/5f6c7b?text=U';"/>
-        <p><strong>Weekly Minutes:</strong> ${currentUser.weekly_minutes || 0}</p>
-      `;
-    } else {
-      accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
-    }
+function renderMyAccount() {
+  const accountInfo = document.getElementById('accountInfo');
+  if (currentUser) {
+    const robloxProfileUrl = `https://www.roblox.com/users/${currentUser.roblox_id}/profile`;
+
+    accountInfo.innerHTML = `
+      <p><strong>Username:</strong> ${currentUser.username}</p>
+      <p><a href="/settings" style="text-decoration:underline; color:#007bff;">User Settings</a></p>
+      <p><a href="${robloxProfileUrl}" target="_blank" style="text-decoration:underline; color:#007bff;">View Roblox Profile</a></p>
+    `;
+  } else {
+    accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
   }
+}
 
   function updateTabAccess() {
     const playerlistTab = document.querySelector('[data-tab="playerlist"]');
