@@ -92,6 +92,7 @@
   }
 
   .avatar-container {
+    position: relative;
     width: 150px;
     height: 150px;
     border-radius: 50%;
@@ -104,6 +105,27 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .birthday-badge-profile {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: white;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: bounce 1s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 
   .username-display {
@@ -364,6 +386,7 @@
     <div class="profile-section">
       <div class="avatar-container">
         <img src="<%= player.avatar_url %>" alt="Avatar" onerror="this.src='https://placehold.co/150x150/e0e6f0/5f6c7b?text=<%= player.username.charAt(0) %>';">
+        <div id="birthday-badge-container"></div>
       </div>
       <div class="username-display"><%= player.username %></div>
     </div>
@@ -479,6 +502,30 @@
   const playerRobloxId = "<%= player.roblox_id %>";
   const normalizedPlayerName = playerUsername.replace(/\s/g, '').toLowerCase();
   const playerShiftsContainer = document.getElementById('player-shifts');
+
+  // --- Check Birthday ---
+  async function checkBirthday() {
+    try {
+      const res = await fetch('/settings/birthdays');
+      if (!res.ok) return;
+      
+      const birthdays = await res.json();
+      const playerBirthday = birthdays.find(b => b.roblox_id === parseInt(playerRobloxId));
+      
+      if (playerBirthday) {
+        const today = new Date();
+        const bday = new Date(playerBirthday.birthday);
+        
+        // Check if today is their birthday (month and day match)
+        if (today.getMonth() === bday.getMonth() && today.getDate() === bday.getDate()) {
+          const badgeContainer = document.getElementById('birthday-badge-container');
+          badgeContainer.innerHTML = '<div class="birthday-badge-profile">🎂</div>';
+        }
+      }
+    } catch (err) {
+      console.error('Error checking birthday:', err);
+    }
+  }
 
   // --- Live Counter ---
   const startTimeInput = document.getElementById('session-start-time');
@@ -618,7 +665,7 @@
         const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
         if (attendeesRes.ok) {
           const attendees = await attendeesRes.json();
-          const isAttendee = attendees.some(a => a.roblox_id === playerRobloxId);
+          const isAttendee = attendees.some(a => a.roblox_id === parseInt(playerRobloxId));
           if (isAttendee && !role) {
             role = 'Attendee';
           }
@@ -684,7 +731,10 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', loadPlayerShifts);
+  document.addEventListener('DOMContentLoaded', () => {
+    checkBirthday();
+    loadPlayerShifts();
+  });
 </script>
 
 </body>
