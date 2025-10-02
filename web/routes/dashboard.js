@@ -53,7 +53,16 @@ router.get("/current-user", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
-    res.json(player);
+
+    // Debug log
+    console.log('Current user session data:', player);
+
+    res.json({
+      username: player.username,
+      roblox_id: player.roblox_id,
+      group_rank: player.group_rank,
+      rank: player.rank
+    });
   } catch (err) {
     console.error("Error fetching current user:", err);
     res.status(500).json({ error: "Failed to fetch current user" });
@@ -94,14 +103,20 @@ router.get("/player/:username", requireLogin, async (req, res) => {
 
 // ----------------------------
 // Top players (everyone can view)
+// ----------------------------
 router.get("/top-players", requireLogin, async (req, res) => {
   try {
     const players = await getAllPlayers();
     const withLiveData = await attachLiveSessionData(players);
     const sorted = withLiveData
-      .map(p => ({ ...p, live_total_minutes: (p.weekly_minutes || 0) + (p.ongoing_session_start_time ? ((Date.now() - new Date(p.ongoing_session_start_time).getTime()) / 1000 / 60) : 0) }))
+      .map(p => ({
+        ...p,
+        live_total_minutes: (p.weekly_minutes || 0) + 
+          (p.ongoing_session_start_time ? ((Date.now() - new Date(p.ongoing_session_start_time).getTime()) / 1000 / 60) : 0)
+      }))
       .sort((a, b) => b.live_total_minutes - a.live_total_minutes)
       .slice(0, 8);
+
     res.json(sorted);
   } catch (err) {
     console.error("Error fetching top players:", err);
@@ -111,6 +126,7 @@ router.get("/top-players", requireLogin, async (req, res) => {
 
 // ----------------------------
 // Full players list (leadership only)
+// ----------------------------
 router.get("/players", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
@@ -131,6 +147,7 @@ router.get("/players", requireLogin, async (req, res) => {
 
 // ----------------------------
 // Player search (leadership only)
+// ----------------------------
 router.get("/search", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
@@ -148,26 +165,6 @@ router.get("/search", requireLogin, async (req, res) => {
   } catch (err) {
     console.error("Search error:", err);
     res.status(500).json([]);
-  }
-});
-
-router.get("/current-user", requireLogin, async (req, res) => {
-  try {
-    const player = req.session?.player;
-    if (!player) return res.status(401).json({ error: 'Not authenticated' });
-    
-    // Log for debugging
-    console.log('Current user session data:', player);
-    
-    res.json({
-      username: player.username,
-      roblox_id: player.roblox_id,
-      group_rank: player.group_rank,
-      rank: player.rank // Include both in case one is used
-    });
-  } catch (err) {
-    console.error("Error fetching current user:", err);
-    res.status(500).json({ error: "Failed to fetch current user" });
   }
 });
 
