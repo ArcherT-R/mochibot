@@ -5,6 +5,45 @@ const bcrypt = require('bcryptjs');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 // -------------------------
+// Player Labels
+// -------------------------
+
+async function getPlayerLabels(roblox_id) {
+  const { data, error } = await supabase
+    .from('player_labels')
+    .select('label')
+    .eq('roblox_id', roblox_id);
+  if (error) throw error;
+  return (data || []).map(row => row.label);
+}
+
+async function addPlayerLabel(roblox_id, username, label) {
+  const { data, error } = await supabase
+    .from('player_labels')
+    .insert([{ roblox_id, username, label }])
+    .select();
+  if (error) throw error;
+  return data;
+}
+
+async function removePlayerLabel(roblox_id, label) {
+  const { error } = await supabase
+    .from('player_labels')
+    .delete()
+    .eq('roblox_id', roblox_id)
+    .eq('label', label);
+  if (error) throw error;
+  return { success: true };
+}
+
+async function getAllPlayerLabels() {
+  const { data, error } = await supabase
+    .from('player_labels')
+    .select('*');
+  if (error) throw error;
+  return data;
+}
+// -------------------------
 // Players
 // -------------------------
 
@@ -520,5 +559,9 @@ module.exports = {
   saveWeeklyHistory,
   resetWeeklyData,
   getLastResetDate,
-  getLastWeekHistory
+  getLastWeekHistory,
+  getPlayerLabels,
+  addPlayerLabel,
+  removePlayerLabel,
+  getAllPlayerLabels
 };
