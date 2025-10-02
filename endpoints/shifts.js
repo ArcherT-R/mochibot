@@ -13,7 +13,13 @@ const router = express.Router();
 // Cache for shifts data
 let shiftsCache = null;
 let lastFetch = 0;
-const CACHE_DURATION = 60000; // 1 minute in milliseconds
+const CACHE_DURATION = 60000; // 1 minute
+
+// Function to invalidate cache
+function invalidateShiftsCache() {
+  shiftsCache = null;
+  lastFetch = 0;
+}
 
 // Get all shifts with caching
 router.get('/', async (req, res) => {
@@ -37,12 +43,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Invalidate cache when shifts are modified
-function invalidateCache() {
-  shiftsCache = null;
-  lastFetch = 0;
-}
-
 // Get attendees
 router.get('/attendees', async (req, res) => {
   const shiftId = req.query.shiftId;
@@ -65,7 +65,7 @@ router.post('/add-attendee', async (req, res) => {
   
   try {
     const attendee = await addShiftAttendee(shiftId, robloxId, username);
-    invalidateCache(); // Invalidate cache when data changes
+    invalidateShiftsCache(); // Clear cache so changes show immediately
     res.json(attendee);
   } catch (err) {
     console.error('Error adding attendee:', err);
@@ -81,7 +81,7 @@ router.post('/remove-attendee', async (req, res) => {
   
   try {
     await removeShiftAttendee(shiftId, robloxId);
-    invalidateCache(); // Invalidate cache when data changes
+    invalidateShiftsCache(); // Clear cache so changes show immediately
     res.json({ success: true });
   } catch (err) {
     console.error('Error removing attendee:', err);
@@ -103,7 +103,7 @@ router.post('/add', async (req, res) => {
     }
     
     const shift = await addShift({ shift_time, host, cohost, overseer });
-    invalidateCache(); // Invalidate cache when data changes
+    invalidateShiftsCache(); // IMPORTANT: Clear cache when new shift is added
     res.json(shift);
   } catch (err) {
     console.error('Error adding shift:', err);
