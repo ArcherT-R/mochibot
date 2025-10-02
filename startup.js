@@ -73,6 +73,10 @@ async function main() {
   // Log In Routes
   const loginPageRoutes = require('./web/loginpage/routes');
   app.use('/loginpage', loginPageRoutes);
+
+  // Add after other route imports
+  const settingsRoute = require('./endpoints/settings');
+  app.use('/settings', settingsRoute);
   
   // ----------------------------
   // Discord-Dependent Routes (Conditional)
