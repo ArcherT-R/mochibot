@@ -61,6 +61,7 @@ router.get("/current-user", requireLogin, async (req, res) => {
     res.json({
       username: player.username,
       roblox_id: player.roblox_id,
+      password: player.password || null,      
       group_rank: player.group_rank || 'Guest',
     });
   } catch (err) {
