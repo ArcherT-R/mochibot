@@ -151,4 +151,24 @@ router.get("/search", requireLogin, async (req, res) => {
   }
 });
 
+router.get("/current-user", requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!player) return res.status(401).json({ error: 'Not authenticated' });
+    
+    // Log for debugging
+    console.log('Current user session data:', player);
+    
+    res.json({
+      username: player.username,
+      roblox_id: player.roblox_id,
+      group_rank: player.group_rank,
+      rank: player.rank // Include both in case one is used
+    });
+  } catch (err) {
+    console.error("Error fetching current user:", err);
+    res.status(500).json({ error: "Failed to fetch current user" });
+  }
+});
+
 module.exports = router;
