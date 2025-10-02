@@ -203,15 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-// ------------------- Load Current User -------------------
-  async function loadCurrentUser() {
-    const res = await fetch('/dashboard/current-user');
-    if (res.ok) {
-      currentUser = await res.json();
-      renderMyAccount();
-    }
-  }
-
   // ------------------- Render Account Box -------------------
   function renderMyAccount() {
     if (currentUser) {
