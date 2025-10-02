@@ -36,8 +36,6 @@
   .suggestion-item:hover { background:#f0f8ff; }
   .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
   .no-data { text-align:center; color:#888; padding:20px; font-style:italic; }
-
-  /* Top Players */
   .top-players-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; justify-items:center; }
   .player-card { background:#f9f9f9; text-align:center; padding:15px; border-radius:12px; font-weight:600; cursor:pointer; border:1px solid #eee; transition:transform 0.2s, box-shadow 0.2s; width:100%; max-width:220px; }
   .player-card:hover { transform:translateY(-4px); box-shadow:0 8px 20px rgba(0,0,0,0.1); }
@@ -46,8 +44,6 @@
   .player-card .birthday-badge { position:absolute; bottom:0; right:0; background:white; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 2px 6px rgba(0,0,0,0.2); }
   .player-card .time { font-size:0.9em; font-weight:500; color:#555; margin-top:4px; }
   .player-card .live-status { color:#28a745; font-weight:700; font-size:0.8em; display:block; margin-bottom:4px; }
-
-  /* Player List Table */
   .player-table { width:100%; border-collapse:collapse; }
   .player-table th { background:linear-gradient(135deg,#42b4ff 0%,#1a85e6 100%); color:white; padding:12px; text-align:left; font-weight:600; text-transform:uppercase; font-size:13px; letter-spacing:0.5px; }
   .player-table td { padding:12px; border-bottom:1px solid #e0e6f0; }
@@ -56,23 +52,9 @@
   .player-table .player-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; }
   .player-table .player-name { font-weight:600; color:#333; }
   .player-table .player-rank { color:#666; font-size:13px; }
-
-  /* Shifts - Compact Cards */
   .shifts-list { display:flex; flex-direction:column; gap:16px; }
-  .shift-card { 
-    background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%);
-    padding:18px 20px;
-    border-radius:10px;
-    border-left:4px solid #42b4ff;
-    box-shadow:0 2px 8px rgba(0,0,0,0.05);
-    cursor:pointer;
-    transition:all 0.3s;
-  }
-  .shift-card:hover { 
-    transform:translateX(5px); 
-    box-shadow:0 4px 12px rgba(0,0,0,0.12);
-  }
-  
+  .shift-card { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:all 0.3s; }
+  .shift-card:hover { transform:translateX(5px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
   .shift-header { display:flex; justify-content:space-between; align-items:center; }
   .shift-left { display:flex; align-items:center; gap:12px; flex:1; }
   .shift-icon { font-size:28px; }
@@ -80,164 +62,35 @@
   .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
   .shift-host-preview { font-size:14px; color:#555; }
   .shift-arrow { font-size:20px; color:#42b4ff; }
-
-  /* Modal */
-  .modal {
-    display:none;
-    position:fixed;
-    z-index:1000;
-    left:0;
-    top:0;
-    width:100%;
-    height:100%;
-    background-color:rgba(0,0,0,0.6);
-    animation:fadeIn 0.3s;
-  }
+  .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); animation:fadeIn 0.3s; }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-  
-  .modal-content {
-    background-color:white;
-    margin:5% auto;
-    padding:0;
-    border-radius:12px;
-    width:90%;
-    max-width:600px;
-    box-shadow:0 10px 40px rgba(0,0,0,0.3);
-    animation:slideIn 0.3s;
-    max-height:85vh;
-    overflow-y:auto;
-  }
+  .modal-content { background-color:white; margin:5% auto; padding:0; border-radius:12px; width:90%; max-width:600px; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation:slideIn 0.3s; max-height:85vh; overflow-y:auto; }
   @keyframes slideIn { from{transform:translateY(-50px);opacity:0} to{transform:translateY(0);opacity:1} }
-  
-  .modal-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:25px 30px;
-    border-bottom:2px solid #42b4ff;
-    background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%);
-  }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; padding:25px 30px; border-bottom:2px solid #42b4ff; background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); }
   .modal-title { font-size:24px; font-weight:700; color:#1a85e6; }
-  .close {
-    color:#aaa;
-    font-size:32px;
-    font-weight:bold;
-    cursor:pointer;
-    transition:color 0.2s;
-    line-height:1;
-  }
+  .close { color:#aaa; font-size:32px; font-weight:bold; cursor:pointer; transition:color 0.2s; line-height:1; }
   .close:hover { color:#333; }
-  
   .modal-body { padding:25px 30px; }
-  
   .shift-roles-section { margin-bottom:25px; }
-  .shift-roles-section h4 { 
-    font-size:16px; 
-    font-weight:700; 
-    color:#333; 
-    margin:0 0 12px 0;
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-  }
-  .role-item {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 14px;
-    background:#f9f9f9;
-    border-radius:8px;
-    border:1px solid #e0e6f0;
-    margin-bottom:8px;
-  }
+  .shift-roles-section h4 { font-size:16px; font-weight:700; color:#333; margin:0 0 12px 0; text-transform:uppercase; letter-spacing:0.5px; }
+  .role-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f9f9f9; border-radius:8px; border:1px solid #e0e6f0; margin-bottom:8px; }
   .role-label { font-weight:600; color:#555; min-width:90px; }
   .role-name { color:#333; }
-  
-  .attendees-section h4 {
-    font-size:16px;
-    font-weight:700;
-    color:#333;
-    margin:0 0 12px 0;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-  }
-  .attendee-count {
-    background:#42b4ff;
-    color:white;
-    padding:2px 8px;
-    border-radius:12px;
-    font-size:12px;
-    font-weight:700;
-  }
+  .attendees-section h4 { font-size:16px; font-weight:700; color:#333; margin:0 0 12px 0; display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.5px; }
+  .attendee-count { background:#42b4ff; color:white; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700; }
   .attendees-container { display:flex; flex-direction:column; gap:8px; }
-  .attendee-box {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:10px 14px;
-    border-radius:8px;
-    background:#fff;
-    border:1px solid #e0e6f0;
-    transition:all 0.2s;
-  }
+  .attendee-box { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:8px; background:#fff; border:1px solid #e0e6f0; transition:all 0.2s; }
   .attendee-box:hover { background:#f9f9f9; border-color:#42b4ff; }
   .attendee-box span { font-weight:500; color:#333; }
-  .attendee-box button {
-    background:#ff4444;
-    border:none;
-    border-radius:6px;
-    color:white;
-    font-weight:700;
-    padding:4px 10px;
-    cursor:pointer;
-    transition:background 0.2s;
-  }
+  .attendee-box button { background:#ff4444; border:none; border-radius:6px; color:white; font-weight:700; padding:4px 10px; cursor:pointer; transition:background 0.2s; }
   .attendee-box button:hover { background:#cc0000; }
-  
-  .add-attendee-box {
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    padding:12px;
-    border-radius:8px;
-    background:#e6f3ff;
-    cursor:pointer;
-    font-weight:600;
-    color:#1a85e6;
-    border:2px dashed #42b4ff;
-    transition:all 0.2s;
-    margin-top:8px;
-  }
+  .add-attendee-box { display:flex; justify-content:center; align-items:center; padding:12px; border-radius:8px; background:#e6f3ff; cursor:pointer; font-weight:600; color:#1a85e6; border:2px dashed #42b4ff; transition:all 0.2s; margin-top:8px; }
   .add-attendee-box:hover { background:#d0e4ff; border-color:#1a85e6; }
-
-  .settings-btn {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:15px 20px;
-    background:white;
-    border:2px solid #42b4ff;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:16px;
-    font-weight:600;
-    color:#1a85e6;
-    transition:all 0.3s;
-    text-align:left;
-  }
-  .settings-btn:hover {
-    background:#42b4ff;
-    color:white;
-    transform:translateY(-2px);
-    box-shadow:0 4px 12px rgba(66,180,255,0.3);
-  }
+  .settings-btn { display:flex; align-items:center; gap:12px; padding:15px 20px; background:white; border:2px solid #42b4ff; border-radius:10px; cursor:pointer; font-size:16px; font-weight:600; color:#1a85e6; transition:all 0.3s; text-align:left; }
+  .settings-btn:hover { background:#42b4ff; color:white; transform:translateY(-2px); box-shadow:0 4px 12px rgba(66,180,255,0.3); }
   .settings-btn span:first-child { font-size:24px; }
-
   .tab-content { display:none; }
   .tab-content.active { display:block; }
-
   @media(max-width:600px){
     header { font-size:36px; padding:20px; }
     h2 { text-align:center; }
@@ -254,7 +107,6 @@
 </head>
 <body>
 <header>Mochi Bar Dashboard</header>
-
 <nav class="nav-tabs">
   <div class="nav-buttons">
     <button class="tab-button active" data-tab="home"><span class="tab-icon">🏠</span>Home</button>
@@ -268,115 +120,38 @@
     <div id="suggestions" class="suggestions"></div>
   </div>
 </nav>
-
 <div class="container">
-  <!-- HOME TAB -->
   <div id="home" class="tab-content active">
-    <section class="content-section">
-      <h2>Top Active This Week</h2>
-      <div id="topPlayersGrid" class="top-players-grid"></div>
-    </section>
-    
-    <section class="content-section">
-      <h2>Top 3 Shift Leaders</h2>
-      <div id="topShiftLeaders" class="top-players-grid"></div>
-    </section>
-
-    <section class="content-section">
-      <h2>Upcoming Birthdays</h2>
-      <div id="upcomingBirthdays" class="top-players-grid"></div>
-    </section>
+    <section class="content-section"><h2>Top Active This Week</h2><div id="topPlayersGrid" class="top-players-grid"></div></section>
+    <section class="content-section"><h2>Top 3 Shift Leaders</h2><div id="topShiftLeaders" class="top-players-grid"></div></section>
+    <section class="content-section"><h2>Upcoming Birthdays</h2><div id="upcomingBirthdays" class="top-players-grid"></div></section>
   </div>
-
-  <!-- PLAYER LIST TAB -->
   <div id="playerlist" class="tab-content">
-    <section class="content-section">
-      <h2>Player List</h2>
-      <table class="player-table">
-        <thead>
-          <tr>
-            <th>Player</th>
-            <th>Rank</th>
-            <th>Weekly Minutes</th>
-            <th>Roblox ID</th>
-          </tr>
-        </thead>
-        <tbody id="fullPlayerList"></tbody>
-      </table>
-    </section>
+    <section class="content-section"><h2>Player List</h2><table class="player-table"><thead><tr><th>Player</th><th>Rank</th><th>Weekly Minutes</th><th>Roblox ID</th></tr></thead><tbody id="fullPlayerList"></tbody></table></section>
   </div>
-
-  <!-- SHIFTS TAB -->
   <div id="shifts" class="tab-content">
-    <section class="content-section">
-      <h2>Weekly Shifts</h2>
-      <div id="shiftsList" class="shifts-list"></div>
-    </section>
+    <section class="content-section"><h2>Weekly Shifts</h2><div id="shiftsList" class="shifts-list"></div></section>
   </div>
-
-  <!-- MY ACCOUNT TAB -->
   <div id="myaccount" class="tab-content">
-    <section class="content-section">
-      <h2>My Account</h2>
-      <% if (player) { %>
-        <p><strong>Username:</strong> <%= player.username %></p>
-        <p><strong>Roblox ID:</strong> <%= player.roblox_id %></p>
-        <p><strong>Group Rank:</strong> <%= player.group_rank %></p>
-        <img src="<%= player.avatar_url || 'https://placehold.co/100x100/e0e6f0/5f6c7b?text=U' %>" alt="Avatar" style="width:100px; border-radius:50%;"/>
-        <p><strong>Weekly Minutes:</strong> <%= player.weekly_minutes || 0 %></p>
-      <% } else { %>
-        <p>Please log in to view your account.</p>
-      <% } %>
-    </section>
+    <section class="content-section"><h2>My Account</h2><div id="accountInfo"></div></section>
   </div>
-
-  <!-- SETTINGS TAB -->
   <div id="settings" class="tab-content">
-    <section class="content-section">
-      <h2>Settings</h2>
-      
-      <div style="display:flex; flex-direction:column; gap:15px; max-width:400px;">
-        <button class="settings-btn" onclick="openBirthdaysManager()">
-          <span>🎂</span>
-          <span>Manage Birthdays</span>
-        </button>
-        
-        <button class="settings-btn" onclick="openWeeklyResetStatus()">
-          <span>📊</span>
-          <span>Check Weekly Reset Status</span>
-        </button>
-        
-        <button class="settings-btn" onclick="openLastWeekHistory()">
-          <span>📅</span>
-          <span>View Last Week's Data</span>
-        </button>
-      </div>
-    </section>
+    <section class="content-section"><h2>Settings</h2><div style="display:flex; flex-direction:column; gap:15px; max-width:400px;">
+      <button class="settings-btn" onclick="openBirthdaysManager()"><span>🎂</span><span>Manage Birthdays</span></button>
+      <button class="settings-btn" onclick="openWeeklyResetStatus()"><span>📊</span><span>Check Weekly Reset Status</span></button>
+      <button class="settings-btn" onclick="openLastWeekHistory()"><span>📅</span><span>View Last Week's Data</span></button>
+    </div></section>
   </div>
 </div>
-
-<!-- Shift Modal -->
 <div id="shiftModal" class="modal">
   <div class="modal-content">
-    <div class="modal-header">
-      <span class="modal-title" id="modalShiftTitle"></span>
-      <span class="close" onclick="closeShiftModal()">&times;</span>
-    </div>
+    <div class="modal-header"><span class="modal-title" id="modalShiftTitle"></span><span class="close" onclick="closeShiftModal()">&times;</span></div>
     <div class="modal-body">
-      <div class="shift-roles-section">
-        <h4>Shift Roles</h4>
-        <div id="modalRoles"></div>
-      </div>
-      
-      <div class="attendees-section">
-        <h4>Attendees <span class="attendee-count" id="modalAttendeeCount">0</span></h4>
-        <div class="attendees-container" id="modalAttendees"></div>
-        <div class="add-attendee-box" id="modalAddAttendee">+ Add attendee</div>
-      </div>
+      <div class="shift-roles-section"><h4>Shift Roles</h4><div id="modalRoles"></div></div>
+      <div class="attendees-section"><h4>Attendees <span class="attendee-count" id="modalAttendeeCount">0</span></h4><div class="attendees-container" id="modalAttendees"></div><div class="add-attendee-box" id="modalAddAttendee">+ Add attendee</div></div>
     </div>
   </div>
 </div>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('playerSearch');
@@ -390,51 +165,77 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentUser = null;
   let userGroupRank = 0;
 
-  // ------------------- Get Current User -------------------
-   async function loadCurrentUser() {
-   try {
-     const res = await fetch('/dashboard/current-user');
-     if (res.ok) {
-       currentUser = await res.json();
-       // Use group_rank instead of group_rank_number
-       userGroupRank = typeof currentUser.group_rank === 'string' 
-         ? parseInt(currentUser.group_rank) 
-         : currentUser.group_rank || 0;
-
-       console.log('Current user rank:', userGroupRank);
-       updateTabAccess();
-     }
-   } catch (err) {
-     console.error('Failed to load current user:', err);
-   }
- }
- function updateTabAccess() {
-  const playerlistTab = document.querySelector('[data-tab="playerlist"]');
-  const settingsTab = document.querySelector('[data-tab="settings"]');
-
-  const rank = Number(userGroupRank) || 0; // ensure it's a number
-
-  // Player List - requires rank 230+
-  if (rank < 230) {
-    playerlistTab.style.opacity = '0.5';
-    playerlistTab.style.cursor = 'not-allowed';
-    playerlistTab.title = 'Requires rank 230+';
+  async function loadCurrentUser() {
+    try {
+      const res = await fetch('/dashboard/current-user');
+      if (res.ok) {
+        currentUser = await res.json();
+        userGroupRank = parseInt(currentUser.group_rank) || parseInt(currentUser.group_rank_number) || 0;
+        console.log('Current user:', currentUser.username, 'Rank:', userGroupRank);
+        updateTabAccess();
+        renderMyAccount();
+      }
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+      userGroupRank = 0;
+    }
   }
 
-  // Settings - requires rank 253+ (Vice Chairman+)
-  if (rank < 253) {
-    settingsTab.style.opacity = '0.5';
-    settingsTab.style.cursor = 'not-allowed';
-    settingsTab.title = 'Requires Vice Chairman+ (253+)';
+  function renderMyAccount() {
+    const accountInfo = document.getElementById('accountInfo');
+    if (currentUser) {
+      accountInfo.innerHTML = `
+        <p><strong>Username:</strong> ${currentUser.username}</p>
+        <p><strong>Roblox ID:</strong> ${currentUser.roblox_id}</p>
+        <p><strong>Group Rank:</strong> ${currentUser.group_rank}</p>
+        <img src="${currentUser.avatar_url || 'https://placehold.co/100x100/e0e6f0/5f6c7b?text=U'}" 
+             alt="Avatar" style="width:100px; border-radius:50%;"
+             onerror="this.src='https://placehold.co/100x100/e0e6f0/5f6c7b?text=U';"/>
+        <p><strong>Weekly Minutes:</strong> ${currentUser.weekly_minutes || 0}</p>
+      `;
+    } else {
+      accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
+    }
   }
-}
 
-  // ------------------- Tabs -------------------
+  function updateTabAccess() {
+    const playerlistTab = document.querySelector('[data-tab="playerlist"]');
+    const settingsTab = document.querySelector('[data-tab="settings"]');
+
+    if (userGroupRank < 230) {
+      playerlistTab.style.opacity = '0.5';
+      playerlistTab.style.cursor = 'not-allowed';
+      playerlistTab.title = 'Requires rank 230+';
+      playerlistTab.dataset.disabled = 'true';
+    } else {
+      playerlistTab.style.opacity = '1';
+      playerlistTab.style.cursor = 'pointer';
+      playerlistTab.title = '';
+      playerlistTab.dataset.disabled = 'false';
+    }
+
+    if (userGroupRank < 253) {
+      settingsTab.style.opacity = '0.5';
+      settingsTab.style.cursor = 'not-allowed';
+      settingsTab.title = 'Requires Vice Chairman+ (253+)';
+      settingsTab.dataset.disabled = 'true';
+    } else {
+      settingsTab.style.opacity = '1';
+      settingsTab.style.cursor = 'pointer';
+      settingsTab.title = '';
+      settingsTab.dataset.disabled = 'false';
+    }
+  }
+
   document.querySelectorAll('.tab-button').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      if (btn.dataset.disabled === 'true') {
+        e.preventDefault();
+        return;
+      }
+
       const tab = btn.dataset.tab;
 
-      // Check access permissions
       if (tab === 'playerlist' && userGroupRank < 230) {
         alert('Access Denied: Player List requires rank 230+');
         return;
@@ -454,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadCurrentUser();
 
-  // ------------------- Player Search -------------------
   input.addEventListener('input', async () => {
     const q = input.value.trim();
     if (!q) { suggestionsBox.innerHTML = ''; return; }
@@ -474,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
   });
 
-  // ------------------- Top Players -------------------
   let topPlayersData = [];
 
   function calculateLiveMinutes(player){
@@ -519,7 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTopPlayers();
   setInterval(renderTopPlayers, 5000);
 
-  // ------------------- Top Shift Leaders -------------------
   async function renderTopShiftLeaders(){
     try{
       const shiftsRes = await fetch('/shifts');
@@ -536,34 +334,28 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const allAttendeesArrays = await Promise.all(attendeesPromises);
       
-      // Count shift participation per username
       const participationCount = {};
       
       shifts.forEach((shift, index) => {
         const attendees = allAttendeesArrays[index];
         
-        // Count host
         if (shift.host && shift.host !== 'TBD') {
           participationCount[shift.host] = (participationCount[shift.host] || 0) + 1;
         }
         
-        // Count co-host
         if (shift.cohost) {
           participationCount[shift.cohost] = (participationCount[shift.cohost] || 0) + 1;
         }
         
-        // Count overseer
         if (shift.overseer) {
           participationCount[shift.overseer] = (participationCount[shift.overseer] || 0) + 1;
         }
         
-        // Count attendees
         attendees.forEach(attendee => {
           participationCount[attendee.username] = (participationCount[attendee.username] || 0) + 1;
         });
       });
       
-      // Convert to array and sort
       const sortedLeaders = Object.entries(participationCount)
         .map(([username, count]) => ({ username, count }))
         .sort((a, b) => b.count - a.count)
@@ -576,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      // Fetch player details for avatars
       const playersRes = await fetch('/dashboard/players');
       const allPlayers = playersRes.ok ? await playersRes.json() : [];
       
@@ -600,7 +391,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTopShiftLeaders();
   setInterval(renderTopShiftLeaders, 60000);
 
-  // ------------------- Full Player List -------------------
   async function renderFullPlayers(){
     try {
       const res = await fetch('/dashboard/players');
@@ -632,7 +422,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   renderFullPlayers();
 
-  // ------------------- Shifts -------------------
   function formatShiftTime(ts){
     const d = new Date(ts);
     const now = new Date();
@@ -652,13 +441,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('modalShiftTitle').textContent = `${date} at ${time}`;
     
-    // Render roles
     let rolesHTML = `<div class="role-item"><span class="role-label">📋 Host:</span><span class="role-name">${shift.host || 'TBD'}</span></div>`;
     if(shift.cohost) rolesHTML += `<div class="role-item"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${shift.cohost}</span></div>`;
     if(shift.overseer) rolesHTML += `<div class="role-item"><span class="role-label">👁️ Overseer:</span><span class="role-name">${shift.overseer}</span></div>`;
     document.getElementById('modalRoles').innerHTML = rolesHTML;
     
-    // Load attendees
     await renderModalAttendees();
     
     shiftModal.style.display = 'block';
@@ -674,7 +461,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
       const attendees = res.ok ? await res.json() : [];
       
-      // Get shift details to check if user is host/cohost/overseer
       const shiftRes = await fetch('/shifts');
       const shifts = shiftRes.ok ? await shiftRes.json() : [];
       const currentShift = shifts.find(s => s.id === currentShiftId);
@@ -696,15 +482,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (canEdit) {
           box.innerHTML = `<span>${a.username}</span><button data-robloxid="${a.roblox_id}">×</button>`;
-          box.querySelector('button').addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await fetch('/shifts/remove-attendee', {
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({shiftId: currentShiftId, robloxId: a.roblox_id})
+          const removeBtn = box.querySelector('button');
+          if (removeBtn) {
+            removeBtn.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              await fetch('/shifts/remove-attendee', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({shiftId: currentShiftId, robloxId: a.roblox_id})
+              });
+              renderModalAttendees();
             });
-            renderModalAttendees();
-          });
+          }
         } else {
           box.innerHTML = `<span>${a.username}</span>`;
         }
@@ -721,8 +510,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const res = await fetch('/dashboard/players');
           const allPlayers = res.ok ? await res.json() : [];
           
-          // Filter to rank 199+ only
-          const eligiblePlayers = allPlayers.filter(p => (p.group_rank_number || 0) >= 199);
+          const eligiblePlayers = allPlayers.filter(p => {
+            const rank = parseInt(p.group_rank) || parseInt(p.group_rank_number) || 0;
+            return rank >= 230;
+          });
           
           const select = document.createElement('select');
           select.style.width = '100%';
@@ -730,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
           select.style.fontSize = '14px';
           select.style.border = '1px solid #42b4ff';
           select.style.borderRadius = '6px';
-          select.innerHTML = '<option value="">Select player (Rank 199+)...</option>' + eligiblePlayers.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username}</option>`).join('');
+          select.innerHTML = '<option value="">Select player (Mochi Director+)...</option>' + eligiblePlayers.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username} - ${p.group_rank}</option>`).join('');
 
           addBox.style.background = '#fff';
           addBox.style.border = '2px solid #42b4ff';
@@ -784,7 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const now = Date.now();
 
-      // Show ALL shifts (past + upcoming)
       const sortedShifts = shifts.sort((a,b)=> {
         const timeA = a.shift_time || a.time;
         const timeB = b.shift_time || b.time;
@@ -834,7 +624,6 @@ document.addEventListener('DOMContentLoaded', () => {
   loadShifts();
   setInterval(loadShifts, 60000);
 
-  // ------------------- Upcoming Birthdays -------------------
   async function renderUpcomingBirthdays() {
     try {
       const res = await fetch('/settings/birthdays');
@@ -845,15 +634,11 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const birthdays = await res.json();
       const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentDay = today.getDate();
       
-      // Find birthdays coming up in next 30 days
       const upcoming = birthdays.map(b => {
         const bday = new Date(b.birthday);
         const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
         
-        // If birthday already passed this year, use next year
         if (bdayThisYear < today) {
           bdayThisYear.setFullYear(today.getFullYear() + 1);
         }
@@ -873,7 +658,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      // Get player details
       const playersRes = await fetch('/dashboard/players');
       const allPlayers = playersRes.ok ? await playersRes.json() : [];
       
@@ -899,10 +683,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   renderUpcomingBirthdays();
-  setInterval(renderUpcomingBirthdays, 300000); // Refresh every 5 minutes
+  setInterval(renderUpcomingBirthdays, 300000);
 
-  // ------------------- Settings Functions -------------------
   window.openBirthdaysManager = async function() {
+    if (userGroupRank < 253) {
+      alert('Access Denied: Birthday management requires Vice Chairman+ (253+)');
+      return;
+    }
+
     const modal = document.getElementById('shiftModal');
     const modalTitle = document.getElementById('modalShiftTitle');
     const modalBody = document.querySelector('.modal-body');
@@ -921,7 +709,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     modal.style.display = 'block';
     
-    // Load existing birthdays
     const res = await fetch('/settings/birthdays');
     const birthdays = res.ok ? await res.json() : [];
     
@@ -940,7 +727,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `).join('');
     }
     
-    // Search functionality
     const searchInput = document.getElementById('bdaySearch');
     const searchResults = document.getElementById('bdaySearchResults');
     
@@ -962,6 +748,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.setBirthdayFor = async function(robloxId, username) {
+    if (userGroupRank < 253) {
+      alert('Access Denied: Birthday management requires Vice Chairman+ (253+)');
+      return;
+    }
+
     const birthday = prompt(`Set birthday for ${username} (YYYY-MM-DD):`);
     if (!birthday) return;
     
@@ -980,8 +771,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (res.ok) {
         alert('Birthday set successfully!');
-        openBirthdaysManager(); // Refresh
-        renderUpcomingBirthdays(); // Refresh home page
+        openBirthdaysManager();
+        renderUpcomingBirthdays();
       } else {
         alert('Failed to set birthday');
       }
@@ -991,6 +782,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.deleteBirthday = async function(robloxId) {
+    if (userGroupRank < 253) {
+      alert('Access Denied: Birthday management requires Vice Chairman+ (253+)');
+      return;
+    }
+
     if (!confirm('Delete this birthday?')) return;
     
     try {
@@ -1005,6 +801,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.openWeeklyResetStatus = async function() {
+    if (userGroupRank < 253) {
+      alert('Access Denied: Weekly reset requires Vice Chairman+ (253+)');
+      return;
+    }
+
     const modal = document.getElementById('shiftModal');
     const modalTitle = document.getElementById('modalShiftTitle');
     const modalBody = document.querySelector('.modal-body');
@@ -1037,6 +838,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.manualReset = async function() {
+    if (userGroupRank < 253) {
+      alert('Access Denied: Manual reset requires Vice Chairman+ (253+)');
+      return;
+    }
+
     if (!confirm('Are you sure you want to manually reset weekly data? This will clear all player weekly minutes and save current data to history.')) return;
     
     try {
@@ -1055,6 +861,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.openLastWeekHistory = async function() {
+    if (userGroupRank < 253) {
+      alert('Access Denied: History requires Vice Chairman+ (253+)');
+      return;
+    }
+
     const modal = document.getElementById('shiftModal');
     const modalTitle = document.getElementById('modalShiftTitle');
     const modalBody = document.querySelector('.modal-body');
