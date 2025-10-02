@@ -153,6 +153,8 @@
     </div>
   </div>
 </div>
+
+<!-- ================== SCRIPT ================== -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('playerSearch');
@@ -161,31 +163,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const topPlayersGrid = document.getElementById('topPlayersGrid');
   const fullPlayerList = document.getElementById('fullPlayerList');
   const shiftModal = document.getElementById('shiftModal');
+  const accountInfo = document.getElementById('accountInfo');
 
-  let currentShiftId = null;
+  // Create settings panel dynamically
+  const settingsPanel = document.createElement('div');
+  settingsPanel.id = 'settingsPanel';
+  settingsPanel.style.display = 'none';
+  settingsPanel.style.position = 'fixed';
+  settingsPanel.style.top = '50%';
+  settingsPanel.style.left = '50%';
+  settingsPanel.style.transform = 'translate(-50%, -50%)';
+  settingsPanel.style.background = '#fff';
+  settingsPanel.style.borderRadius = '12px';
+  settingsPanel.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+  settingsPanel.style.padding = '20px';
+  settingsPanel.style.zIndex = '10000';
+  document.body.appendChild(settingsPanel);
+
   let currentUser = null;
   let userGroupRank = '';
-
-  const LEADERSHIP_RANKS = [
-    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
-  ];
-  const CORPORATE_RANKS = [
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
-  ];
-  const CHIEF_RANKS = [
-    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Automation'
-  ];
-  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
-  const DIRECTOR_PLUS = [
-    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
-    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
-    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
-    'Mochi Director', 'Mochi Assistant Director', 'Mochi Senior Moderator'
-  ];
 
   async function loadCurrentUser() {
     try {
@@ -194,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUser = await res.json();
         userGroupRank = currentUser.group_rank || '';
         console.log('Current user:', currentUser.username, 'Rank:', userGroupRank);
-        updateTabAccess();
         renderMyAccount();
       }
     } catch (err) {
@@ -203,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ------------------- Render Account Box -------------------
   function renderMyAccount() {
     if (currentUser) {
       accountInfo.innerHTML = `
@@ -211,14 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <p><a href="/dashboard/player/${currentUser.username}" class="profile-link">View Profile</a></p>
         <button id="userSettingsBtn" class="btn">User Settings</button>
       `;
-
       document.getElementById('userSettingsBtn').addEventListener('click', toggleUserSettingsPanel);
     } else {
       accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
     }
   }
 
-  // ------------------- Settings Panel -------------------
   function toggleUserSettingsPanel() {
     if (settingsPanel.style.display === 'none') {
       renderSettingsPanel();
@@ -235,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="settings-tab" data-tab="security">Security</button>
       </div>
       <div class="settings-content" id="settingsContent"></div>
+      <button onclick="document.getElementById('settingsPanel').style.display='none'" style="margin-top:10px;">Close</button>
     `;
 
     const tabs = settingsPanel.querySelectorAll('.settings-tab');
@@ -253,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAccountDetails(content);
   }
 
-  // ------------------- Account Details -------------------
   function renderAccountDetails(container) {
     container.innerHTML = `
       <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
@@ -269,30 +261,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const showPassword = () => passwordField.textContent = currentUser.password;
     const hidePassword = () => passwordField.textContent = maskPassword(currentUser.password);
 
-    // Desktop: hold mouse
     revealBtn.addEventListener('mousedown', showPassword);
     revealBtn.addEventListener('mouseup', hidePassword);
     revealBtn.addEventListener('mouseleave', hidePassword);
-
-    // Mobile: touch and hold
-    revealBtn.addEventListener('touchstart', e => {
-      e.preventDefault();
-      showPassword();
-    });
+    revealBtn.addEventListener('touchstart', e => { e.preventDefault(); showPassword(); });
     revealBtn.addEventListener('touchend', hidePassword);
     revealBtn.addEventListener('touchcancel', hidePassword);
+  }
+
+  function renderSecurity(container) {
+    container.innerHTML = `<p>⚠️ Security options coming soon.</p>`;
   }
 
   function maskPassword(pwd) {
     if (!pwd) return '';
     return '•'.repeat(pwd.length);
-  }
-
-  // ------------------- Security -------------------
-  function renderSecurity(container) {
-    container.innerHTML = `
-      <p>⚠️ Security options coming soon.</p>
-    `;
   }
 
   loadCurrentUser();
