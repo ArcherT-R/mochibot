@@ -9,7 +9,9 @@ const {
   searchPlayersByUsername
 } = require("../../endpoints/database");
 
-// Leadership ranks
+// ----------------------------
+// Leadership ranks (word-based)
+// ----------------------------
 const LEADERSHIP_RANKS = [
   'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
   'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
@@ -59,7 +61,7 @@ router.get("/current-user", requireLogin, async (req, res) => {
     res.json({
       username: player.username,
       roblox_id: player.roblox_id,
-      group_rank: player.group_rank || 'Guest', // fallback
+      group_rank: player.group_rank || 'Guest',
     });
   } catch (err) {
     console.error("Error fetching current user:", err);
@@ -78,8 +80,8 @@ router.get("/player/:username", requireLogin, async (req, res) => {
     const player = await getPlayerByUsername(username);
     if (!player) return res.status(404).send("Player not found");
 
-    // Non-leadership users can only view their own page
-    const isLeader = LEADERSHIP_RANKS.includes(currentPlayer.group_rank || currentPlayer.rank);
+    // Leadership check
+    const isLeader = LEADERSHIP_RANKS.includes(currentPlayer.group_rank);
     if (!isLeader && currentPlayer.username !== username) {
       return res.status(403).send("Access denied");
     }
@@ -100,7 +102,7 @@ router.get("/player/:username", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Top players (everyone can view)
+// Top players (everyone)
 // ----------------------------
 router.get("/top-players", requireLogin, async (req, res) => {
   try {
@@ -130,8 +132,7 @@ router.get("/players", requireLogin, async (req, res) => {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
 
-    const userRank = player.group_rank || player.rank;
-    if (!LEADERSHIP_RANKS.includes(userRank)) {
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
       return res.status(403).json({ error: 'Access denied: Leadership rank required' });
     }
 
@@ -151,8 +152,7 @@ router.get("/search", requireLogin, async (req, res) => {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
 
-    const userRank = player.group_rank || player.rank;
-    if (!LEADERSHIP_RANKS.includes(userRank)) {
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
       return res.status(403).json({ error: 'Access denied: Leadership rank required' });
     }
 
