@@ -205,12 +205,12 @@ document.addEventListener('DOMContentLoaded', () => {
 function renderMyAccount() {
   const accountInfo = document.getElementById('accountInfo');
   if (currentUser) {
-    const robloxProfileUrl = `https://www.roblox.com/users/${currentUser.roblox_id}/profile`;
+    const profileUrl = `/dashboard/player/${currentUser.username}`;
 
     accountInfo.innerHTML = `
       <p><strong>Username:</strong> ${currentUser.username}</p>
       <p><a href="/settings" style="text-decoration:underline; color:#007bff;">User Settings</a></p>
-      <p><a href="${robloxProfileUrl}" target="_blank" style="text-decoration:underline; color:#007bff;">View Roblox Profile</a></p>
+      <p><a href="${profileUrl}" style="text-decoration:underline; color:#007bff;">View Profile</a></p>
     `;
   } else {
     accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
