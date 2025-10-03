@@ -184,11 +184,11 @@
 <header>Mochi Bar Dashboard</header>
 <nav class="nav-tabs">
   <div class="nav-buttons">
-    <button class="tab-button active" data-tab="home"><span class="tab-icon">🏠</span>Home</button>
-    <button class="tab-button" data-tab="playerlist"><span class="tab-icon">👥</span>Player List</button>
-    <button class="tab-button" data-tab="shifts"><span class="tab-icon">📅</span>Shifts</button>
-    <button class="tab-button" data-tab="myaccount"><span class="tab-icon">👤</span>My Account</button>
-    <button class="tab-button" data-tab="settings"><span class="tab-icon">⚙️</span>Settings</button>
+    <button class="tab-button active" data-tab="home"><span class="tab-icon">👋</span>Home</button>
+    <button class="tab-button" data-tab="playerlist"><span class="tab-icon">⭐️</span>Player List</button>
+    <button class="tab-button" data-tab="shifts"><span class="tab-icon">🗓️</span>Shifts</button>
+    <button class="tab-button" data-tab="myaccount"><span class="tab-icon">💫</span>My Account</button>
+    <button class="tab-button" data-tab="settings"><span class="tab-icon">🔗</span>Settings</button>
   </div>
   <div class="search-wrapper">
     <input type="text" id="playerSearch" placeholder="Search Roblox username...">
@@ -199,7 +199,7 @@
   <div id="home" class="tab-content active">
     <!-- Important Section -->
     <div class="home-section">
-      <h2 class="home-section-title"><span class="home-section-title-icon">📌</span>Important</h2>
+      <h2 class="home-section-title"><span class="home-section-title-icon">❗️</span>Important</h2>
       <div class="home-grid">
         <section class="content-section">
           <h2>Announcements</h2>
@@ -212,7 +212,7 @@
           </div>
         </section>
         <section class="content-section">
-          <h2>Weekly Requirements & Tags</h2>
+          <h2>✨ Weekly Requirements</h2>
           <div id="userRequirements" class="user-requirements" style="display:none;">
             <div class="user-requirements-title">Your Weekly Requirements</div>
             <div id="userRequirementsList"></div>
@@ -224,17 +224,17 @@
     
     <!-- Community Section -->
     <div class="home-section">
-      <h2 class="home-section-title"><span class="home-section-title-icon">👥</span>Community</h2>
+      <h2 class="home-section-title"><span class="home-section-title-icon">🍀</span>Community</h2>
       <div class="home-grid">
-        <section class="content-section"><h2>Top Active This Week</h2><div id="topPlayersGrid" class="top-players-grid"></div></section>
-        <section class="content-section"><h2>Top 3 Shift Leaders</h2><div id="topShiftLeaders" class="top-players-grid"></div></section>
-        <section class="content-section"><h2>Upcoming Birthdays</h2><div id="upcomingBirthdays" class="top-players-grid"></div></section>
+        <section class="content-section"><h2>🏅 Top 3 active this week!</h2><div id="topPlayersGrid" class="top-players-grid"></div></section>
+        <section class="content-section"><h2>🏅 Top 3 shifts attended/hosted this week!</h2><div id="topShiftLeaders" class="top-players-grid"></div></section>
+        <section class="content-section"><h2>🎂 Upcoming birthdays!</h2><div id="upcomingBirthdays" class="top-players-grid"></div></section>
       </div>
     </div>
   </div>
   <div id="playerlist" class="tab-content">
     <section class="content-section">
-      <h2>Player List</h2>
+      <h2>🧑‍💼 Player List</h2>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
         <button class="filter-button active" data-filter="all" onclick="filterPlayerList('all')">All Players</button>
         <button class="filter-button" data-filter="Management" onclick="filterPlayerList('Management')">Management</button>
@@ -260,18 +260,18 @@
     </section>
   </div>
   <div id="shifts" class="tab-content">
-    <section class="content-section"><h2>Weekly Shifts</h2><div id="shiftsList" class="shifts-list"></div></section>
+    <section class="content-section"><h2>🗓️ Weekly Shifts</h2><div id="shiftsList" class="shifts-list"></div></section>
   </div>
   <div id="myaccount" class="tab-content">
-    <section class="content-section"><h2>My Account</h2><div id="accountInfo"></div><div id="settingsPanel" class="settings-panel"></div></section>
+    <section class="content-section"><h2>🧑‍💻 My Account</h2><div id="accountInfo"></div><div id="settingsPanel" class="settings-panel"></div></section>
   </div>
 <div id="settings" class="tab-content">
-    <section class="content-section"><h2>Settings</h2><div style="display:flex; flex-direction:column; gap:15px; max-width:400px;">
-      <button class="settings-btn" onclick="openAddPlayer()"><span>➕</span><span>Add Player</span></button>
+    <section class="content-section"><h2>⚙️ Settings</h2><div style="display:flex; flex-direction:column; gap:15px; max-width:400px;">
+      <button class="settings-btn" onclick="openAddPlayer()"><span>🧑‍💻</span><span>Add Player</span></button>
       <button class="settings-btn" onclick="openLabelsManager()"><span>🏷️</span><span>Manage Player Labels</span></button>
       <button class="settings-btn" onclick="openBirthdaysManager()"><span>🎂</span><span>Manage Birthdays</span></button>
       <button class="settings-btn" onclick="openWeeklyResetStatus()"><span>📊</span><span>Check Weekly Reset Status</span></button>
-      <button class="settings-btn" onclick="openLastWeekHistory()"><span>📅</span><span>View Last Week's Data</span></button>
+      <button class="settings-btn" onclick="openLastWeekHistory()"><span>🗓️</span><span>View Last Week's Data</span></button>
     </div></section>
   </div>
 <div id="shiftModal" class="modal">
@@ -294,7 +294,7 @@
 <div id="announcementsModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <span class="modal-title">Announcements</span>
+      <span class="modal-title">📍 Announcements</span>
       <span class="close" onclick="closeAnnouncementsModal()">&times;</span>
     </div>
     <div class="modal-body">
@@ -718,7 +718,7 @@ window.deleteAnnouncementByIndex = function(index) {
   }
 
   function renderSecurity(container) {
-    container.innerHTML = `<p>⚠️ Security options coming soon.</p>`;
+    container.innerHTML = `<p>💫 Security options are currently unavaliable.</p>`;
   }
 
   function updateTabAccess() {
@@ -1580,13 +1580,13 @@ async function renderModalAttendees() {
             card.innerHTML = `
               <div class="shift-header">
                 <div class="shift-left">
-                  <span class="shift-icon">📅</span>
+                  <span class="shift-icon">🏷️</span>
                   <div class="shift-info">
                     <div class="shift-datetime">${date} at ${time}</div>
                     <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
                   </div>
                 </div>
-                <span class="shift-arrow">${isPast ? '⏪' : '→'}</span>
+                <span class="shift-arrow">${isPast ? '⬅️' : '→'}</span>
               </div>
               ${isPast ? '<div style="margin-top:8px;color:#888;font-weight:600;font-size:14px;">Past Shift</div>' : ''}
             `;
