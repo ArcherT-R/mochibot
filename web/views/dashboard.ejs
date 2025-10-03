@@ -1252,6 +1252,119 @@ document.addEventListener('DOMContentLoaded', () => {
   loadShifts();
   setInterval(loadShifts, 60000);
 
+window.openAddPlayer = async function() {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Adding players requires Vice Chairman+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    const modalBody = document.querySelector('.modal-body');
+    
+    modalTitle.textContent = 'Add New Player';
+    modalBody.innerHTML = `
+      <form id="addPlayerForm" style="display:flex;flex-direction:column;gap:15px;">
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Roblox ID *</label>
+          <input type="number" id="newRobloxId" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Username *</label>
+          <input type="text" id="newUsername" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Group Rank *</label>
+          <input type="text" id="newGroupRank" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Avatar URL *</label>
+          <input type="url" id="newAvatarUrl" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;"
+                 placeholder="https://...">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Password (6-digit)</label>
+          <div style="display:flex;gap:10px;">
+            <input type="text" id="newPassword" readonly 
+                   style="flex:1;padding:10px;border:1px solid #ccc;border-radius:8px;background:#f9f9f9;">
+            <button type="button" onclick="generatePassword()" class="btn">Generate</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
+          <button type="button" onclick="closeShiftModal()" class="btn" style="background:#ccc;color:#333;">Cancel</button>
+          <button type="submit" class="btn">Add Player</button>
+        </div>
+      </form>
+    `;
+    
+    modal.style.display = 'block';
+    
+    document.getElementById('addPlayerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const robloxId = document.getElementById('newRobloxId').value;
+      const username = document.getElementById('newUsername').value;
+      const groupRank = document.getElementById('newGroupRank').value;
+      const avatarUrl = document.getElementById('newAvatarUrl').value;
+      const password = document.getElementById('newPassword').value;
+      
+      if (!password) {
+        alert('Please generate a password first');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/settings/add-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roblox_id: robloxId,
+            username: username,
+            group_rank: groupRank,
+            avatar_url: avatarUrl,
+            password: password
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          alert(`Player added successfully!\n\nUsername: ${username}\nPassword: ${password}\n\nMake sure to save this password!`);
+          closeShiftModal();
+          
+          if (allPlayersData.length) {
+            loadPlayerList();
+          }
+        } else {
+          alert(`Failed to add player: ${result.error || 'Unknown error'}`);
+        }
+      } catch (err) {
+        console.error('Error adding player:', err);
+        alert('Error adding player. Please try again.');
+      }
+    });
+  };
+
+  window.generatePassword = async function() {
+    try {
+      const res = await fetch('/settings/generate-password');
+      const data = await res.json();
+      
+      if (data.password) {
+        document.getElementById('newPassword').value = data.password;
+      } else {
+        alert('Failed to generate password');
+      }
+    } catch (err) {
+      console.error('Error generating password:', err);
+      alert('Error generating password');
+    }
+  };
+
   async function renderUpcomingBirthdays() {
     try {
       const res = await fetch('/settings/birthdays');
