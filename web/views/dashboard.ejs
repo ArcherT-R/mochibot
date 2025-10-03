@@ -466,8 +466,8 @@ function openAnnouncementsModal() {
         </div>
         ${canDelete ? `
           <div style="margin-top:10px;text-align:right;">
-            <button class="btn small" onclick="deleteAnnouncement('${announcement.id}')" style="background:#ff4444;">
-              Delete
+            <button class="btn small" onclick="deleteAnnouncement(${JSON.stringify(announcement)})" style="background:#ff4444;">
+            Delete
             </button>
           </div>
         ` : ''}
@@ -552,19 +552,28 @@ function openAnnouncementsModal() {
     }
   }
 
-async function deleteAnnouncement(announcementId) {
+async function deleteAnnouncement(announcement) {
   if (!confirm('Are you sure you want to delete this announcement?')) {
     return;
   }
   
   try {
-    const response = await fetch(`/dashboard/announcements/${announcementId}`, {
-      method: 'DELETE'
+    const response = await fetch(`/dashboard/announcements`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: announcement.title,
+        created_at: announcement.created_at
+      })
     });
     
     if (response.ok) {
       // Remove the announcement from the local array
-      announcements = announcements.filter(a => a.id !== announcementId);
+      announcements = announcements.filter(a => 
+        !(a.title === announcement.title && a.created_at === announcement.created_at)
+      );
       
       // Refresh the modal
       openAnnouncementsModal();
