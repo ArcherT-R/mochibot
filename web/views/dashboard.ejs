@@ -952,186 +952,75 @@ async function renderUserRequirements() {
 
 async function renderRequirementsBox() {
   try {
-    const playersRes = await fetch('/dashboard/players');
-    const allPlayers = playersRes.ok ? await playersRes.json() : [];
+    // Only render user requirements if current user has labels
+    if (!currentUser || !currentUserLabels.length) {
+      userRequirements.style.display = 'none';
+      return;
+    }
     
-    // Get all player labels
-    const labelsPromises = allPlayers.map(async p => {
-      try {
-        const labelRes = await fetch(`/settings/labels/${p.roblox_id}`);
-        const labels = labelRes.ok ? await labelRes.json() : [];
-        return { ...p, labels };
-      } catch {
-        return { ...p, labels: [] };
+    // Get fresh user data
+    const userRes = await fetch(`/dashboard/players`);
+    const allPlayers = userRes.ok ? await userRes.json() : [];
+    const freshUserData = allPlayers.find(p => p.roblox_id === currentUser.roblox_id);
+    
+    // Get shift stats
+    const stats = await calculateShiftStats();
+    const userStats = stats[currentUser.username.toLowerCase()] || { hosted: 0, attended: 0 };
+    
+    const weeklyMinutes = freshUserData?.weekly_minutes || 0;
+    
+    // Define requirements for each tag
+    const tagRequirements = {
+      'Management': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
+      'Public Relations': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
+      'Operations': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
+      'Human Resources': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
+      'Supervision': { type: 'minutes', required: 90, current: weeklyMinutes }
+    };
+    
+    // Build user requirements HTML
+    let userRequirementsHTML = '';
+    
+    currentUserLabels.forEach(label => {
+      if (tagRequirements[label]) {
+        const req = tagRequirements[label];
+        const progress = Math.min((req.current / req.required) * 100, 100);
+        const isComplete = req.current >= req.required;
+        
+        let progressText = '';
+        if (req.type === 'shifts') {
+          progressText = `${req.current}/${req.required} shifts ${req.action}`;
+        } else {
+          progressText = `${req.current}/${req.required} minutes`;
+        }
+        
+        userRequirementsHTML += `
+          <div class="user-requirement-item">
+            <span class="user-requirement-label">${label}</span>
+            <div class="user-requirement-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+              </div>
+              <span class="progress-text ${isComplete ? 'progress-complete' : 'progress-incomplete'}">
+                ${isComplete ? '✓' : ''} ${progressText}
+              </span>
+            </div>
+          </div>
+        `;
       }
     });
     
-    const playersWithLabels = await Promise.all(labelsPromises);
-    
-    // Define teams and their requirements
-    const TEAMS = {
-      corporate: {
-        ranks: [
-          'Corporate Intern',
-          'Junior Corporate',
-          'Senior Corporate',
-          'Head Corporate'
-        ],
-        requirement: 'Host 2 shifts per week'
-      },
-      management: {
-        ranks: [
-          'Lead Mochi Director',
-          'Senior Mochi Director',
-          'Mochi Director'
-        ],
-        requirement: 'Attend 2 shifts per week'
-      },
-      supervision: {
-        ranks: [
-          'Mochi Manager',
-          'Assistant Mochi Manager',
-          'Supervisor',
-          'Mochi Leader'
-        ],
-        requirement: '90 minutes per week recommended'
-      }
-    };
-    
-    // Count players in each team
-    const teamCounts = {
-      corporate: 0,
-      management: 0,
-      supervision: 0
-    };
-    
-    // Count players with each label
-    const labelCounts = {
-      'Management': 0,
-      'Public Relations': 0,
-      'Operations': 0,
-      'Human Resources': 0,
-      'Supervision': 0
-    };
-    
-    // Auto-assign supervision tag to players with supervision ranks
-    for (const player of playersWithLabels) {
-      const rank = player.group_rank;
-      
-      // Check if player is in supervision ranks but doesn't have the supervision label
-      if (TEAMS.supervision.ranks.includes(rank) && !player.labels.includes('Supervision')) {
-        // Auto-assign supervision label
-        try {
-          await fetch('/settings/labels', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              roblox_id: player.roblox_id, 
-              username: player.username, 
-              label: 'Supervision' 
-            })
-          });
-          player.labels.push('Supervision');
-        } catch (err) {
-          console.error('Error auto-assigning supervision label:', err);
-        }
-      }
-      
-      // Count players in each team
-      if (TEAMS.corporate.ranks.includes(rank)) {
-        teamCounts.corporate++;
-      } else if (TEAMS.management.ranks.includes(rank)) {
-        teamCounts.management++;
-      } else if (TEAMS.supervision.ranks.includes(rank)) {
-        teamCounts.supervision++;
-      }
-      
-      // Count players with each label
-      player.labels.forEach(label => {
-        if (labelCounts[label] !== undefined) {
-          labelCounts[label]++;
-        }
-      });
-    }
-    
-    // Build HTML
-    const requirementsBox = document.getElementById('requirementsBox');
-    requirementsBox.innerHTML = `
-      <div class="requirements-section">
-        <h3>Team Requirements</h3>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Corporate Team</div>
-            <div class="requirement-tag-desc">${TEAMS.corporate.requirement}</div>
-          </div>
-          <div class="requirement-tag-count">${teamCounts.corporate} members</div>
-        </div>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Management Team</div>
-            <div class="requirement-tag-desc">${TEAMS.management.requirement}</div>
-          </div>
-          <div class="requirement-tag-count">${teamCounts.management} members</div>
-        </div>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Supervision Team</div>
-            <div class="requirement-tag-desc">${TEAMS.supervision.requirement}</div>
-          </div>
-          <div class="requirement-tag-count">${teamCounts.supervision} members</div>
-        </div>
-      </div>
-      
-      <div class="requirements-section">
-        <h3>Tag Requirements</h3>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Management</div>
-            <div class="requirement-tag-desc">Attend 2 shifts per week</div>
-          </div>
-          <div class="requirement-tag-count">${labelCounts['Management']} members</div>
-        </div>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Public Relations</div>
-            <div class="requirement-tag-desc">Attend 2 shifts per week</div>
-          </div>
-          <div class="requirement-tag-count">${labelCounts['Public Relations']} members</div>
-        </div>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Operations</div>
-            <div class="requirement-tag-desc">Host 2 shifts per week</div>
-          </div>
-          <div class="requirement-tag-count">${labelCounts['Operations']} members</div>
-        </div>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Human Resources</div>
-            <div class="requirement-tag-desc">Host 2 shifts per week</div>
-          </div>
-          <div class="requirement-tag-count">${labelCounts['Human Resources']} members</div>
-        </div>
-        <div class="requirement-tag">
-          <div>
-            <div class="requirement-tag-name">Supervision</div>
-            <div class="requirement-tag-desc">90 minutes per week recommended</div>
-          </div>
-          <div class="requirement-tag-count">${labelCounts['Supervision']} members</div>
-        </div>
-      </div>
-    `;
-    
-    // Render user requirements AFTER the HTML is built
-    if (currentUser && currentUserLabels.length > 0) {
-      await renderUserRequirements();
+    // Display the requirements
+    if (userRequirementsHTML) {
+      userRequirements.style.display = 'block';
+      userRequirementsList.innerHTML = userRequirementsHTML;
     } else {
       userRequirements.style.display = 'none';
     }
     
   } catch (err) {
     console.error('Error rendering requirements box:', err);
-    document.getElementById('requirementsBox').innerHTML = '<div class="no-data">Failed to load requirements.</div>';
+    userRequirements.style.display = 'none';
   }
 }
 
