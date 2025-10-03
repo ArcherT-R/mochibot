@@ -449,8 +449,8 @@ function openAnnouncementsModal() {
   if (announcements.length === 0) {
     modalList.innerHTML = '<p>No announcements available.</p>';
   } else {
-    announcements.forEach(announcement => {
-      const date = new Date(announcement.date);
+    announcements.forEach((announcement, index) => {
+      const date = new Date(announcement.date || announcement.created_at);
       const item = document.createElement('div');
       item.className = 'announcement-item';
       
@@ -466,8 +466,8 @@ function openAnnouncementsModal() {
         </div>
         ${canDelete ? `
           <div style="margin-top:10px;text-align:right;">
-            <button class="btn small" onclick="deleteAnnouncement(${JSON.stringify(announcement)})" style="background:#ff4444;">
-            Delete
+            <button class="btn small" onclick="deleteAnnouncementByIndex(${index})" style="background:#ff4444;">
+              Delete
             </button>
           </div>
         ` : ''}
@@ -478,122 +478,132 @@ function openAnnouncementsModal() {
   
   modal.style.display = 'block';
 }
-  
-  function closeAnnouncementsModal() {
-    document.getElementById('announcementsModal').style.display = 'none';
-  }
-  
-  // Make closeAnnouncementsModal and closeNewAnnouncementModal globally accessible
-  window.closeAnnouncementsModal = closeAnnouncementsModal;
-  window.closeNewAnnouncementModal = closeNewAnnouncementModal;
-  
-  // Add event listener for clicking outside the modal to close it
-  window.addEventListener('click', function(e) {
-    const announcementsModal = document.getElementById('announcementsModal');
-    const newAnnouncementModal = document.getElementById('newAnnouncementModal');
-    
-    if (e.target === announcementsModal) {
-      closeAnnouncementsModal();
-    }
-    
-    if (e.target === newAnnouncementModal) {
-      closeNewAnnouncementModal();
-    }
-  });
-  
-  function openNewAnnouncementModal() {
-    document.getElementById('newAnnouncementModal').style.display = 'block';
-  }
-  
-  function closeNewAnnouncementModal() {
-    document.getElementById('newAnnouncementModal').style.display = 'none';
-  }
-  
-  async function submitNewAnnouncement(event) {
-    event.preventDefault();
-    
-    const title = document.getElementById('announcementTitle').value;
-    const content = document.getElementById('announcementContent').value;
-    
-    if (!title || !content) return;
-    
-    try {
-      // Save to Supabase via API
-      const response = await fetch('/dashboard/announcements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title,
-          content,
-          author: currentUser.username
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save announcement');
-      }
-      
-      const newAnnouncement = await response.json();
-      
-      // Add to the beginning of the array
-      announcements.unshift(newAnnouncement);
-      
-      // Update the UI
-      renderLatestAnnouncement();
-      
-      // Close the modal and reset form
-      closeNewAnnouncementModal();
-      document.getElementById('announcementForm').reset();
-    } catch (error) {
-      console.error('Error saving announcement:', error);
-      alert('Failed to save announcement. Please try again.');
-    }
-  }
 
-async function deleteAnnouncement(announcement) {
+function closeAnnouncementsModal() {
+  document.getElementById('announcementsModal').style.display = 'none';
+}
+
+// Make closeAnnouncementsModal and closeNewAnnouncementModal globally accessible
+window.closeAnnouncementsModal = closeAnnouncementsModal;
+window.closeNewAnnouncementModal = closeNewAnnouncementModal;
+
+// Add event listener for clicking outside the modal to close it
+window.addEventListener('click', function(e) {
+  const announcementsModal = document.getElementById('announcementsModal');
+  const newAnnouncementModal = document.getElementById('newAnnouncementModal');
+  
+  if (e.target === announcementsModal) {
+    closeAnnouncementsModal();
+  }
+  
+  if (e.target === newAnnouncementModal) {
+    closeNewAnnouncementModal();
+  }
+});
+
+function openNewAnnouncementModal() {
+  document.getElementById('newAnnouncementModal').style.display = 'block';
+}
+
+function closeNewAnnouncementModal() {
+  document.getElementById('newAnnouncementModal').style.display = 'none';
+}
+
+async function submitNewAnnouncement(event) {
+  event.preventDefault();
+  
+  const title = document.getElementById('announcementTitle').value;
+  const content = document.getElementById('announcementContent').value;
+  
+  if (!title || !content) return;
+  
+  try {
+    // Save to Supabase via API
+    const response = await fetch('/dashboard/announcements', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title,
+        content,
+        author: currentUser.username
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to save announcement');
+    }
+    
+    const newAnnouncement = await response.json();
+    
+    // Add to the beginning of the array
+    announcements.unshift(newAnnouncement);
+    
+    // Update the UI
+    renderLatestAnnouncement();
+    
+    // Close the modal and reset form
+    closeNewAnnouncementModal();
+    document.getElementById('announcementForm').reset();
+  } catch (error) {
+    console.error('Error saving announcement:', error);
+    alert('Failed to save announcement. Please try again.');
+  }
+}
+
+// Add this new function to handle deletion by index
+window.deleteAnnouncementByIndex = function(index) {
+  const announcement = announcements[index];
+  if (!announcement) return;
+  
   if (!confirm('Are you sure you want to delete this announcement?')) {
     return;
   }
   
   try {
-    const response = await fetch(`/dashboard/announcements`, {
+    // Try using ID first, then fall back to title and date
+    const deleteData = announcement.id 
+      ? { id: announcement.id }
+      : { 
+          title: announcement.title, 
+          date: announcement.date || announcement.created_at
+        };
+    
+    fetch('/dashboard/announcements', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        title: announcement.title,
-        created_at: announcement.created_at
-      })
-    });
-    
-    if (response.ok) {
-      // Remove the announcement from the local array
-      announcements = announcements.filter(a => 
-        !(a.title === announcement.title && a.created_at === announcement.created_at)
-      );
-      
-      // Refresh the modal
-      openAnnouncementsModal();
-      
-      // If this was the latest announcement, refresh the home view
-      if (announcements.length === 0) {
-        latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
+      body: JSON.stringify(deleteData)
+    })
+    .then(response => {
+      if (response.ok) {
+        // Remove the announcement from the local array
+        announcements.splice(index, 1);
+        
+        // Refresh the modal
+        openAnnouncementsModal();
+        
+        // If this was the latest announcement, refresh the home view
+        if (announcements.length === 0) {
+          latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
+        } else {
+          renderLatestAnnouncement();
+        }
       } else {
-        renderLatestAnnouncement();
+        alert('Failed to delete announcement. Please try again.');
       }
-    } else {
-      alert('Failed to delete announcement. Please try again.');
-    }
+    })
+    .catch(error => {
+      console.error('Error deleting announcement:', error);
+      alert('Error deleting announcement. Please try again.');
+    });
   } catch (error) {
     console.error('Error deleting announcement:', error);
     alert('Error deleting announcement. Please try again.');
   }
-}
-// Add this line after the deleteAnnouncement function
-window.deleteAnnouncement = deleteAnnouncement;
+};
 
   function renderMyAccount() {
     if (currentUser) {
