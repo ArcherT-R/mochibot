@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
     'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
     'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
-    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Assistant Director', 'Mochi Senior Moderator'
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
   ];
 
   async function loadCurrentUser() {
@@ -583,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerlistTab = document.querySelector('[data-tab="playerlist"]');
     const settingsTab = document.querySelector('[data-tab="settings"]');
 
-    if (!DIRECTOR_PLUS.includes(userGroupRank)) {
+    if (!LEADERSHIP_RANKS.includes(userGroupRank)) {
       playerlistTab.style.opacity = '0.5';
       playerlistTab.style.cursor = 'not-allowed';
       playerlistTab.title = 'Requires Mochi Director+';
