@@ -1,7 +1,7 @@
 // routes/verification.js
 const express = require('express');
 const router = express.Router();
-const { supabase } = require('../database'); // export supabase from database.js
+const { supabase } = require('./database'); // export supabase from database.js
 
 // Generate code
 router.post('/generate-verification-code', async (req, res) => {
