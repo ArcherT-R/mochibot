@@ -416,23 +416,23 @@
     </div>
     <div class="info-grid">
       <div class="info-item">
-        <span class="info-label">Group Rank</span>
+        <span class="info-label">🧑‍💼 Group Rank</span>
         <span class="info-value"><%= player.group_rank %></span>
       </div>
       <div class="info-item">
-        <span class="info-label">Roblox ID</span>
+        <span class="info-label">✉️ Roblox ID</span>
         <span class="info-value"><%= player.roblox_id %></span>
       </div>
       <div class="info-item">
-        <span class="info-label">Weekly Playtime</span>
+        <span class="info-label">📍 Weekly Playtime</span>
         <span class="info-value"><%= Math.floor(player.weekly_minutes / 60) %> hrs <%= player.weekly_minutes % 60 %> min</span>
       </div>
       <div class="info-item">
-        <span class="info-label">Labels</span>
+        <span class="info-label">🏷️ Labels</span>
         <span class="info-value" id="playerLabels">Loading...</span>
       </div>
       <div class="info-item">
-        <span class="info-label">Birthday</span>
+        <span class="info-label">🎂 Birthday</span>
         <span class="info-value" id="playerBirthday">Loading...</span>
       </div>
     </div>
@@ -447,7 +447,7 @@
     %>
       <div class="session-item ongoing" id="ongoing-session-box" onclick="showOngoingSessionModal(document.getElementById('session-start-time').value)">
         <div class="session-header">
-          <span class="session-title live">Ongoing Session</span>
+          <span class="session-title live">🟢 Ongoing Session</span>
           <span class="session-badge">LIVE</span>
         </div>
         <div class="session-details">
@@ -463,16 +463,16 @@
         <% sessions.slice(0, 10).forEach((s, index) => { %>
           <div class="session-item" onclick="showSessionDetails(<%= index %>, '<%= s.session_start %>')">
             <div class="session-header">
-              <span class="session-title">Past Session</span>
+              <span class="session-title">⬅️ Past Session</span>
             </div>
             <div class="session-details">
-              Duration: <strong><%= s.minutes_played %> minutes</strong><br>
+              🕕 Duration: <strong><%= s.minutes_played %> minutes</strong><br>
               <%= new Date(s.session_start).toLocaleDateString() %> at <%= new Date(s.session_start).toLocaleTimeString() %>
             </div>
           </div>
         <% }) %>
       <% } else { %>
-        <div class="no-data">No past sessions recorded</div>
+        <div class="no-data">❌ No past sessions recorded</div>
       <% } %>
     </div>
   </div>
@@ -493,7 +493,7 @@
     </div>
 
     <div id="attended-shifts-section" style="display:none; margin-top: 20px;">
-      <h3 style="font-size: 18px; margin-bottom: 15px;">Shifts Attended</h3>
+      <h3 style="font-size: 18px; margin-bottom: 15px;">🗓️ Shifts Attended</h3>
       <div id="attended-shifts-list" class="shifts-scroll" style="max-height: 300px;">
         <div class="no-data">Loading...</div>
       </div>
@@ -581,7 +581,7 @@
   function showSessionDetails(index, startTime) {
     const session = allSessions[index];
     if (!session) return;
-    document.getElementById('modal-header-text').textContent = `Session Details`;
+    document.getElementById('modal-header-text').textContent = `✉️ Session Details`;
     document.getElementById('modal-body').innerHTML = `
       <p><strong>Duration:</strong> ${session.minutes_played} minutes</p>
       <p><strong>Started:</strong> ${new Date(startTime).toLocaleString()}</p>
@@ -591,7 +591,7 @@
   }
 
   function showOngoingSessionModal(startTime) {
-    document.getElementById('modal-header-text').textContent = `Ongoing Session`;
+    document.getElementById('modal-header-text').textContent = `🟢 Ongoing Session`;
     document.getElementById('modal-body').innerHTML = `
       <p><strong>Started:</strong> ${new Date(startTime).toLocaleString()}</p>
       <p><strong>Current Duration:</strong> ${document.getElementById('live-time').textContent}</p>
