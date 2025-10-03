@@ -707,123 +707,131 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTopPlayers();
   setInterval(renderTopPlayers, 5000);
 
-  async function renderTopShiftLeaders(){
-    try{
-      const shiftsRes = await fetch('/shifts');
-      const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
+async function renderTopShiftLeaders(){
+  try{
+    const shiftsRes = await fetch('/shifts');
+    const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
+    
+    const attendeesPromises = shifts.map(async shift => {
+      try {
+        const res = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
+        return res.ok ? await res.json() : [];
+      } catch {
+        return [];
+      }
+    });
+    
+    const allAttendeesArrays = await Promise.all(attendeesPromises);
+    
+    const participationCount = {};
+    
+    shifts.forEach((shift, index) => {
+      const attendees = allAttendeesArrays[index];
       
-      const attendeesPromises = shifts.map(async shift => {
-        try {
-          const res = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
-          return res.ok ? await res.json() : [];
-        } catch {
-          return [];
-        }
-      });
-      
-      const allAttendeesArrays = await Promise.all(attendeesPromises);
-      
-      const participationCount = {};
-      
-      shifts.forEach((shift, index) => {
-        const attendees = allAttendeesArrays[index];
-        
-        if (shift.host && shift.host !== 'TBD') {
-          participationCount[shift.host] = (participationCount[shift.host] || 0) + 1;
-        }
-        
-        if (shift.cohost) {
-          participationCount[shift.cohost] = (participationCount[shift.cohost] || 0) + 1;
-        }
-        
-        if (shift.overseer) {
-          participationCount[shift.overseer] = (participationCount[shift.overseer] || 0) + 1;
-        }
-        
-        attendees.forEach(attendee => {
-          participationCount[attendee.username] = (participationCount[attendee.username] || 0) + 1;
-        });
-      });
-      
-      const sortedLeaders = Object.entries(participationCount)
-        .map(([username, count]) => ({ username, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3);
-      
-      const topShiftLeadersGrid = document.getElementById('topShiftLeaders');
-      
-      if(!sortedLeaders.length){
-        topShiftLeadersGrid.innerHTML = '<div class="no-data">No shift participation data.</div>';
-        return;
+      if (shift.host && shift.host !== 'TBD') {
+        const hostLower = shift.host.toLowerCase();
+        participationCount[hostLower] = (participationCount[hostLower] || 0) + 1;
       }
       
-      const playersRes = await fetch('/dashboard/players');
-      const allPlayers = playersRes.ok ? await playersRes.json() : [];
+      if (shift.cohost) {
+        const cohostLower = shift.cohost.toLowerCase();
+        participationCount[cohostLower] = (participationCount[cohostLower] || 0) + 1;
+      }
       
-      topShiftLeadersGrid.innerHTML = sortedLeaders.map(leader => {
-        const player = allPlayers.find(p => p.username === leader.username);
-        const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
-        
-        return `
-          <div class="player-card" onclick="window.location='/dashboard/player/${leader.username}'">
-            <img src="${avatarUrl}"
-                 onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-            <div>${leader.username}</div>
-            <div class="time">${leader.count} shift${leader.count !== 1 ? 's' : ''}</div>
-          </div>`;
-      }).join('');
-    } catch(err){ 
-      console.error('Error loading shift leaders:', err); 
-      document.getElementById('topShiftLeaders').innerHTML = '<div class="no-data">Failed to load shift leaders.</div>';
+      if (shift.overseer) {
+        const overseerLower = shift.overseer.toLowerCase();
+        participationCount[overseerLower] = (participationCount[overseerLower] || 0) + 1;
+      }
+      
+      attendees.forEach(attendee => {
+        const usernameLower = attendee.username.toLowerCase();
+        participationCount[usernameLower] = (participationCount[usernameLower] || 0) + 1;
+      });
+    });
+    
+    const sortedLeaders = Object.entries(participationCount)
+      .map(([username, count]) => ({ username, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+    
+    const topShiftLeadersGrid = document.getElementById('topShiftLeaders');
+    
+    if(!sortedLeaders.length){
+      topShiftLeadersGrid.innerHTML = '<div class="no-data">No shift participation data.</div>';
+      return;
     }
+    
+    const playersRes = await fetch('/dashboard/players');
+    const allPlayers = playersRes.ok ? await playersRes.json() : [];
+    
+    topShiftLeadersGrid.innerHTML = sortedLeaders.map(leader => {
+      const player = allPlayers.find(p => p.username.toLowerCase() === leader.username);
+      const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
+      const displayName = player?.username || leader.username;
+      
+      return `
+        <div class="player-card" onclick="window.location='/dashboard/player/${displayName}'">
+          <img src="${avatarUrl}"
+               onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+          <div>${displayName}</div>
+          <div class="time">${leader.count} shift${leader.count !== 1 ? 's' : ''}</div>
+        </div>`;
+    }).join('');
+  } catch(err){ 
+    console.error('Error loading shift leaders:', err); 
+    document.getElementById('topShiftLeaders').innerHTML = '<div class="no-data">Failed to load shift leaders.</div>';
   }
+}
   renderTopShiftLeaders();
   setInterval(renderTopShiftLeaders, 60000);
 
-  async function calculateShiftStats() {
-    try {
-      const shiftsRes = await fetch('/shifts');
-      const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
+async function calculateShiftStats() {
+  try {
+    const shiftsRes = await fetch('/shifts');
+    const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
+    
+    const now = Date.now();
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    
+    const stats = {};
+    
+    for (const shift of shifts) {
+      const shiftTime = shift.shift_time || shift.time;
+      const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
       
-      const now = Date.now();
-      const weekStart = new Date(now);
-      weekStart.setHours(0, 0, 0, 0);
-      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+      if (timestamp < weekStart.getTime()) continue;
       
-      const stats = {};
-      
-      for (const shift of shifts) {
-        const shiftTime = shift.shift_time || shift.time;
-        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
-        
-        if (timestamp < weekStart.getTime()) continue;
-        
-        if (shift.host && shift.host !== 'TBD') {
-          if (!stats[shift.host]) stats[shift.host] = { hosted: 0, attended: 0 };
-          stats[shift.host].hosted++;
-        }
-        
-        if (shift.cohost) {
-          if (!stats[shift.cohost]) stats[shift.cohost] = { hosted: 0, attended: 0 };
-          stats[shift.cohost].hosted++;
-        }
-        
-        const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
-        if (attendeesRes.ok) {
-          const attendees = await attendeesRes.json();
-          attendees.forEach(a => {
-            if (!stats[a.username]) stats[a.username] = { hosted: 0, attended: 0 };
-            stats[a.username].attended++;
-          });
-        }
+      if (shift.host && shift.host !== 'TBD') {
+        const hostLower = shift.host.toLowerCase();
+        if (!stats[hostLower]) stats[hostLower] = { hosted: 0, attended: 0 };
+        stats[hostLower].hosted++;
       }
       
-      return stats;
-    } catch(err) {
-      console.error('Error calculating shift stats:', err);
-      return {};
+      if (shift.cohost) {
+        const cohostLower = shift.cohost.toLowerCase();
+        if (!stats[cohostLower]) stats[cohostLower] = { hosted: 0, attended: 0 };
+        stats[cohostLower].hosted++;
+      }
+      
+      const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
+      if (attendeesRes.ok) {
+        const attendees = await attendeesRes.json();
+        attendees.forEach(a => {
+          const usernameLower = a.username.toLowerCase();
+          if (!stats[usernameLower]) stats[usernameLower] = { hosted: 0, attended: 0 };
+          stats[usernameLower].attended++;
+        });
+      }
     }
+    
+    return stats;
+  } catch(err) {
+    console.error('Error calculating shift stats:', err);
+    return {};
   }
+}
 
   async function filterPlayerList(filter) {
     currentPlayerFilter = filter;
@@ -885,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let requirementCell = '';
         if (currentPlayerFilter !== 'all') {
-          const stats = playerShiftStats[p.username] || { hosted: 0, attended: 0 };
+          const stats = playerShiftStats[p.username.toLowerCase()] || { hosted: 0, attended: 0 };
           
           let requirementMet = false;
           let requirementText = '';
