@@ -357,32 +357,36 @@ document.addEventListener('DOMContentLoaded', () => {
     'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
   ];
 
-  async function loadCurrentUser() {
-    try {
-      const res = await fetch('/dashboard/current-user');
-      if (res.ok) {
-        currentUser = await res.json();
-        userGroupRank = currentUser.group_rank || '';
-        console.log('Current user loaded:', currentUser.username, 'Rank:', userGroupRank);
-        updateTabAccess();
-        renderMyAccount();
-        
-        // Show new announcement button if user is in leadership ranks
-        if (LEADERSHIP_RANKS.includes(userGroupRank)) {
-          newAnnouncementBtn.style.display = 'block';
-        }
-        
-        // Load announcements
-        loadAnnouncements();
-        
-        // Load current user's labels
-        await loadCurrentUserLabels();
+async function loadCurrentUser() {
+  try {
+    const res = await fetch('/dashboard/current-user');
+    if (res.ok) {
+      currentUser = await res.json();
+      userGroupRank = currentUser.group_rank || '';
+      console.log('Current user loaded:', currentUser.username, 'Rank:', userGroupRank);
+      updateTabAccess();
+      renderMyAccount();
+      
+      if (LEADERSHIP_RANKS.includes(userGroupRank)) {
+        newAnnouncementBtn.style.display = 'block';
       }
-    } catch (err) {
-      console.error('Failed to load current user:', err);
-      userGroupRank = '';
+      
+      loadAnnouncements();
+      
+      // Load user labels FIRST, then render requirements
+      await loadCurrentUserLabels();
+      console.log('Labels loaded:', currentUserLabels);
+      
+      // Now render the requirements box
+      setTimeout(() => {
+        renderRequirementsBox();
+      }, 500);
     }
+  } catch (err) {
+    console.error('Failed to load current user:', err);
+    userGroupRank = '';
   }
+}
   
   async function loadCurrentUserLabels() {
     if (!currentUser) return;
@@ -984,15 +988,7 @@ async function renderRequirementsBox() {
       });
     }
     
-    // Show user's requirements if logged in
-    if (currentUser && currentUserLabels.length > 0) {
-      userRequirements.style.display = 'block';
-      renderUserRequirements();
-    } else {
-      userRequirements.style.display = 'none';
-    }
-    
-    // Build HTML
+    // Build HTML FIRST
     const requirementsBox = document.getElementById('requirementsBox');
     requirementsBox.innerHTML = `
       <div class="requirements-section">
@@ -1059,81 +1055,17 @@ async function renderRequirementsBox() {
         </div>
       </div>
     `;
-  } catch (err) {
-    console.error('Error rendering requirements box:', err);
-    document.getElementById('requirementsBox').innerHTML = '<div class="no-data">Failed to load requirements.</div>';
-  }
-}
-
-async function renderUserRequirements() {
-  if (!currentUser || !currentUserLabels.length) {
-    userRequirements.style.display = 'none';
-    return;
-  }
-  
-  try {
-    // Get fresh user data
-    const userRes = await fetch(`/dashboard/players`);
-    const allPlayers = userRes.ok ? await userRes.json() : [];
-    const freshUserData = allPlayers.find(p => p.roblox_id === currentUser.roblox_id);
     
-    // Get current user's shift stats
-    const stats = await calculateShiftStats();
-    const userStats = stats[currentUser.username.toLowerCase()] || { hosted: 0, attended: 0 };
-    
-    // Get current user's weekly minutes from fresh data
-    const weeklyMinutes = freshUserData?.weekly_minutes || 0;
-    
-    // Define requirements for each tag
-    const tagRequirements = {
-      'Management': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
-      'Public Relations': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
-      'Operations': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
-      'Human Resources': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
-      'Supervision': { type: 'minutes', required: 90, current: weeklyMinutes }
-    };
-    
-    // Build HTML for user's requirements
-    let userRequirementsHTML = '';
-    
-    currentUserLabels.forEach(label => {
-      if (tagRequirements[label]) {
-        const req = tagRequirements[label];
-        const progress = Math.min((req.current / req.required) * 100, 100);
-        const isComplete = req.current >= req.required;
-        
-        let progressText = '';
-        if (req.type === 'shifts') {
-          progressText = `${req.current}/${req.required} shifts ${req.action}`;
-        } else {
-          progressText = `${req.current}/${req.required} minutes`;
-        }
-        
-        userRequirementsHTML += `
-          <div class="user-requirement-item">
-            <span class="user-requirement-label">${label}</span>
-            <div class="user-requirement-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${progress}%"></div>
-              </div>
-              <span class="progress-text ${isComplete ? 'progress-complete' : 'progress-incomplete'}">
-                ${isComplete ? '✓' : ''} ${progressText}
-              </span>
-            </div>
-          </div>
-        `;
-      }
-    });
-    
-    if (userRequirementsHTML) {
-      userRequirements.style.display = 'block';
-      userRequirementsList.innerHTML = userRequirementsHTML;
+    // THEN render user requirements AFTER the HTML is built
+    if (currentUser && currentUserLabels.length > 0) {
+      await renderUserRequirements();
     } else {
       userRequirements.style.display = 'none';
     }
+    
   } catch (err) {
-    console.error('Error rendering user requirements:', err);
-    userRequirements.style.display = 'none';
+    console.error('Error rendering requirements box:', err);
+    document.getElementById('requirementsBox').innerHTML = '<div class="no-data">Failed to load requirements.</div>';
   }
 }
 
