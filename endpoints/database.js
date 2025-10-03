@@ -120,6 +120,7 @@ async function addAnnouncement(title, content, author) {
 // -------------------------
 
 // Create player if not exists
+// Create player if not exists
 async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank, password }) {
   const { data: existing } = await supabase
     .from("players")
@@ -127,23 +128,31 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
     .eq("roblox_id", roblox_id)
     .single();
 
-  if (existing) return existing;
+  if (existing) {
+    throw new Error("Player already exists with this Roblox ID");
+  }
 
-  let password_hash = null;
+  const insertData = {
+    roblox_id,
+    username,
+    avatar_url,
+    group_rank,
+    weekly_minutes: 0
+  };
+
+  // Add password if provided (plain text, not hashed)
   if (password) {
-    password_hash = await bcrypt.hash(password, 10);
+    insertData.password = password;
+  }
+
+  // Only hash password for password_hash if provided
+  if (password) {
+    insertData.password_hash = await bcrypt.hash(password, 10);
   }
 
   const { data, error } = await supabase
     .from("players")
-    .insert([{
-      roblox_id,
-      username,
-      avatar_url,
-      group_rank,
-      weekly_minutes: 0,
-      password_hash
-    }])
+    .insert([insertData])
     .select()
     .single();
 
