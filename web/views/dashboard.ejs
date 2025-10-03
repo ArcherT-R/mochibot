@@ -1066,15 +1066,23 @@ async function renderRequirementsBox() {
 }
 
 async function renderUserRequirements() {
-  if (!currentUser || !currentUserLabels.length) return;
+  if (!currentUser || !currentUserLabels.length) {
+    userRequirements.style.display = 'none';
+    return;
+  }
   
   try {
+    // Get fresh user data
+    const userRes = await fetch(`/dashboard/players`);
+    const allPlayers = userRes.ok ? await userRes.json() : [];
+    const freshUserData = allPlayers.find(p => p.roblox_id === currentUser.roblox_id);
+    
     // Get current user's shift stats
     const stats = await calculateShiftStats();
     const userStats = stats[currentUser.username.toLowerCase()] || { hosted: 0, attended: 0 };
     
-    // Get current user's weekly minutes
-    const weeklyMinutes = currentUser.weekly_minutes || 0;
+    // Get current user's weekly minutes from fresh data
+    const weeklyMinutes = freshUserData?.weekly_minutes || 0;
     
     // Define requirements for each tag
     const tagRequirements = {
@@ -1117,10 +1125,15 @@ async function renderUserRequirements() {
       }
     });
     
-    userRequirementsList.innerHTML = userRequirementsHTML || '<p>No requirements for your tags.</p>';
+    if (userRequirementsHTML) {
+      userRequirements.style.display = 'block';
+      userRequirementsList.innerHTML = userRequirementsHTML;
+    } else {
+      userRequirements.style.display = 'none';
+    }
   } catch (err) {
     console.error('Error rendering user requirements:', err);
-    userRequirementsList.innerHTML = '<p>Failed to load your requirements.</p>';
+    userRequirements.style.display = 'none';
   }
 }
 
