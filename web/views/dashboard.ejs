@@ -394,6 +394,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('announcementsModal').style.display = 'none';
   }
   
+  // Make closeAnnouncementsModal and closeNewAnnouncementModal globally accessible
+  window.closeAnnouncementsModal = closeAnnouncementsModal;
+  window.closeNewAnnouncementModal = closeNewAnnouncementModal;
+  
   // Add event listener for clicking outside the modal to close it
   window.addEventListener('click', function(e) {
     const announcementsModal = document.getElementById('announcementsModal');
