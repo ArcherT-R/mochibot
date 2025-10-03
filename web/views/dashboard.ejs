@@ -377,10 +377,8 @@ async function loadCurrentUser() {
       await loadCurrentUserLabels();
       console.log('Labels loaded:', currentUserLabels);
       
-      // Now render the requirements box
-      setTimeout(() => {
-        renderRequirementsBox();
-      }, 500);
+      // Now render the requirements box directly (without setTimeout)
+      renderRequirementsBox();
     }
   } catch (err) {
     console.error('Failed to load current user:', err);
@@ -1056,7 +1054,7 @@ async function renderRequirementsBox() {
       });
     }
     
-    // Build HTML FIRST
+    // Build HTML
     const requirementsBox = document.getElementById('requirementsBox');
     requirementsBox.innerHTML = `
       <div class="requirements-section">
@@ -1124,7 +1122,7 @@ async function renderRequirementsBox() {
       </div>
     `;
     
-    // THEN render user requirements AFTER the HTML is built
+    // Render user requirements AFTER the HTML is built
     if (currentUser && currentUserLabels.length > 0) {
       await renderUserRequirements();
     } else {
@@ -1183,9 +1181,6 @@ async function calculateShiftStats() {
     console.error('Error calculating shift stats:', err);
     return {};
   }
-}
-
-async function renderRequirementsBox() {
 }
 
   async function filterPlayerList(filter) {
