@@ -952,9 +952,6 @@ async function renderUserRequirements() {
   }
 }
 
-// Then calculateShiftStats starts here...
-async function calculateShiftStats() {
-
 async function renderRequirementsBox() {
   try {
     const playersRes = await fetch('/dashboard/players');
@@ -1186,6 +1183,9 @@ async function calculateShiftStats() {
     console.error('Error calculating shift stats:', err);
     return {};
   }
+}
+
+async function renderRequirementsBox() {
 }
 
   async function filterPlayerList(filter) {
