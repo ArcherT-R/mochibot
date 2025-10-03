@@ -1292,181 +1292,189 @@ async function calculateShiftStats() {
     shiftModal.style.display = 'block';
   }
 
-  async function renderModalAttendees() {
-    if (!currentShiftId) return;
+async function renderModalAttendees() {
+  if (!currentShiftId) return;
+  
+  const container = document.getElementById('modalAttendees');
+  const addBox = document.getElementById('modalAddAttendee');
+  
+  try {
+    const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
+    const attendees = res.ok ? await res.json() : [];
     
-    const container = document.getElementById('modalAttendees');
-    const addBox = document.getElementById('modalAddAttendee');
+    const shiftRes = await fetch('/shifts');
+    const shifts = shiftRes.ok ? await shiftRes.json() : [];
+    const currentShift = shifts.find(s => s.id === currentShiftId);
     
-    try {
-      const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
-      const attendees = res.ok ? await res.json() : [];
+    // Check if current user is in leadership ranks
+    const isLeadership = LEADERSHIP_RANKS.includes(userGroupRank);
+    
+    // Check if current user is the host, cohost, or overseer of this shift
+    const isShiftLeader = currentShift && currentUser && (
+      currentShift.host === currentUser.username ||
+      currentShift.cohost === currentUser.username ||
+      currentShift.overseer === currentUser.username
+    );
+    
+    // Only allow editing if user is in leadership OR is a shift leader
+    const canEdit = isLeadership || isShiftLeader;
+    
+    document.getElementById('modalAttendeeCount').textContent = attendees.length;
+    
+    const labelsPromises = attendees.map(async a => {
+      try {
+        const labelRes = await fetch(`/settings/labels/${a.roblox_id}`);
+        const labels = labelRes.ok ? await labelRes.json() : [];
+        return { ...a, labels };
+      } catch {
+        return { ...a, labels: [] };
+      }
+    });
+    
+    const attendeesWithLabels = await Promise.all(labelsPromises);
+    
+    const management = attendeesWithLabels.filter(a => a.labels.includes('Management'));
+    const publicRelations = attendeesWithLabels.filter(a => a.labels.includes('Public Relations'));
+    const operations = attendeesWithLabels.filter(a => a.labels.includes('Operations'));
+    const humanResources = attendeesWithLabels.filter(a => a.labels.includes('Human Resources'));
+    const supervision = attendeesWithLabels.filter(a => a.labels.includes('Supervision'));
+    const others = attendeesWithLabels.filter(a => a.labels.length === 0);
+    
+    container.innerHTML = '';
+    
+    if (management.length > 0) {
+      const managementDiv = document.createElement('div');
+      managementDiv.className = 'attendee-category';
+      managementDiv.innerHTML = '<div class="attendee-category-title">Management</div>';
       
-      const shiftRes = await fetch('/shifts');
-      const shifts = shiftRes.ok ? await shiftRes.json() : [];
-      const currentShift = shifts.find(s => s.id === currentShiftId);
-      
-      const isShiftLeader = currentShift && currentUser && (
-        currentShift.host === currentUser.username ||
-        currentShift.cohost === currentUser.username ||
-        currentShift.overseer === currentUser.username
-      );
-      
-      const canEdit = DIRECTOR_PLUS.includes(userGroupRank) || isShiftLeader;
-      
-      document.getElementById('modalAttendeeCount').textContent = attendees.length;
-      
-      const labelsPromises = attendees.map(async a => {
-        try {
-          const labelRes = await fetch(`/settings/labels/${a.roblox_id}`);
-          const labels = labelRes.ok ? await labelRes.json() : [];
-          return { ...a, labels };
-        } catch {
-          return { ...a, labels: [] };
-        }
+      management.forEach(a => {
+        const box = createAttendeeBox(a, canEdit);
+        managementDiv.appendChild(box);
       });
       
-      const attendeesWithLabels = await Promise.all(labelsPromises);
-      
-      const management = attendeesWithLabels.filter(a => a.labels.includes('Management'));
-      const publicRelations = attendeesWithLabels.filter(a => a.labels.includes('Public Relations'));
-      const operations = attendeesWithLabels.filter(a => a.labels.includes('Operations'));
-      const humanResources = attendeesWithLabels.filter(a => a.labels.includes('Human Resources'));
-      const supervision = attendeesWithLabels.filter(a => a.labels.includes('Supervision'));
-      const others = attendeesWithLabels.filter(a => a.labels.length === 0);
-      
-      container.innerHTML = '';
-      
-      if (management.length > 0) {
-        const managementDiv = document.createElement('div');
-        managementDiv.className = 'attendee-category';
-        managementDiv.innerHTML = '<div class="attendee-category-title">Management</div>';
-        
-        management.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          managementDiv.appendChild(box);
-        });
-        
-        container.appendChild(managementDiv);
-      }
-      
-      if (publicRelations.length > 0) {
-        const prDiv = document.createElement('div');
-        prDiv.className = 'attendee-category';
-        prDiv.innerHTML = '<div class="attendee-category-title">Public Relations</div>';
-        
-        publicRelations.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          prDiv.appendChild(box);
-        });
-        
-        container.appendChild(prDiv);
-      }
-      
-      if (operations.length > 0) {
-        const opsDiv = document.createElement('div');
-        opsDiv.className = 'attendee-category';
-        opsDiv.innerHTML = '<div class="attendee-category-title">Operations</div>';
-        
-        operations.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          opsDiv.appendChild(box);
-        });
-        
-        container.appendChild(opsDiv);
-      }
-      
-      if (humanResources.length > 0) {
-        const hrDiv = document.createElement('div');
-        hrDiv.className = 'attendee-category';
-        hrDiv.innerHTML = '<div class="attendee-category-title">Human Resources</div>';
-        
-        humanResources.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          hrDiv.appendChild(box);
-        });
-        
-        container.appendChild(hrDiv);
-      }
-      
-      if (supervision.length > 0) {
-        const supervisionDiv = document.createElement('div');
-        supervisionDiv.className = 'attendee-category';
-        supervisionDiv.innerHTML = '<div class="attendee-category-title">Supervision</div>';
-        
-        supervision.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          supervisionDiv.appendChild(box);
-        });
-        
-        container.appendChild(supervDiv);
-      }
-      
-      if (others.length > 0) {
-        const othersDiv = document.createElement('div');
-        othersDiv.className = 'attendee-category';
-        othersDiv.innerHTML = '<div class="attendee-category-title">Other Attendees</div>';
-        
-        others.forEach(a => {
-          const box = createAttendeeBox(a, canEdit);
-          othersDiv.appendChild(box);
-        });
-        
-        container.appendChild(othersDiv);
-      }
-
-      if (canEdit) {
-        addBox.style.display = 'flex';
-        addBox.onclick = async e => {
-          e.stopPropagation();
-          if(addBox.querySelector('select')) return;
-
-          const res = await fetch('/dashboard/players');
-          const allPlayers = res.ok ? await res.json() : [];
-          
-          const eligiblePlayers = allPlayers.filter(p => DIRECTOR_PLUS.includes(p.group_rank));
-          
-          const select = document.createElement('select');
-          select.style.width = '100%';
-          select.style.padding = '8px';
-          select.style.fontSize = '14px';
-          select.style.border = '1px solid #42b4ff';
-          select.style.borderRadius = '6px';
-          select.innerHTML = '<option value="">Select player (Mochi Director+)...</option>' + eligiblePlayers.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username} - ${p.group_rank}</option>`).join('');
-
-          addBox.style.background = '#fff';
-          addBox.style.border = '2px solid #42b4ff';
-          addBox.innerHTML = '';
-          addBox.appendChild(select);
-          select.focus();
-
-          select.onchange = async () => {
-            if(select.value){
-              const [robloxId, username] = select.value.split('|');
-              await fetch('/shifts/add-attendee', {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({shiftId: currentShiftId, robloxId, username})
-              });
-              await renderModalAttendees();
-            } else resetAddBox();
-          };
-
-          select.onblur = () => setTimeout(resetAddBox, 200);
-
-          function resetAddBox(){
-            addBox.style.background = '#e6f3ff';
-            addBox.style.border = '2px dashed #42b4ff';
-            addBox.innerHTML = '+ Add attendee';
-          }
-        };
-      } else {
-        addBox.style.display = 'none';
-      }
-    } catch(err) {
-      console.error('Error loading attendees:', err);
+      container.appendChild(managementDiv);
     }
+    
+    if (publicRelations.length > 0) {
+      const prDiv = document.createElement('div');
+      prDiv.className = 'attendee-category';
+      prDiv.innerHTML = '<div class="attendee-category-title">Public Relations</div>';
+      
+      publicRelations.forEach(a => {
+        const box = createAttendeeBox(a, canEdit);
+        prDiv.appendChild(box);
+      });
+      
+      container.appendChild(prDiv);
+    }
+    
+    if (operations.length > 0) {
+      const opsDiv = document.createElement('div');
+      opsDiv.className = 'attendee-category';
+      opsDiv.innerHTML = '<div class="attendee-category-title">Operations</div>';
+      
+      operations.forEach(a => {
+        const box = createAttendeeBox(a, canEdit);
+        opsDiv.appendChild(box);
+      });
+      
+      container.appendChild(opsDiv);
+    }
+    
+    if (humanResources.length > 0) {
+      const hrDiv = document.createElement('div');
+      hrDiv.className = 'attendee-category';
+      hrDiv.innerHTML = '<div class="attendee-category-title">Human Resources</div>';
+      
+      humanResources.forEach(a => {
+        const box = createAttendeeBox(a, canEdit);
+        hrDiv.appendChild(box);
+      });
+      
+      container.appendChild(hrDiv);
+    }
+    
+    if (supervision.length > 0) {
+      const supervisionDiv = document.createElement('div');
+      supervisionDiv.className = 'attendee-category';
+      supervisionDiv.innerHTML = '<div class="attendee-category-title">Supervision</div>';
+      
+      supervision.forEach(a => {
+        const box = createAttendeeBox(a, canEdit);
+        supervisionDiv.appendChild(box);
+      });
+      
+      container.appendChild(supervDiv);
+    }
+    
+    if (others.length > 0) {
+      const othersDiv = document.createElement('div');
+      othersDiv.className = 'attendee-category';
+      othersDiv.innerHTML = '<div class="attendee-category-title">Other Attendees</div>';
+      
+      others.forEach(a => {
+        const box = createAttendeeBox(a, canEdit);
+        othersDiv.appendChild(box);
+      });
+      
+      container.appendChild(othersDiv);
+    }
+
+    if (canEdit) {
+      addBox.style.display = 'flex';
+      addBox.onclick = async e => {
+        e.stopPropagation();
+        if(addBox.querySelector('select')) return;
+
+        const res = await fetch('/dashboard/players');
+        const allPlayers = res.ok ? await res.json() : [];
+        
+        // Only allow adding players if user is in leadership ranks
+        const eligiblePlayers = isLeadership 
+          ? allPlayers 
+          : allPlayers.filter(p => DIRECTOR_PLUS.includes(p.group_rank));
+        
+        const select = document.createElement('select');
+        select.style.width = '100%';
+        select.style.padding = '8px';
+        select.style.fontSize = '14px';
+        select.style.border = '1px solid #42b4ff';
+        select.style.borderRadius = '6px';
+        select.innerHTML = '<option value="">Select player...</option>' + eligiblePlayers.map(p => `<option value="${p.roblox_id}|${p.username}">${p.username} - ${p.group_rank}</option>`).join('');
+
+        addBox.style.background = '#fff';
+        addBox.style.border = '2px solid #42b4ff';
+        addBox.innerHTML = '';
+        addBox.appendChild(select);
+        select.focus();
+
+        select.onchange = async () => {
+          if(select.value){
+            const [robloxId, username] = select.value.split('|');
+            await fetch('/shifts/add-attendee', {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({shiftId: currentShiftId, robloxId, username})
+            });
+            await renderModalAttendees();
+          } else resetAddBox();
+        };
+
+        select.onblur = () => setTimeout(resetAddBox, 200);
+
+        function resetAddBox(){
+          addBox.style.background = '#e6f3ff';
+          addBox.style.border = '2px dashed #42b4ff';
+          addBox.innerHTML = '+ Add attendee';
+        }
+      };
+    } else {
+      addBox.style.display = 'none';
+    }
+  } catch(err) {
+    console.error('Error loading attendees:', err);
   }
+}
   
   function createAttendeeBox(attendee, canEdit) {
     const box = document.createElement('div');
