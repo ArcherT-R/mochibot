@@ -707,83 +707,193 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTopPlayers();
   setInterval(renderTopPlayers, 5000);
 
+// Simple Levenshtein distance function
+function getLevenshteinDistance(a, b) {
+  const matrix = Array.from({ length: a.length + 1 }, () => []);
+  for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i-1][j] + 1,
+        matrix[i][j-1] + 1,
+        matrix[i-1][j-1] + cost
+      );
+    }
+  }
+  return matrix[a.length][b.length];
+}
+
+// Find closest username from a list
+function findClosestUsername(target, usernames) {
+  target = target.toLowerCase();
+  let closest = target;
+  let minDistance = Infinity;
+
+  usernames.forEach(name => {
+    const distance = getLevenshteinDistance(target, name.toLowerCase());
+    if (distance < minDistance) {
+      minDistance = distance;
+      closest = name;
+    }
+  });
+
+  return closest;
+}
+
 async function renderTopShiftLeaders(){
   try{
     const shiftsRes = await fetch('/shifts');
     const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
-    
+
     const attendeesPromises = shifts.map(async shift => {
       try {
         const res = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
         return res.ok ? await res.json() : [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     });
-    
+
     const allAttendeesArrays = await Promise.all(attendeesPromises);
-    
+
+    const playersRes = await fetch('/dashboard/players');
+    const allPlayers = playersRes.ok ? await playersRes.json() : [];
+    const allUsernames = allPlayers.map(p => p.username);
+
     const participationCount = {};
-    
+
     shifts.forEach((shift, index) => {
       const attendees = allAttendeesArrays[index];
-      
-      if (shift.host && shift.host !== 'TBD') {
-        const hostLower = shift.host.toLowerCase();
-        participationCount[hostLower] = (participationCount[hostLower] || 0) + 1;
-      }
-      
-      if (shift.cohost) {
-        const cohostLower = shift.cohost.toLowerCase();
-        participationCount[cohostLower] = (participationCount[cohostLower] || 0) + 1;
-      }
-      
-      if (shift.overseer) {
-        const overseerLower = shift.overseer.toLowerCase();
-        participationCount[overseerLower] = (participationCount[overseerLower] || 0) + 1;
-      }
-      
+
+      ['host', 'cohost', 'overseer'].forEach(role => {
+        if (shift[role] && shift[role] !== 'TBD') {
+          const closest = findClosestUsername(shift[role], allUsernames).toLowerCase();
+          participationCount[closest] = (participationCount[closest] || 0) + 1;
+        }
+      });
+
       attendees.forEach(attendee => {
-        const usernameLower = attendee.username.toLowerCase();
-        participationCount[usernameLower] = (participationCount[usernameLower] || 0) + 1;
+        const closest = findClosestUsername(attendee.username, allUsernames).toLowerCase();
+        participationCount[closest] = (participationCount[closest] || 0) + 1;
       });
     });
-    
+
     const sortedLeaders = Object.entries(participationCount)
       .map(([username, count]) => ({ username, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
-    
+
     const topShiftLeadersGrid = document.getElementById('topShiftLeaders');
-    
+
     if(!sortedLeaders.length){
       topShiftLeadersGrid.innerHTML = '<div class="no-data">No shift participation data.</div>';
       return;
     }
-    
-    const playersRes = await fetch('/dashboard/players');
-    const allPlayers = playersRes.ok ? await playersRes.json() : [];
-    
+
     topShiftLeadersGrid.innerHTML = sortedLeaders.map(leader => {
       const player = allPlayers.find(p => p.username.toLowerCase() === leader.username);
       const avatarUrl = player?.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';
       const displayName = player?.username || leader.username;
-      
+
       return `
         <div class="player-card" onclick="window.location='/dashboard/player/${displayName}'">
-          <img src="${avatarUrl}"
-               onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+          <img src="${avatarUrl}" onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
           <div>${displayName}</div>
           <div class="time">${leader.count} shift${leader.count !== 1 ? 's' : ''}</div>
         </div>`;
     }).join('');
+
   } catch(err){ 
     console.error('Error loading shift leaders:', err); 
     document.getElementById('topShiftLeaders').innerHTML = '<div class="no-data">Failed to load shift leaders.</div>';
   }
 }
-  renderTopShiftLeaders();
-  setInterval(renderTopShiftLeaders, 60000);
+
+renderTopShiftLeaders();
+setInterval(renderTopShiftLeaders, 60000);
+
+async function renderRequirementsBox() {
+  try {
+    const playersRes = await fetch('/dashboard/players');
+    const allPlayers = playersRes.ok ? await playersRes.json() : [];
+
+    // Define teams
+    const TEAMS = {
+      corporate: [
+        'Corporate Intern',
+        'Junior Corporate',
+        'Senior Corporate',
+        'Head Corporate'
+      ],
+      management: [
+        'Lead Mochi Director',
+        'Senior Mochi Director',
+        'Mochi Director'
+      ],
+      supervision: [
+        'Mochi Manager',
+        'Assistant Mochi Manager',
+        'Supervisor',
+        'Mochi Leader'
+      ]
+    };
+
+    const tags = {
+      corporate: [],
+      management: [],
+      supervision: []
+    };
+
+    // Assign players to tags
+    allPlayers.forEach(player => {
+      const rank = player.group_rank;
+
+      if (TEAMS.corporate.includes(rank)) {
+        tags.corporate.push({ username: player.username, rank });
+      } else if (TEAMS.management.includes(rank)) {
+        tags.management.push(player.username);
+      } else if (TEAMS.supervision.includes(rank)) {
+        tags.supervision.push(player.username);
+      } else {
+        // Players not in any team can go to supervision by default
+        tags.supervision.push(player.username);
+      }
+    });
+
+    // Order corporate by department tags (rank order defined in TEAMS.corporate)
+    tags.corporate.sort((a, b) => {
+      return TEAMS.corporate.indexOf(a.rank) - TEAMS.corporate.indexOf(b.rank);
+    });
+
+    // Build HTML
+    const requirementsBox = document.getElementById('requirementsBox');
+    requirementsBox.innerHTML = `
+      <div class="requirements-section">
+        <h3>Corporate Requirements</h3>
+        <p>Players must have the following department tags:</p>
+        <ul>${tags.corporate.map(u => `<li>${u.username} (${u.rank})</li>`).join('')}</ul>
+      </div>
+
+      <div class="requirements-section">
+        <h3>Management Requirements</h3>
+        <p>Players must meet the tag requirements for management:</p>
+        <ul>${tags.management.map(u => `<li>${u}</li>`).join('')}</ul>
+      </div>
+
+      <div class="requirements-section">
+        <h3>Recommended (Supervision)</h3>
+        <p>Players below Mochi Manager: 90 minutes/week recommended</p>
+        <ul>${tags.supervision.map(u => `<li>${u}</li>`).join('')}</ul>
+      </div>
+    `;
+  } catch (err) {
+    console.error('Error rendering requirements box:', err);
+    document.getElementById('requirementsBox').innerHTML = '<div class="no-data">Failed to load requirements.</div>';
+  }
+}
+
+renderRequirementsBox();
 
 async function calculateShiftStats() {
   try {
