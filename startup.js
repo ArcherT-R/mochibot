@@ -77,6 +77,10 @@ async function main() {
   // Settings routes
   const settingsRoute = require('./endpoints/settings');
   app.use('/settings', settingsRoute);
+
+  // Verification routes
+  const verificationRoutes = require('./routes/verification');
+  app.use('/', verificationRoutes);
   
   // ----------------------------
   // Discord-Dependent Routes (Conditional)
