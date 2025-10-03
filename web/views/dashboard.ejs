@@ -132,6 +132,16 @@
   .home-section-title { font-size:22px; font-weight:700; color:#1a85e6; margin-bottom:15px; display:flex; align-items:center; gap:10px; }
   .home-section-title-icon { font-size:24px; }
   .home-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px; }
+  .user-requirements { background:#e6f3ff; border-radius:8px; padding:15px; margin-bottom:20px; border:1px solid #42b4ff; }
+  .user-requirements-title { font-weight:700; color:#1a85e6; margin-bottom:10px; font-size:16px; }
+  .user-requirement-item { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:8px; background:white; border-radius:6px; }
+  .user-requirement-label { font-weight:600; color:#333; }
+  .user-requirement-progress { display:flex; align-items:center; gap:10px; }
+  .progress-bar { width:100px; height:8px; background:#e0e6f0; border-radius:4px; overflow:hidden; }
+  .progress-fill { height:100%; background:#42b4ff; transition:width 0.3s; }
+  .progress-text { font-size:12px; font-weight:600; color:#666; min-width:40px; text-align:right; }
+  .progress-complete { color:#28a745; }
+  .progress-incomplete { color:#ff4444; }
   @media(max-width:600px){
     header { font-size:36px; padding:20px; }
     h2 { text-align:center; }
@@ -157,6 +167,8 @@
     .player-table th:nth-child(3), .player-table td:nth-child(3),
     .player-table th:nth-child(5), .player-table td:nth-child(5) { display:none; }
     .home-grid { grid-template-columns:1fr; }
+    .user-requirement-progress { flex-direction:column; align-items:flex-start; gap:5px; }
+    .progress-bar { width:100%; }
   }
 </style>
 </head>
@@ -193,6 +205,10 @@
         </section>
         <section class="content-section">
           <h2>Weekly Requirements & Tags</h2>
+          <div id="userRequirements" class="user-requirements" style="display:none;">
+            <div class="user-requirements-title">Your Weekly Requirements</div>
+            <div id="userRequirementsList"></div>
+          </div>
           <div id="requirementsBox"></div>
         </section>
       </div>
@@ -312,6 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const latestAnnouncement = document.getElementById('latestAnnouncement');
   const newAnnouncementBtn = document.getElementById('newAnnouncementBtn');
   const viewAllAnnouncementsBtn = document.getElementById('viewAllAnnouncementsBtn');
+  const userRequirements = document.getElementById('userRequirements');
+  const userRequirementsList = document.getElementById('userRequirementsList');
   
   // Add event listeners for announcement buttons
   viewAllAnnouncementsBtn.addEventListener('click', openAnnouncementsModal);
@@ -325,6 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let allPlayersData = [];
   let playerShiftStats = {};
   let announcements = [];
+  let currentUserLabels = [];
 
   const LEADERSHIP_RANKS = [
     'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
@@ -355,10 +374,29 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Load announcements
         loadAnnouncements();
+        
+        // Load current user's labels
+        await loadCurrentUserLabels();
       }
     } catch (err) {
       console.error('Failed to load current user:', err);
       userGroupRank = '';
+    }
+  }
+  
+  async function loadCurrentUserLabels() {
+    if (!currentUser) return;
+    
+    try {
+      const res = await fetch(`/settings/labels/${currentUser.roblox_id}`);
+      if (res.ok) {
+        currentUserLabels = await res.json();
+      } else {
+        currentUserLabels = [];
+      }
+    } catch (err) {
+      console.error('Failed to load user labels:', err);
+      currentUserLabels = [];
     }
   }
   
@@ -946,6 +984,14 @@ async function renderRequirementsBox() {
       });
     }
     
+    // Show user's requirements if logged in
+    if (currentUser && currentUserLabels.length > 0) {
+      userRequirements.style.display = 'block';
+      renderUserRequirements();
+    } else {
+      userRequirements.style.display = 'none';
+    }
+    
     // Build HTML
     const requirementsBox = document.getElementById('requirementsBox');
     requirementsBox.innerHTML = `
@@ -1019,7 +1065,64 @@ async function renderRequirementsBox() {
   }
 }
 
-renderRequirementsBox();
+async function renderUserRequirements() {
+  if (!currentUser || !currentUserLabels.length) return;
+  
+  try {
+    // Get current user's shift stats
+    const stats = await calculateShiftStats();
+    const userStats = stats[currentUser.username.toLowerCase()] || { hosted: 0, attended: 0 };
+    
+    // Get current user's weekly minutes
+    const weeklyMinutes = currentUser.weekly_minutes || 0;
+    
+    // Define requirements for each tag
+    const tagRequirements = {
+      'Management': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
+      'Public Relations': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
+      'Operations': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
+      'Human Resources': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
+      'Supervision': { type: 'minutes', required: 90, current: weeklyMinutes }
+    };
+    
+    // Build HTML for user's requirements
+    let userRequirementsHTML = '';
+    
+    currentUserLabels.forEach(label => {
+      if (tagRequirements[label]) {
+        const req = tagRequirements[label];
+        const progress = Math.min((req.current / req.required) * 100, 100);
+        const isComplete = req.current >= req.required;
+        
+        let progressText = '';
+        if (req.type === 'shifts') {
+          progressText = `${req.current}/${req.required} shifts ${req.action}`;
+        } else {
+          progressText = `${req.current}/${req.required} minutes`;
+        }
+        
+        userRequirementsHTML += `
+          <div class="user-requirement-item">
+            <span class="user-requirement-label">${label}</span>
+            <div class="user-requirement-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+              </div>
+              <span class="progress-text ${isComplete ? 'progress-complete' : 'progress-incomplete'}">
+                ${isComplete ? '✓' : ''} ${progressText}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+    });
+    
+    userRequirementsList.innerHTML = userRequirementsHTML || '<p>No requirements for your tags.</p>';
+  } catch (err) {
+    console.error('Error rendering user requirements:', err);
+    userRequirementsList.innerHTML = '<p>Failed to load your requirements.</p>';
+  }
+}
 
 async function calculateShiftStats() {
   try {
@@ -1324,7 +1427,7 @@ async function calculateShiftStats() {
           supervisionDiv.appendChild(box);
         });
         
-        container.appendChild(supervisionDiv);
+        container.appendChild(supervDiv);
       }
       
       if (others.length > 0) {
@@ -1781,6 +1884,12 @@ window.openAddPlayer = async function() {
       
       if (res.ok) {
         managePlayerLabels(robloxId, username);
+        
+        // If the current user's labels were updated, refresh the requirements
+        if (currentUser && currentUser.roblox_id === robloxId) {
+          await loadCurrentUserLabels();
+          renderUserRequirements();
+        }
       } else {
         alert('Failed to update label');
       }
