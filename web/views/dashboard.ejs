@@ -1586,38 +1586,42 @@ window.openAddPlayer = async function() {
   };
 
   window.setBirthdayFor = async function(robloxId, username) {
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      alert('Access Denied: Birthday management requires Vice Chairman+');
-      return;
-    }
+  if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+    alert('Access Denied: Birthday management requires Vice Chairman+');
+    return;
+  }
 
-    const birthday = prompt(`Set birthday for ${username} (YYYY-MM-DD):`);
-    if (!birthday) return;
+  const birthday = prompt(`Set birthday for ${username} (MM/DD):`);
+  if (!birthday) return;
+  
+  const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])$/;
+  if (!dateRegex.test(birthday)) {
+    alert('Invalid date format. Use MM/DD (e.g., 03/15)');
+    return;
+  }
+  
+  // Convert MM/DD to a date string with year 2000 (arbitrary year for storage)
+  const [month, day] = birthday.split('/');
+  const birthdayWithYear = `2000-${month}-${day}`;
+  
+  try {
+    const res = await fetch('/settings/birthdays/set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roblox_id: robloxId, username, birthday: birthdayWithYear })
+    });
     
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(birthday)) {
-      alert('Invalid date format. Use YYYY-MM-DD');
-      return;
+    if (res.ok) {
+      alert('Birthday set successfully!');
+      openBirthdaysManager();
+      renderUpcomingBirthdays();
+    } else {
+      alert('Failed to set birthday');
     }
-    
-    try {
-      const res = await fetch('/settings/birthdays/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roblox_id: robloxId, username, birthday })
-      });
-      
-      if (res.ok) {
-        alert('Birthday set successfully!');
-        openBirthdaysManager();
-        renderUpcomingBirthdays();
-      } else {
-        alert('Failed to set birthday');
-      }
-    } catch (err) {
-      alert('Error setting birthday');
-    }
-  };
+  } catch (err) {
+    alert('Error setting birthday');
+  }
+};
 
   window.deleteBirthday = async function(robloxId) {
     if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
