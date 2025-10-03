@@ -50,60 +50,52 @@ router.get("/", requireLogin, async (req, res) => {
   }
 });
 
-// ----------------------------
-// Announcements endpoints
-// ----------------------------
-router.get("/announcements", requireLogin, async (req, res) => {
-  try {
-    const announcements = await getAnnouncements();
-    res.json(announcements);
-  } catch (err) {
-    console.error("Error fetching announcements:", err);
-    res.status(500).json({ error: "Failed to fetch announcements" });
-  }
-});
+// -------------------------
+// Announcements
+// -------------------------
 
-router.post("/announcements", requireLogin, async (req, res) => {
-  try {
-    const { title, content } = req.body;
-    const player = req.session?.player;
-    
-    // Verify user is in leadership
-    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: "Only leadership can create announcements" });
-    }
-    
-    if (!title || !content) {
-      return res.status(400).json({ error: "Title and content are required" });
-    }
-    
-    const announcement = await addAnnouncement(title, content, player.username);
-    res.status(201).json(announcement);
-  } catch (err) {
-    console.error("Error creating announcement:", err);
-    res.status(500).json({ error: "Failed to create announcement" });
-  }
-});
+async function getAnnouncements() {
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data || [];
+}
 
-router.delete("/announcements/:id", requireLogin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const player = req.session?.player;
-    
-    // Verify user is in leadership
-    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: "Only leadership can delete announcements" });
-    }
-    
-    // Delete the announcement
-    await deleteAnnouncement(id);
-    
-    res.json({ success: true, message: "Announcement deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting announcement:", err);
-    res.status(500).json({ error: "Failed to delete announcement" });
+async function addAnnouncement(title, content, author) {
+  const { data, error } = await supabase
+    .from('announcements')
+    .insert([{ 
+      title, 
+      content, 
+      author, 
+      created_at: new Date().toISOString() 
+    }])
+    .select();
+  
+  if (error) throw error;
+  return data[0];
+}
+
+async function deleteAnnouncement(id, title, date) {
+  if (id) {
+    const { error } = await supabase
+      .from('announcements')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  } else if (title && date) {
+    const { error } = await supabase
+      .from('announcements')
+      .delete()
+      .eq('title', title)
+      .eq('created_at', date);
+    if (error) throw error;
   }
-});
+  return { success: true };
+}
 
 // ----------------------------
 // Current user endpoint
