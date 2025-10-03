@@ -124,6 +124,14 @@
   .requirements-section { margin-bottom:20px; }
   .requirements-section h3 { color:#1a85e6; margin-bottom:10px; }
   .requirements-section ul { padding-left:20px; }
+  .requirement-tag { display:flex; justify-content:space-between; align-items:center; padding:12px; background:#f9f9f9; border-radius:8px; margin-bottom:10px; border-left:4px solid #42b4ff; }
+  .requirement-tag-name { font-weight:600; color:#333; }
+  .requirement-tag-desc { font-size:14px; color:#666; margin-top:4px; }
+  .requirement-tag-count { background:#42b4ff; color:white; padding:4px 8px; border-radius:12px; font-size:12px; font-weight:700; }
+  .home-section { margin-bottom:30px; }
+  .home-section-title { font-size:22px; font-weight:700; color:#1a85e6; margin-bottom:15px; display:flex; align-items:center; gap:10px; }
+  .home-section-title-icon { font-size:24px; }
+  .home-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px; }
   @media(max-width:600px){
     header { font-size:36px; padding:20px; }
     h2 { text-align:center; }
@@ -148,6 +156,7 @@
     .filter-button { padding:8px 12px; font-size:12px; margin-bottom:5px; }
     .player-table th:nth-child(3), .player-table td:nth-child(3),
     .player-table th:nth-child(5), .player-table td:nth-child(5) { display:none; }
+    .home-grid { grid-template-columns:1fr; }
   }
 </style>
 </head>
@@ -168,23 +177,36 @@
 </nav>
 <div class="container">
   <div id="home" class="tab-content active">
-    <section class="content-section">
-      <h2>Announcements</h2>
-      <div id="announcementsContainer">
-        <div id="latestAnnouncement" class="announcement-box"></div>
-        <div class="announcement-actions">
-          <button id="viewAllAnnouncementsBtn" class="btn">View All</button>
-          <button id="newAnnouncementBtn" class="btn" style="display:none;">New Announcement</button>
-        </div>
+    <!-- Important Section -->
+    <div class="home-section">
+      <h2 class="home-section-title"><span class="home-section-title-icon">📌</span>Important</h2>
+      <div class="home-grid">
+        <section class="content-section">
+          <h2>Announcements</h2>
+          <div id="announcementsContainer">
+            <div id="latestAnnouncement" class="announcement-box"></div>
+            <div class="announcement-actions">
+              <button id="viewAllAnnouncementsBtn" class="btn">View All</button>
+              <button id="newAnnouncementBtn" class="btn" style="display:none;">New Announcement</button>
+            </div>
+          </div>
+        </section>
+        <section class="content-section">
+          <h2>Weekly Requirements & Tags</h2>
+          <div id="requirementsBox"></div>
+        </section>
       </div>
-    </section>
-    <section class="content-section">
-      <h2>Weekly Requirements & Tags</h2>
-      <div id="requirementsBox"></div>
-    </section>
-    <section class="content-section"><h2>Top Active This Week</h2><div id="topPlayersGrid" class="top-players-grid"></div></section>
-    <section class="content-section"><h2>Top 3 Shift Leaders</h2><div id="topShiftLeaders" class="top-players-grid"></div></section>
-    <section class="content-section"><h2>Upcoming Birthdays</h2><div id="upcomingBirthdays" class="top-players-grid"></div></section>
+    </div>
+    
+    <!-- Community Section -->
+    <div class="home-section">
+      <h2 class="home-section-title"><span class="home-section-title-icon">👥</span>Community</h2>
+      <div class="home-grid">
+        <section class="content-section"><h2>Top Active This Week</h2><div id="topPlayersGrid" class="top-players-grid"></div></section>
+        <section class="content-section"><h2>Top 3 Shift Leaders</h2><div id="topShiftLeaders" class="top-players-grid"></div></section>
+        <section class="content-section"><h2>Upcoming Birthdays</h2><div id="upcomingBirthdays" class="top-players-grid"></div></section>
+      </div>
+    </div>
   </div>
   <div id="playerlist" class="tab-content">
     <section class="content-section">
@@ -195,6 +217,7 @@
         <button class="filter-button" data-filter="Public Relations" onclick="filterPlayerList('Public Relations')">Public Relations</button>
         <button class="filter-button" data-filter="Operations" onclick="filterPlayerList('Operations')">Operations</button>
         <button class="filter-button" data-filter="Human Resources" onclick="filterPlayerList('Human Resources')">Human Resources</button>
+        <button class="filter-button" data-filter="Supervision" onclick="filterPlayerList('Supervision')">Supervision</button>
       </div>
       <div class="player-table-wrapper">
         <table class="player-table">
@@ -823,74 +846,171 @@ async function renderRequirementsBox() {
   try {
     const playersRes = await fetch('/dashboard/players');
     const allPlayers = playersRes.ok ? await playersRes.json() : [];
-
-    // Define teams
-    const TEAMS = {
-      corporate: [
-        'Corporate Intern',
-        'Junior Corporate',
-        'Senior Corporate',
-        'Head Corporate'
-      ],
-      management: [
-        'Lead Mochi Director',
-        'Senior Mochi Director',
-        'Mochi Director'
-      ],
-      supervision: [
-        'Mochi Manager',
-        'Assistant Mochi Manager',
-        'Supervisor',
-        'Mochi Leader'
-      ]
-    };
-
-    const tags = {
-      corporate: [],
-      management: [],
-      supervision: []
-    };
-
-    // Assign players to tags
-    allPlayers.forEach(player => {
-      const rank = player.group_rank;
-
-      if (TEAMS.corporate.includes(rank)) {
-        tags.corporate.push({ username: player.username, rank });
-      } else if (TEAMS.management.includes(rank)) {
-        tags.management.push(player.username);
-      } else if (TEAMS.supervision.includes(rank)) {
-        tags.supervision.push(player.username);
-      } else {
-        // Players not in any team can go to supervision by default
-        tags.supervision.push(player.username);
+    
+    // Get all player labels
+    const labelsPromises = allPlayers.map(async p => {
+      try {
+        const labelRes = await fetch(`/settings/labels/${p.roblox_id}`);
+        const labels = labelRes.ok ? await labelRes.json() : [];
+        return { ...p, labels };
+      } catch {
+        return { ...p, labels: [] };
       }
     });
-
-    // Order corporate by department tags (rank order defined in TEAMS.corporate)
-    tags.corporate.sort((a, b) => {
-      return TEAMS.corporate.indexOf(a.rank) - TEAMS.corporate.indexOf(b.rank);
-    });
-
+    
+    const playersWithLabels = await Promise.all(labelsPromises);
+    
+    // Define teams and their requirements
+    const TEAMS = {
+      corporate: {
+        ranks: [
+          'Corporate Intern',
+          'Junior Corporate',
+          'Senior Corporate',
+          'Head Corporate'
+        ],
+        requirement: 'Host 2 shifts per week'
+      },
+      management: {
+        ranks: [
+          'Lead Mochi Director',
+          'Senior Mochi Director',
+          'Mochi Director'
+        ],
+        requirement: 'Attend 2 shifts per week'
+      },
+      supervision: {
+        ranks: [
+          'Mochi Manager',
+          'Assistant Mochi Manager',
+          'Supervisor',
+          'Mochi Leader'
+        ],
+        requirement: '90 minutes per week recommended'
+      }
+    };
+    
+    // Count players in each team
+    const teamCounts = {
+      corporate: 0,
+      management: 0,
+      supervision: 0
+    };
+    
+    // Count players with each label
+    const labelCounts = {
+      'Management': 0,
+      'Public Relations': 0,
+      'Operations': 0,
+      'Human Resources': 0,
+      'Supervision': 0
+    };
+    
+    // Auto-assign supervision tag to players with supervision ranks
+    for (const player of playersWithLabels) {
+      const rank = player.group_rank;
+      
+      // Check if player is in supervision ranks but doesn't have the supervision label
+      if (TEAMS.supervision.ranks.includes(rank) && !player.labels.includes('Supervision')) {
+        // Auto-assign supervision label
+        try {
+          await fetch('/settings/labels', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              roblox_id: player.roblox_id, 
+              username: player.username, 
+              label: 'Supervision' 
+            })
+          });
+          player.labels.push('Supervision');
+        } catch (err) {
+          console.error('Error auto-assigning supervision label:', err);
+        }
+      }
+      
+      // Count players in each team
+      if (TEAMS.corporate.ranks.includes(rank)) {
+        teamCounts.corporate++;
+      } else if (TEAMS.management.ranks.includes(rank)) {
+        teamCounts.management++;
+      } else if (TEAMS.supervision.ranks.includes(rank)) {
+        teamCounts.supervision++;
+      }
+      
+      // Count players with each label
+      player.labels.forEach(label => {
+        if (labelCounts[label] !== undefined) {
+          labelCounts[label]++;
+        }
+      });
+    }
+    
     // Build HTML
     const requirementsBox = document.getElementById('requirementsBox');
     requirementsBox.innerHTML = `
       <div class="requirements-section">
-        <h3>Corporate Requirements</h3>
-        <p>Players must have the following department tags:</p>
-        <ul>${tags.corporate.map(u => `<li>${u.username} (${u.rank})</li>`).join('')}</ul>
+        <h3>Team Requirements</h3>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Corporate Team</div>
+            <div class="requirement-tag-desc">${TEAMS.corporate.requirement}</div>
+          </div>
+          <div class="requirement-tag-count">${teamCounts.corporate} members</div>
+        </div>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Management Team</div>
+            <div class="requirement-tag-desc">${TEAMS.management.requirement}</div>
+          </div>
+          <div class="requirement-tag-count">${teamCounts.management} members</div>
+        </div>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Supervision Team</div>
+            <div class="requirement-tag-desc">${TEAMS.supervision.requirement}</div>
+          </div>
+          <div class="requirement-tag-count">${teamCounts.supervision} members</div>
+        </div>
       </div>
-
+      
       <div class="requirements-section">
-        <h3>Management Requirements</h3>
-        <p>Players must meet the tag requirements for management:</p>
-        <ul>${tags.management.map(u => `<li>${u}</li>`).join('')}</ul>
-      </div>
-
-      <div class="requirements-section">
-        <h3>Recommended (Supervision)</h3>
-        <p>Players below Mochi Manager: 90 minutes/week recommended</p>
-        <ul>${tags.supervision.map(u => `<li>${u}</li>`).join('')}</ul>
+        <h3>Tag Requirements</h3>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Management</div>
+            <div class="requirement-tag-desc">Attend 2 shifts per week</div>
+          </div>
+          <div class="requirement-tag-count">${labelCounts['Management']} members</div>
+        </div>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Public Relations</div>
+            <div class="requirement-tag-desc">Attend 2 shifts per week</div>
+          </div>
+          <div class="requirement-tag-count">${labelCounts['Public Relations']} members</div>
+        </div>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Operations</div>
+            <div class="requirement-tag-desc">Host 2 shifts per week</div>
+          </div>
+          <div class="requirement-tag-count">${labelCounts['Operations']} members</div>
+        </div>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Human Resources</div>
+            <div class="requirement-tag-desc">Host 2 shifts per week</div>
+          </div>
+          <div class="requirement-tag-count">${labelCounts['Human Resources']} members</div>
+        </div>
+        <div class="requirement-tag">
+          <div>
+            <div class="requirement-tag-name">Supervision</div>
+            <div class="requirement-tag-desc">90 minutes per week recommended</div>
+          </div>
+          <div class="requirement-tag-count">${labelCounts['Supervision']} members</div>
+        </div>
       </div>
     `;
   } catch (err) {
@@ -1032,6 +1152,10 @@ async function calculateShiftStats() {
           } else if (currentPlayerFilter === 'Public Relations' || currentPlayerFilter === 'Management') {
             requirementMet = stats.attended >= 2;
             requirementText = `${stats.attended}/2 shifts attended`;
+          } else if (currentPlayerFilter === 'Supervision') {
+            const minutes = (p.weekly_minutes || 0);
+            requirementMet = minutes >= 90;
+            requirementText = `${minutes}/90 minutes`;
           }
           
           const color = requirementMet ? '#28a745' : '#ff4444';
@@ -1133,6 +1257,7 @@ async function calculateShiftStats() {
       const publicRelations = attendeesWithLabels.filter(a => a.labels.includes('Public Relations'));
       const operations = attendeesWithLabels.filter(a => a.labels.includes('Operations'));
       const humanResources = attendeesWithLabels.filter(a => a.labels.includes('Human Resources'));
+      const supervision = attendeesWithLabels.filter(a => a.labels.includes('Supervision'));
       const others = attendeesWithLabels.filter(a => a.labels.length === 0);
       
       container.innerHTML = '';
@@ -1187,6 +1312,19 @@ async function calculateShiftStats() {
         });
         
         container.appendChild(hrDiv);
+      }
+      
+      if (supervision.length > 0) {
+        const supervisionDiv = document.createElement('div');
+        supervisionDiv.className = 'attendee-category';
+        supervisionDiv.innerHTML = '<div class="attendee-category-title">Supervision</div>';
+        
+        supervision.forEach(a => {
+          const box = createAttendeeBox(a, canEdit);
+          supervisionDiv.appendChild(box);
+        });
+        
+        container.appendChild(supervisionDiv);
       }
       
       if (others.length > 0) {
@@ -1607,7 +1745,7 @@ window.openAddPlayer = async function() {
     const res = await fetch(`/settings/labels/${robloxId}`);
     const currentLabels = res.ok ? await res.json() : [];
     
-    const allLabels = ['Management', 'Public Relations', 'Operations', 'Human Resources'];
+    const allLabels = ['Management', 'Public Relations', 'Operations', 'Human Resources', 'Supervision'];
     
     const modalBody = document.querySelector('.modal-body');
     modalBody.innerHTML = `
