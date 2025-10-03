@@ -17,7 +17,7 @@ const {
   searchPlayersByUsername,
   getAllPlayers,
   createPlayerIfNotExists
-} = require("../../endpoints/database");
+} = require("../endpoints/database");
 
 // Leadership ranks
 const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
