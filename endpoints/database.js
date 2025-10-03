@@ -115,6 +115,15 @@ async function addAnnouncement(title, content, author) {
   return data[0];
 }
 
+async function deleteAnnouncement(id) {
+  const { error } = await supabase
+    .from('announcements')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+  return { success: true };
+}
+
 // -------------------------
 // Players
 // -------------------------
@@ -655,5 +664,6 @@ module.exports = {
   getPlayerLabels,
   addPlayerLabel,
   removePlayerLabel,
-  getAllPlayerLabels
+  getAllPlayerLabels,
+  deleteAnnouncement
 };
