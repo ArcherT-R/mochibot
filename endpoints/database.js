@@ -606,6 +606,40 @@ async function getLastWeekHistory() {
 }
 
 // -------------------------
+// Verification Codes
+// -------------------------
+
+async function addVerificationCode(roblox_id, code) {
+  const { data, error } = await supabase
+    .from('verification_codes')
+    .insert([{ roblox_id, code }])
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+async function getVerificationCode(roblox_id, code) {
+  const { data, error } = await supabase
+    .from('verification_codes')
+    .select('*')
+    .eq('roblox_id', roblox_id)
+    .eq('code', code)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+async function deleteVerificationCode(roblox_id, code) {
+  const { error } = await supabase
+    .from('verification_codes')
+    .delete()
+    .eq('roblox_id', roblox_id)
+    .eq('code', code);
+  if (error) throw error;
+  return { success: true };
+}
+
+// -------------------------
 // Exports
 // -------------------------
 module.exports = {
@@ -665,5 +699,8 @@ module.exports = {
   addPlayerLabel,
   removePlayerLabel,
   getAllPlayerLabels,
-  deleteAnnouncement
+  deleteAnnouncement,
+  addVerificationCode,
+  getVerificationCode,
+  deleteVerificationCode
 };
