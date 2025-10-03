@@ -8,7 +8,8 @@ const {
   getOngoingSession,
   searchPlayersByUsername,
   getAnnouncements,
-  addAnnouncement
+  addAnnouncement,
+  deleteAnnouncement
 } = require("../../endpoints/database");
 
 // ----------------------------
@@ -81,6 +82,26 @@ router.post("/announcements", requireLogin, async (req, res) => {
   } catch (err) {
     console.error("Error creating announcement:", err);
     res.status(500).json({ error: "Failed to create announcement" });
+  }
+});
+
+router.delete("/announcements/:id", requireLogin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const player = req.session?.player;
+    
+    // Verify user is in leadership
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: "Only leadership can delete announcements" });
+    }
+    
+    // Delete the announcement
+    await deleteAnnouncement(id);
+    
+    res.json({ success: true, message: "Announcement deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting announcement:", err);
+    res.status(500).json({ error: "Failed to delete announcement" });
   }
 });
 
