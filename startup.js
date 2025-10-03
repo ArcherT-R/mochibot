@@ -79,7 +79,7 @@ async function main() {
   app.use('/settings', settingsRoute);
 
   // Verification routes
-  const verificationRoutes = require('./routes/verification');
+  const verificationRoutes = require('./endpoints/verification');
   app.use('/', verificationRoutes);
   
   // ----------------------------
