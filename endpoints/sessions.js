@@ -1,5 +1,5 @@
 const express = require('express');
-const { getShiftByTime } = require('./database'); // Add this function to database.js
+const { getShiftByTime, addShift } = require('./database');
 
 const GUILD_ID = '1362322934794031104';
 const CHANNEL_ID = '1402605903508672554';
@@ -20,6 +20,7 @@ async function resolveDiscordName(client, guild, text) {
 module.exports = (client) => {
   const router = express.Router();
   
+  // Get sessions from Discord
   router.get('/', async (req, res) => {
     try {
       if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
@@ -67,8 +68,8 @@ module.exports = (client) => {
             host, 
             cohost, 
             overseer, 
-            shift_time: new Date(timestamp * 1000).toISOString(),
-            timestamp // Include raw timestamp for duplicate checking
+            shift_time: timestamp, // Keep as Unix timestamp
+            timestamp
           };
           sessions.push(session);
         }
@@ -78,6 +79,82 @@ module.exports = (client) => {
     } catch (err) {
       console.error('Error fetching sessions:', err);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // NEW: Sync Discord sessions to database
+  router.post('/sync', async (req, res) => {
+    try {
+      if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
+      
+      const guild = await client.guilds.fetch(GUILD_ID);
+      if (!guild) return res.status(500).json({ error: 'Guild not found' });
+      
+      const channel = await guild.channels.fetch(CHANNEL_ID);
+      if (!channel) return res.status(500).json({ error: 'Channel not found' });
+      
+      const messages = await channel.messages.fetch({ limit: 50 });
+      let added = 0;
+      let skipped = 0;
+      
+      for (const msg of messages.values()) {
+        let host = null;
+        let cohost = null;
+        let overseer = null;
+        let timestamp = null;
+        
+        const lines = msg.content.split(/\r?\n/);
+        for (const line of lines) {
+          const [key, ...rest] = line.split(':');
+          const value = rest.join(':').trim();
+          if (!value) continue;
+          
+          switch (key.trim().toLowerCase()) {
+            case 'host':
+              host = await resolveDiscordName(client, guild, value);
+              break;
+            case 'cohost':
+              cohost = await resolveDiscordName(client, guild, value);
+              break;
+            case 'overseer':
+              overseer = await resolveDiscordName(client, guild, value);
+              break;
+            case 'time':
+              const tsMatch = value.match(/\d+/);
+              if (tsMatch) timestamp = parseInt(tsMatch[0], 10);
+              break;
+          }
+        }
+        
+        if (host && timestamp) {
+          // Check if shift already exists
+          const existing = await getShiftByTime(timestamp);
+          
+          if (!existing) {
+            // Add to database
+            await addShift({ 
+              shift_time: timestamp, 
+              host, 
+              cohost, 
+              overseer 
+            });
+            added++;
+            console.log(`✅ Synced shift: ${host} at ${new Date(timestamp * 1000).toISOString()}`);
+          } else {
+            skipped++;
+          }
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        added, 
+        skipped,
+        message: `Synced ${added} new shifts, skipped ${skipped} existing shifts`
+      });
+    } catch (err) {
+      console.error('Error syncing sessions:', err);
+      res.status(500).json({ error: 'Failed to sync sessions' });
     }
   });
   
