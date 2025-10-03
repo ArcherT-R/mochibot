@@ -608,14 +608,12 @@ async function getLastWeekHistory() {
 // // // // // // 
 // Verfication //
 // // // // // //
-app.post('/generate-verification-code', async (req, res) => {
+router.post('/generate-verification-code', async (req, res) => {
   const { robloxUsername } = req.body;
   if (!robloxUsername) return res.status(400).json({ error: 'Missing robloxUsername' });
 
-  // Generate 6-digit code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // Store it temporarily in Supabase or your DB
   const { error } = await supabase
     .from('verification_codes')
     .upsert({
@@ -629,16 +627,13 @@ app.post('/generate-verification-code', async (req, res) => {
     return res.status(500).json({ error: 'Failed to generate code' });
   }
 
-  res.json({ success: true, code }); // ← your bot will DM this to the user
+  res.json({ success: true, code });
 });
 
-// POST /verify-code
-// Body: { robloxUsername: "...", code: "123456" }
-app.post('/verify-code', async (req, res) => {
+router.post('/verify-code', async (req, res) => {
   const { robloxUsername, code } = req.body;
   if (!robloxUsername || !code) return res.status(400).json({ error: 'Missing fields' });
 
-  // 1. Check the code matches
   const { data: codeRow, error: codeErr } = await supabase
     .from('verification_codes')
     .select('*')
@@ -648,10 +643,8 @@ app.post('/verify-code', async (req, res) => {
 
   if (codeErr || !codeRow) return res.status(401).json({ error: 'Invalid or expired code' });
 
-  // Optional: Expire the code after use
   await supabase.from('verification_codes').delete().eq('username', robloxUsername);
 
-  // 2. Get the user’s credentials from `player` table
   const { data: player, error: playerErr } = await supabase
     .from('player')
     .select('username, password')
@@ -662,7 +655,7 @@ app.post('/verify-code', async (req, res) => {
 
   res.json({
     username: player.username,
-    password: player.password, // 6-digit code
+    password: player.password,
   });
 });
 
