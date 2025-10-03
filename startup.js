@@ -77,10 +77,6 @@ async function main() {
   // Settings routes
   const settingsRoute = require('./endpoints/settings');
   app.use('/settings', settingsRoute);
-
-  // Announcements routes
-  const announcementsRoute = require('./endpoints/announcements');
-  app.use('/announcements', announcementsRoute);
   
   // ----------------------------
   // Discord-Dependent Routes (Conditional)
