@@ -884,6 +884,77 @@ async function renderTopShiftLeaders(){
 renderTopShiftLeaders();
 setInterval(renderTopShiftLeaders, 60000);
 
+// Add this entire function BEFORE calculateShiftStats (around line 934)
+async function renderUserRequirements() {
+  if (!currentUser || !currentUserLabels.length) {
+    userRequirements.style.display = 'none';
+    return;
+  }
+  
+  try {
+    const userRes = await fetch(`/dashboard/players`);
+    const allPlayers = userRes.ok ? await userRes.json() : [];
+    const freshUserData = allPlayers.find(p => p.roblox_id === currentUser.roblox_id);
+    
+    const stats = await calculateShiftStats();
+    const userStats = stats[currentUser.username.toLowerCase()] || { hosted: 0, attended: 0 };
+    
+    const weeklyMinutes = freshUserData?.weekly_minutes || 0;
+    
+    const tagRequirements = {
+      'Management': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
+      'Public Relations': { type: 'shifts', action: 'attended', required: 2, current: userStats.attended },
+      'Operations': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
+      'Human Resources': { type: 'shifts', action: 'hosted', required: 2, current: userStats.hosted },
+      'Supervision': { type: 'minutes', required: 90, current: weeklyMinutes }
+    };
+    
+    let userRequirementsHTML = '';
+    
+    currentUserLabels.forEach(label => {
+      if (tagRequirements[label]) {
+        const req = tagRequirements[label];
+        const progress = Math.min((req.current / req.required) * 100, 100);
+        const isComplete = req.current >= req.required;
+        
+        let progressText = '';
+        if (req.type === 'shifts') {
+          progressText = `${req.current}/${req.required} shifts ${req.action}`;
+        } else {
+          progressText = `${req.current}/${req.required} minutes`;
+        }
+        
+        userRequirementsHTML += `
+          <div class="user-requirement-item">
+            <span class="user-requirement-label">${label}</span>
+            <div class="user-requirement-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+              </div>
+              <span class="progress-text ${isComplete ? 'progress-complete' : 'progress-incomplete'}">
+                ${isComplete ? '✓' : ''} ${progressText}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+    });
+    
+    if (userRequirementsHTML) {
+      userRequirements.style.display = 'block';
+      userRequirementsList.innerHTML = userRequirementsHTML;
+    } else {
+      userRequirements.style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Error rendering user requirements:', err);
+    userRequirements.style.display = 'none';
+  }
+}
+
+// Then calculateShiftStats starts here...
+async function calculateShiftStats() {
+
 async function renderRequirementsBox() {
   try {
     const playersRes = await fetch('/dashboard/players');
