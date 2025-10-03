@@ -74,9 +74,13 @@ async function main() {
   const loginPageRoutes = require('./web/loginpage/routes');
   app.use('/loginpage', loginPageRoutes);
 
-  // Add after other route imports
+  // Settings routes
   const settingsRoute = require('./endpoints/settings');
   app.use('/settings', settingsRoute);
+
+  // Announcements routes
+  const announcementsRoute = require('./endpoints/announcements');
+  app.use('/announcements', announcementsRoute);
   
   // ----------------------------
   // Discord-Dependent Routes (Conditional)
@@ -156,7 +160,7 @@ async function main() {
   const PORT = process.env.PORT || 3000;
   const HOST = process.env.HOST || '0.0.0.0';
 
-  app.listen(PORT, HOST, () => {
+  const server = app.listen(PORT, HOST, () => {
     console.log('\n╔════════════════════════════════════════════╗');
     console.log('║     🌐 Mochi Bar Dashboard Server         ║');
     console.log('╚════════════════════════════════════════════╝\n');
@@ -177,6 +181,30 @@ async function main() {
   });
 
   // ----------------------------
+  // Auto-sync Discord shifts (if bot available)
+  // ----------------------------
+  if (client) {
+    const fetch = require('node-fetch'); // Make sure to: npm install node-fetch@2
+    
+    // Auto-sync every 5 minutes
+    setInterval(async () => {
+      try {
+        const response = await fetch(`http://localhost:${PORT}/sessions/sync`, {
+          method: 'POST'
+        });
+        const result = await response.json();
+        if (result.added > 0) {
+          console.log(`🔄 Auto-sync: ${result.message}`);
+        }
+      } catch (err) {
+        console.error('❌ Auto-sync failed:', err.message);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    console.log('🔄 Auto-sync enabled: Discord shifts sync every 5 minutes\n');
+  }
+
+  // ----------------------------
   // Graceful Shutdown
   // ----------------------------
   process.on('SIGTERM', () => {
@@ -185,7 +213,10 @@ async function main() {
       client.destroy();
       console.log('Discord bot disconnected');
     }
-    process.exit(0);
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
   });
 
   process.on('SIGINT', () => {
@@ -194,18 +225,19 @@ async function main() {
       client.destroy();
       console.log('Discord bot disconnected');
     }
-    process.exit(0);
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
   });
 
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
     console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-    // Don't exit - log and continue
   });
 
   process.on('uncaughtException', (err) => {
     console.error('❌ Uncaught Exception:', err);
-    // Exit on uncaught exceptions
     process.exit(1);
   });
 }
