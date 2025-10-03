@@ -115,8 +115,16 @@
   .announcement-meta { display:flex; justify-content:space-between; font-size:12px; color:#666; }
   .announcement-actions { display:flex; gap:10px; justify-content:flex-end; }
   .announcements-modal-list { max-height:400px; overflow-y:auto; margin:15px 0; }
-  .announcement-item { border-bottom:1px solid #e0e6f0; padding:15px 0; }
-  .announcement-item:last-child { border-bottom:none; }
+  .announcement-item {
+    position: relative;
+    padding-bottom: 20px;
+  }
+
+  .announcement-item .btn.small {
+    padding: 4px 12px;
+    font-size: 12px;
+    margin-left: 10px;
+  }
   .announcement-form { display:flex; flex-direction:column; gap:15px; }
   .announcement-form input, .announcement-form textarea { width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; }
   .announcement-form textarea { min-height:100px; resize:vertical; }
@@ -432,33 +440,44 @@ async function loadCurrentUser() {
     `;
   }
   
-  function openAnnouncementsModal() {
-    const modal = document.getElementById('announcementsModal');
-    const modalList = document.getElementById('announcementsModalList');
-    
-    modalList.innerHTML = '';
-    
-    if (announcements.length === 0) {
-      modalList.innerHTML = '<p>No announcements available.</p>';
-    } else {
-      announcements.forEach(announcement => {
-        const date = new Date(announcement.date);
-        const item = document.createElement('div');
-        item.className = 'announcement-item';
-        item.innerHTML = `
-          <div class="announcement-title">${announcement.title}</div>
-          <div class="announcement-content">${announcement.content}</div>
-          <div class="announcement-meta">
-            <span>By: ${announcement.author}</span>
-            <span>${date.toLocaleDateString()}</span>
+function openAnnouncementsModal() {
+  const modal = document.getElementById('announcementsModal');
+  const modalList = document.getElementById('announcementsModalList');
+  
+  modalList.innerHTML = '';
+  
+  if (announcements.length === 0) {
+    modalList.innerHTML = '<p>No announcements available.</p>';
+  } else {
+    announcements.forEach(announcement => {
+      const date = new Date(announcement.date);
+      const item = document.createElement('div');
+      item.className = 'announcement-item';
+      
+      // Check if current user can delete announcements
+      const canDelete = LEADERSHIP_RANKS.includes(userGroupRank);
+      
+      item.innerHTML = `
+        <div class="announcement-title">${announcement.title}</div>
+        <div class="announcement-content">${announcement.content}</div>
+        <div class="announcement-meta">
+          <span>By: ${announcement.author}</span>
+          <span>${date.toLocaleDateString()}</span>
+        </div>
+        ${canDelete ? `
+          <div style="margin-top:10px;text-align:right;">
+            <button class="btn small" onclick="deleteAnnouncement('${announcement.id}')" style="background:#ff4444;">
+              Delete
+            </button>
           </div>
-        `;
-        modalList.appendChild(item);
-      });
-    }
-    
-    modal.style.display = 'block';
+        ` : ''}
+      `;
+      modalList.appendChild(item);
+    });
   }
+  
+  modal.style.display = 'block';
+}
   
   function closeAnnouncementsModal() {
     document.getElementById('announcementsModal').style.display = 'none';
@@ -532,6 +551,40 @@ async function loadCurrentUser() {
       alert('Failed to save announcement. Please try again.');
     }
   }
+
+async function deleteAnnouncement(announcementId) {
+  if (!confirm('Are you sure you want to delete this announcement?')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/dashboard/announcements/${announcementId}`, {
+      method: 'DELETE'
+    });
+    
+    if (response.ok) {
+      // Remove the announcement from the local array
+      announcements = announcements.filter(a => a.id !== announcementId);
+      
+      // Refresh the modal
+      openAnnouncementsModal();
+      
+      // If this was the latest announcement, refresh the home view
+      if (announcements.length === 0) {
+        latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
+      } else {
+        renderLatestAnnouncement();
+      }
+    } else {
+      alert('Failed to delete announcement. Please try again.');
+    }
+  } catch (error) {
+    console.error('Error deleting announcement:', error);
+    alert('Error deleting announcement. Please try again.');
+  }
+}
+// Add this line after the deleteAnnouncement function
+window.deleteAnnouncement = deleteAnnouncement;
 
   function renderMyAccount() {
     if (currentUser) {
