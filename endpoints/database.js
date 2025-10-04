@@ -644,6 +644,7 @@ async function getVerificationRequest(code) {
  * @param {string} robloxUsername - username that claimed the code
  */
 async function claimVerificationCode(code, robloxUsername) {
+  // Get verification request
   const request = await supabase
     .from('verification_requests')
     .select('*')
@@ -657,10 +658,17 @@ async function claimVerificationCode(code, robloxUsername) {
 
   if (!request) return { success: false, error: 'No matching request' };
 
-  const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase();
-  await updatePlayerPassword(robloxUsername, tempPassword); // hash stored inside
+  // Look up player by username
+  const player = await getPlayerByUsername(robloxUsername);
+  if (!player) return { success: false, error: 'Player not found' };
 
-  // mark request claimed
+  // Generate temporary password
+  const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase();
+
+  // Update player's password using numeric roblox_id
+  await updatePlayerPassword(player.roblox_id, tempPassword); // stores hashed password
+
+  // Mark request claimed
   await supabase
     .from('verification_requests')
     .update({
