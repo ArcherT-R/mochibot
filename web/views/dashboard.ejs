@@ -2368,52 +2368,48 @@ window.managePlayerLabels = async function(robloxId, username) {
       const sorted = history.sort((a, b) => b.total_minutes - a.total_minutes).sort((a, b) => b.total_minutes - a.total_minutes)
       .slice(0, 3);
       
-      modalBody.innerHTML = `
-        <div style="margin-bottom:15px;text-align:center;color:#666;">
-          Week: ${weekStart} - ${weekEnd}
-        </div>
-        <div style="max-height:500px;overflow-y:auto;">
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f0f8ff;text-align:left;">
-                <th style="padding:8px;">Player</th>
-                <th style="padding:8px;">Minutes</th>
-                <th style="padding:8px;">Hosted</th>
-                <th style="padding:8px;">Attended</th>
-                <th style="padding:8px;">Roblox ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sorted.map(h => {
-                const hours = Math.floor(h.total_minutes / 60);
-                const mins = h.total_minutes % 60;
-                return `
-                  <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${h.username}">
-                    <td>
-                      <div class="player-info">
-                        <img class="player-avatar" src="${h.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
-                             onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-                        <div class="player-info">
-                          <div class="player-name">${h.username}</div>
-                        <div class="player-rank">${h.group_rank || 'Unknown'}</div>
-                      </div>
-                    </td>
-                    <td>${hours}h}h ${mins}m</td>
-                    <td>${h.total_minutes}m</td>
-                    <td>${h.shifts_hosted}</td>
-                    <td>${h.shifts_attended}</td>
-                    <td>${h.roblox_id}</td>
-                  </tr>`;
-              `).join('');
-            </tbody>
-          </table>
-        </div>
-      `;
-    } catch(err) {
-      modalBody.innerHTML = '<div class="no-data" style="color:#e74c3c;">Failed to load history</div>';
-    }
-  }
-};
+ modalBody.innerHTML = `
+   <div style="margin-bottom:15px;text-align:center;color:#666;">
+     Week: ${weekStart} - ${weekEnd}
+   </div>
+   <div style="max-height:500px;overflow-y:auto;">
+     <table style="width:100%;border-collapse:collapse;">
+       <thead>
+         <tr style="background:#f0f8ff;text-align:left;">
+          <th style="padding:8px;">Player</th>
+          <th style="padding:8px;">Minutes</th>
+          <th style="padding:8px;">Hosted</th>
+          <th style="padding:8px;">Attended</th>
+          <th style="padding:8px;">Roblox ID</th>
+         </tr>
+       </thead>
+       <tbody>
+         ${sorted.map(h => {
+           const hours = Math.floor(h.total_minutes / 60);
+           const mins = h.total_minutes % 60;
+           return `
+             <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${h.username}'">
+              <td>
+                <div class="player-info">
+                  <img class="player-avatar" src="${h.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
+                       onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+                  <div class="player-details">
+                    <div class="player-name">${h.username}</div>
+                    <div class="player-rank">${h.group_rank || 'Unknown'}</div>
+                  </div>
+                </div>
+              </td>
+              <td>${hours}h ${mins}m</td>
+              <td>${h.shifts_hosted}</td>
+              <td>${h.shifts_attended}</td>
+              <td>${h.roblox_id}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
 
 </script>
 </script>
