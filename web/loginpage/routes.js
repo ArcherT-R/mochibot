@@ -37,7 +37,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-// Logout route
+// Log out route
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
