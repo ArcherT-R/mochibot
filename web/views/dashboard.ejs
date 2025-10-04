@@ -656,70 +656,71 @@ window.deleteAnnouncementByIndex = function(index) {
     renderAccountDetails(content);
   }
 
-  function renderAccountDetails(container) {
-    if (!currentUser) {
-      container.innerHTML = '<p>No user data available.</p>';
-      return;
-    }
-
-    const hasPassword = currentUser.password && currentUser.password.length > 0;
-
-    container.innerHTML = `
-      <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
-      ${hasPassword ? `
-        <p><strong>Password:</strong> 
-          <span id="passwordField" style="font-family:monospace;">${maskPassword(currentUser.password)}</span>
-        </p>
-        <button id="revealPasswordBtn" class="btn small" style="user-select:none;">Hold to Reveal</button>
-      ` : '<p><strong>Password:</strong> Not set</p>'}
-    `;
-
-    if (!hasPassword) return;
-
-    const passwordField = document.getElementById('passwordField');
-    const revealBtn = document.getElementById('revealPasswordBtn');
-
-    if (!passwordField || !revealBtn) return;
-
-    const showPassword = () => {
-      passwordField.textContent = currentUser.password || '';
-      revealBtn.style.background = '#1a85e6';
-    };
-    
-    const hidePassword = () => {
-      passwordField.textContent = maskPassword(currentUser.password);
-      revealBtn.style.background = '#42b4ff';
-    };
-
-    revealBtn.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      showPassword();
-    });
-    
-    revealBtn.addEventListener('mouseup', hidePassword);
-    revealBtn.addEventListener('mouseleave', hidePassword);
-
-    revealBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      showPassword();
-    });
-    
-    revealBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      hidePassword();
-    });
-    
-    revealBtn.addEventListener('touchcancel', hidePassword);
+ function renderAccountDetails(container) {
+  if (!currentUser) {
+    container.innerHTML = '<p>No user data available.</p>';
+    return;
   }
 
-  function maskPassword(pwd) {
-    if (!pwd) return '';
-    return '•'.repeat(pwd.length);
-  }
+  const displayPassword = currentUser.password || currentUser.password_hash;
+  const hasPassword = displayPassword && displayPassword.length > 0;
 
-  function renderSecurity(container) {
-    container.innerHTML = `<p>💫 Security options are currently unavaliable.</p>`;
-  }
+  container.innerHTML = `
+    <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
+    ${hasPassword ? `
+      <p><strong>Password:</strong> 
+        <span id="passwordField" style="font-family:monospace;">${maskPassword(displayPassword)}</span>
+      </p>
+      <button id="revealPasswordBtn" class="btn small" style="user-select:none;">Hold to Reveal</button>
+    ` : '<p><strong>Password:</strong> Not set</p>'}
+  `;
+
+  if (!hasPassword) return;
+
+  const passwordField = document.getElementById('passwordField');
+  const revealBtn = document.getElementById('revealPasswordBtn');
+
+  if (!passwordField || !revealBtn) return;
+
+  const showPassword = () => {
+    passwordField.textContent = displayPassword;
+    revealBtn.style.background = '#1a85e6';
+  };
+  
+  const hidePassword = () => {
+    passwordField.textContent = maskPassword(displayPassword);
+    revealBtn.style.background = '#42b4ff';
+  };
+
+  revealBtn.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    showPassword();
+  });
+  
+  revealBtn.addEventListener('mouseup', hidePassword);
+  revealBtn.addEventListener('mouseleave', hidePassword);
+
+  revealBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    showPassword();
+  });
+  
+  revealBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    hidePassword();
+  });
+  
+  revealBtn.addEventListener('touchcancel', hidePassword);
+}
+
+function maskPassword(pwd) {
+  if (!pwd) return '';
+  return '•'.repeat(pwd.length);
+}
+
+function renderSecurity(container) {
+  container.innerHTML = `<p>💫 Security options are currently unavailable.</p>`;
+}
 
   function updateTabAccess() {
     const playerlistTab = document.querySelector('[data-tab="playerlist"]');
