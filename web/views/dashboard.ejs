@@ -304,6 +304,9 @@
           <span>My Account</span>
           <a href="#" class="profile-link" id="viewProfileLink">View Profile</a>
         </div>
+        <div class="account-actions">
+          <button id="logoutBtn" class="btn">Logout</button>
+        </div>
       </div>
       
       <div id="accountContent"></div>
@@ -691,26 +694,6 @@ function renderAccountContent() {
       passwordField.textContent = playerPassword;
       revealBtn.style.background = '#1a85e6';
     };
-
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  try {
-    const response = await fetch('/logout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      window.location.href = '/login';
-    } else {
-      alert('Logout failed. Please try again.');
-    }
-  } catch (error) {
-    console.error('Logout error:', error);
-    alert('An error occurred during logout.');
-  }
-});
     
     const hidePassword = () => {
       passwordField.textContent = maskPassword(playerPassword);
@@ -2421,6 +2404,103 @@ window.managePlayerLabels = async function(robloxId, username) {
       modalBody.innerHTML = '<div class="no-data">Failed to load historical data</div>';
     }
   };
+
+  // Add logout button event listener
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try {
+      const response = await fetch('/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        window.location.href = '/login';
+      } else {
+        alert('Logout failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('An error occurred during logout.');
+    }
+  });
+
+  // Function to render My Account tab
+  function renderMyAccount() {
+    if (!currentUser) {
+      accountContent.innerHTML = '<p>No user data available.</p>';
+      return;
+    }
+    
+    // Check if user has access to view account details
+    const hasAccess = DIRECTOR_PLUS.includes(userGroupRank);
+    
+    if (!hasAccess) {
+      accountContent.innerHTML = `
+        <div class="no-access-message">
+          <div class="no-access-title">Access Denied</div>
+          <div class="no-access-text">You don't have permission to view account details.</div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Use password from the password field
+    const playerPassword = currentUser.password || '';
+    const hasPassword = playerPassword && playerPassword.length > 0;
+    
+    accountContent.innerHTML = `
+      <div class="account-field">
+        <div class="account-label">Username</div>
+        <div class="account-value">${currentUser.username}</div>
+      </div>
+      <div class="account-field">
+        <div class="account-label">Password</div>
+        <div class="account-value">
+          ${hasPassword ? `
+            <span id="passwordField" style="font-family:monospace;">${maskPassword(playerPassword)}</span>
+            <button id="revealPasswordBtn" class="btn small" style="user-select:none; margin-left:10px;">Hold to Reveal</button>
+          ` : 'Not set'}
+        </div>
+      </div>
+    `;
+    
+    if (!hasPassword) return;
+    
+    const passwordField = document.getElementById('passwordField');
+    const revealBtn = document.getElementById('revealPasswordBtn');
+    if (!passwordField || !revealBtn) return;
+    
+    const showPassword = () => {
+      passwordField.textContent = playerPassword;
+      revealBtn.style.background = '#1a85e6';
+    };
+    
+    const hidePassword = () => {
+      passwordField.textContent = maskPassword(playerPassword);
+      revealBtn.style.background = '#42b4ff';
+    };
+    
+    revealBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      showPassword();
+    });
+    
+    revealBtn.addEventListener('mouseup', hidePassword);
+    revealBtn.addEventListener('mouseleave', hidePassword);
+    revealBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      showPassword();
+    });
+    
+    revealBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      hidePassword();
+    });
+    
+    revealBtn.addEventListener('touchcancel', hidePassword);
+  }
 });
 </script>
 </body>
