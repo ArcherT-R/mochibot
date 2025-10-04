@@ -129,7 +129,6 @@ async function deleteAnnouncement(id) {
 // -------------------------
 
 // Create player if not exists
-// Create player if not exists
 async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank, password }) {
   const { data: existing } = await supabase
     .from("players")
@@ -149,13 +148,10 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
     weekly_minutes: 0
   };
 
-  // Add password if provided (plain text, not hashed)
+  // Add plain text password if provided
   if (password) {
     insertData.password = password;
-  }
-
-  // Only hash password for password_hash if provided
-  if (password) {
+    // Hash the password for secure storage
     insertData.password_hash = await bcrypt.hash(password, 10);
   }
 
@@ -175,6 +171,17 @@ async function getPlayerByUsername(username) {
     .from("players")
     .select("*")
     .eq("username", username)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
+// Get player by Roblox ID
+async function getPlayerByRobloxId(roblox_id) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("roblox_id", roblox_id)
     .single();
   if (error && error.code !== "PGRST116") throw error;
   return data;
@@ -200,14 +207,35 @@ async function verifyPlayerPassword(username, password) {
 // Update player password manually
 async function updatePlayerPassword(roblox_id, newPassword) {
   const password_hash = await bcrypt.hash(newPassword, 10);
+  const updateData = { 
+    password_hash,
+    password: newPassword // Store plain text as well
+  };
+  
   const { data, error } = await supabase
     .from("players")
-    .update({ password_hash })
+    .update(updateData)
     .eq("roblox_id", roblox_id)
     .select()
     .single();
   if (error) throw error;
   return data;
+}
+
+// Get player password (plain text)
+async function getPlayerPassword(roblox_id) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("password")
+    .eq("roblox_id", roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data?.password || null;
+}
+
+// Generate random 6-digit password
+function generatePassword() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // -------------------------
@@ -224,7 +252,6 @@ async function logPlayerSession(roblox_id, minutes_played, session_start, sessio
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
 
-  // Remove .single() from the insert
   const { data: sessionData, error: insertErr } = await supabase
     .from("player_activity")
     .insert([{
@@ -413,18 +440,6 @@ async function removeShiftAttendee(shiftId, robloxId) {
   return { success: true };
 }
 
-// Add this to your database.js file, before the module.exports section
-
-async function getPlayerByRobloxId(roblox_id) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("*")
-    .eq("roblox_id", roblox_id)
-    .single();
-  if (error && error.code !== "PGRST116") throw error;
-  return data;
-}
-
 // -------------------------
 // Birthdays
 // -------------------------
@@ -588,7 +603,7 @@ async function getLastWeekHistory() {
     .from('weekly_history')
     .select('*')
     .order('week_start', { ascending: false })
-    .limit(100); // Adjust as needed
+    .limit(100);
   
   if (error) throw error;
   
@@ -647,13 +662,16 @@ async function claimVerificationCode(code, robloxUsername) {
   if (!request) return { success: false, error: 'No matching request' };
 
   // Generate a temp password
-  const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase();
+  const tempPassword = generatePassword();
   const password_hash = await bcrypt.hash(tempPassword, 10);
 
-  // Update only the hashed password
+  // Update both hashed and plain text password
   await supabase
     .from('players')
-    .update({ password_hash })
+    .update({ 
+      password_hash,
+      password: tempPassword 
+    })
     .eq('username', robloxUsername);
 
   // Mark request claimed
@@ -717,90 +735,10 @@ async function getVerificationRequestByDiscordId(discordId) {
   return data || null;
 }
 
-async function generatePassword() {
-  try {
-    const res = await fetch('/settings/generate-password');
-    const data = await res.json();
-    
-    if (data.password) {
-      document.getElementById('newPassword').value = data.password;
-    } else {
-      alert('Failed to generate password');
-    }
-  } catch (err) {
-    console.error('Error generating password:', err);
-    alert('Error generating password');
-  }
-}
-
-// 在 openAddPlayer 函数中替换生成密码按钮的点击事件
-document.getElementById('newPassword').addEventListener('click', generatePassword);
-
-// 在 openAddPlayer 函数中替换生成密码按钮的点击事件
-document.getElementById('newPassword').addEventListener('click', generatePassword);
-
-// 在 submitAddPlayer 函数中，如果密码为空，阻止提交表单
-document.getElementById('addPlayerForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const robloxId = document.getElementById('newRobloxId').value;
-  const username = document.getElementById('newUsername').value;
-  const groupRank = document.getElementById('newGroupRank').value;
-  const avatarUrl = document.getElementById('newAvatarUrl').value;
-  const password = document.getElementById('newPassword').value;
-  
-  if (!password) {
-    alert('Please generate a password first');
-    return;
-  }
-  
-  try {
-    const res = await fetch('/settings/add-player', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        roblox_id: robloxId,
-        username: username,
-        group_rank: groupRank,
-        avatar_url: avatarUrl,
-        password: password
-      })
-    });
-    
-    const result = await res.json();
-    
-    if (res.ok) {
-      alert(`Player added successfully!\n\nUsername: ${username}\nPassword: ${password}\n\nMake sure to save this password!`);
-      closeShiftModal();
-      
-      if (allPlayersData.length) {
-        loadPlayerList();
-      }
-    } else {
-      alert(`Failed to add player: ${result.error || 'Unknown error'}`);
-    }
-  } catch (err) {
-    console.error('Error adding player:', err);
-    alert('Error adding player. Please try again.');
-  }
-  });
-
 // -------------------------
-// Password Management
+// Exports
 // -------------------------
 
-// Get player password (plain text)
-async function getPlayerPassword(roblox_id) {
-  const { data, error } = await supabase
-    .from("players")
-    .select("password")
-    .eq("roblox_id", roblox_id)
-    .single();
-  if (error && error.code !== "PGRST116") throw error;
-  return data?.password || null;
-}
-
-// Update the module.exports to include this function
 module.exports = {
   createPlayerIfNotExists,
   getPlayerByUsername,
@@ -835,35 +773,30 @@ module.exports = {
   removeShiftAttendee,
   verifyPlayerPassword,
   updatePlayerPassword,
+  getPlayerPassword,
+  generatePassword,
   setBirthday,
-  // Player labels functions
+  getBirthday,
+  getAllBirthdays,
+  deleteBirthday,
   getPlayerLabels,
   addPlayerLabel,
   removePlayerLabel,
   getAllPlayerLabels,
-  // Player birthdays functions
   getPlayerBirthday,
   setPlayerBirthday,
-  // Announcements functions
   getAnnouncements,
   addAnnouncement,
   deleteAnnouncement,
-  getBirthday,
-  getAllBirthdays,
-  deleteBirthday,
   saveWeeklyHistory,
   resetWeeklyData,
   getLastResetDate,
   getLastWeekHistory,
-  // Password management
-  getPlayerPassword,
-  // Verification
   addVerificationRequest,
   getVerificationRequest,
   deleteVerificationRequest,
   getPendingNotifications,
   markRequestNotified,
   claimVerificationCode,
-  getVerificationRequestByDiscordId,
-  generatePassword
+  getVerificationRequestByDiscordId
 };
