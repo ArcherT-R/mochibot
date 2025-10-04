@@ -1,45 +1,33 @@
-// endpoints/verification.js
-const express = require('express');
-const router = express.Router();
-const db = require('./database'); // make sure path is correct
-const bodyParser = require('body-parser');
+const bcrypt = require('bcryptjs');
+const { getPlayerByRobloxId, updatePlayerPassword } = require('./database');
 
-router.post('/game-claim', bodyParser.json(), async (req, res) => {
-  try {
-    const { username, code } = req.body;
+async function claimVerificationCode(code, robloxUsername) {
+  // find the request
+  const request = await getVerificationRequest(code);
+  if (!request) return { success: false, error: 'No matching request' };
 
-    if (!username || !code) {
-      return res.status(400).json({ success: false, error: 'Missing username or code' });
-    }
+  // generate temp password
+  const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase(); // 8-char temp
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    console.log('[Verification] Incoming request:', { username, code });
+  // update the player in DB with hashed temp password
+  const player = await getPlayerByRobloxId(robloxUsername);
+  if (!player) return { success: false, error: 'Player not found' };
 
-    // Get the verification request
-    const request = await db.getVerificationRequest(code);
-    if (!request) {
-      return res.status(404).json({ success: false, error: 'Invalid or expired code' });
-    }
+  await updatePlayerPassword(player.roblox_id, tempPassword); // saves hash
 
-    console.log('[Verification] Found record:', request);
+  // mark verification request as claimed
+  await supabase
+    .from('verification_requests')
+    .update({
+      claimed_by_username: robloxUsername,
+      claimed_at: new Date().toISOString(),
+      one_time_token: tempPassword, // optionally store temp password here
+      token_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    })
+    .eq('id', request.id);
 
-    // Claim the code (assign it to Roblox username, generate token)
-    const claimResult = await db.claimVerificationRequest(code, username);
-    if (!claimResult.success) {
-      console.error('[Verification] Claim failed:', claimResult.error);
-      return res.status(500).json({ success: false, error: 'Failed to claim verification code' });
-    }
-
-    // Send back the claimed token or Roblox info (depending on your flow)
-    res.json({
-      success: true,
-      token: claimResult.record.one_time_token,
-      expires_at: claimResult.record.token_expires_at
-    });
-
-  } catch (err) {
-    console.error('[Verification] Error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
+  return { success: true, tempPassword }; // send plain temp password to client
+}
 
 module.exports = router;
