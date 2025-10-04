@@ -656,20 +656,22 @@ window.deleteAnnouncementByIndex = function(index) {
     renderAccountDetails(content);
   }
 
- function renderAccountDetails(container) {
+function renderAccountDetails(container) {
   if (!currentUser) {
     container.innerHTML = '<p>No user data available.</p>';
     return;
   }
 
-  const displayPassword = currentUser.password || currentUser.password_hash;
-  const hasPassword = displayPassword && displayPassword.length > 0;
+  // Ensure we are using the password field from public.player
+  const playerPassword = currentUser.password; // <-- make sure this is the DB column
+
+  const hasPassword = playerPassword && playerPassword.length > 0;
 
   container.innerHTML = `
     <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
     ${hasPassword ? `
       <p><strong>Password:</strong> 
-        <span id="passwordField" style="font-family:monospace;">${maskPassword(displayPassword)}</span>
+        <span id="passwordField" style="font-family:monospace;">${maskPassword(playerPassword)}</span>
       </p>
       <button id="revealPasswordBtn" class="btn small" style="user-select:none;">Hold to Reveal</button>
     ` : '<p><strong>Password:</strong> Not set</p>'}
@@ -683,12 +685,12 @@ window.deleteAnnouncementByIndex = function(index) {
   if (!passwordField || !revealBtn) return;
 
   const showPassword = () => {
-    passwordField.textContent = displayPassword;
+    passwordField.textContent = playerPassword;
     revealBtn.style.background = '#1a85e6';
   };
   
   const hidePassword = () => {
-    passwordField.textContent = maskPassword(displayPassword);
+    passwordField.textContent = maskPassword(playerPassword);
     revealBtn.style.background = '#42b4ff';
   };
 
@@ -716,10 +718,6 @@ window.deleteAnnouncementByIndex = function(index) {
 function maskPassword(pwd) {
   if (!pwd) return '';
   return '•'.repeat(pwd.length);
-}
-
-function renderSecurity(container) {
-  container.innerHTML = `<p>💫 Security options are currently unavailable.</p>`;
 }
 
   function updateTabAccess() {
