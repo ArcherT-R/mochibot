@@ -24,7 +24,7 @@ async function main() {
   const app = express();
 
   // in bot startup (after client ready)
-const db = require('../../endpoints/database');
+const db = require('./endpoints/database');
 
 async function pollAndNotify() {
   try {
