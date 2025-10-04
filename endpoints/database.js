@@ -606,41 +606,51 @@ async function getLastWeekHistory() {
 }
 
 // -------------------------
-// Verification Codes
+// Verification Requests
 // -------------------------
-// add at top after supabase client declared (or near other helpers)
+
 async function addVerificationRequest(discordId, code, expiresAt) {
   const { data, error } = await supabase
     .from('verification_requests')
     .insert([{ discord_id: discordId, code, expires_at: expiresAt.toISOString() }])
     .select()
     .single();
+
   if (error) throw error;
   return data;
 }
 
-async function claimVerificationCode(code, robloxUsername) {
-  // find the request
-  const { data: reqRow, error } = await supabase
+/**
+ * Get a verification request by code (unclaimed and not expired)
+ * @param {string} code - 6-digit code
+ */
+async function getVerificationRequest(code) {
+  const { data, error } = await supabase
     .from('verification_requests')
     .select('*')
     .eq('code', code)
-    .gte('expires_at', new Date().toISOString())
     .is('claimed_by_username', null)
+    .gte('expires_at', new Date().toISOString())
     .limit(1)
     .single();
 
-  if (error) {
-    // no match or DB error
-    return { success: false, error };
-  }
-  if (!reqRow) return { success: false, error: 'No matching request' };
+  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+  return data || null;
+}
 
-  // create one-time token
-  const token = (Math.random().toString(36).slice(2, 10)).toUpperCase(); // example token
-  const tokenExpires = new Date(Date.now() + 10 * 60 * 1000); // valid 10 minutes
+/**
+ * Claim a verification request
+ * @param {string} code - 6-digit code
+ * @param {string} robloxUsername - username that claimed the code
+ */
+async function claimVerificationRequest(code, robloxUsername) {
+  const request = await getVerificationRequest(code);
+  if (!request) return { success: false, error: 'Code invalid or expired' };
 
-  const { data: updated, error: updErr } = await supabase
+  const token = Math.random().toString(36).slice(2, 10).toUpperCase(); // 8-char token
+  const tokenExpires = new Date(Date.now() + 10 * 60 * 1000); // valid 10 min
+
+  const { data, error } = await supabase
     .from('verification_requests')
     .update({
       claimed_by_username: robloxUsername,
@@ -648,25 +658,50 @@ async function claimVerificationCode(code, robloxUsername) {
       one_time_token: token,
       token_expires_at: tokenExpires.toISOString()
     })
-    .eq('id', reqRow.id)
+    .eq('id', request.id)
     .select()
     .single();
 
-  if (updErr) return { success: false, error: updErr };
-  return { success: true, record: updated };
+  if (error) return { success: false, error };
+
+  return { success: true, record: data };
 }
 
+/**
+ * Delete a verification request by code (optional)
+ * @param {string} code
+ */
+async function deleteVerificationRequest(code) {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .delete()
+    .eq('code', code)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Get pending notifications (requests with token not notified)
+ */
 async function getPendingNotifications() {
   const { data, error } = await supabase
     .from('verification_requests')
     .select('*')
-    .is('notified', false)
     .not('one_time_token', 'is', null)
+    .is('notified', false)
     .limit(50);
+
   if (error) throw error;
   return data || [];
 }
 
+/**
+ * Mark a verification request as notified
+ * @param {number} id
+ */
 async function markRequestNotified(id) {
   const { data, error } = await supabase
     .from('verification_requests')
@@ -674,19 +709,8 @@ async function markRequestNotified(id) {
     .eq('id', id)
     .select()
     .single();
+
   if (error) throw error;
-  return data;
-}
-
-async function getVerificationCode(code) {
-  const { data, error } = await supabase
-    .from('verification_requests')
-    .select('*')
-    .eq('code', code)
-    .limit(1)
-    .single();
-
-  if (error) return null; // or throw error
   return data;
 }
 // -------------------------
@@ -751,8 +775,9 @@ module.exports = {
   getAllPlayerLabels,
   deleteAnnouncement,
   addVerificationRequest,
-  claimVerificationCode,
+  getVerificationRequest,
+  claimVerificationRequest,
+  deleteVerificationRequest,
   getPendingNotifications,
-  markRequestNotified,
-  getVerificationCode
+  markRequestNotified
 };
