@@ -703,11 +703,25 @@ async function markRequestNotified(id) {
   return data;
 }
 // -------------------------
-// Exports
+// Password Management
 // -------------------------
+
+// Get player password (plain text)
+async function getPlayerPassword(roblox_id) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("password")
+    .eq("roblox_id", roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data?.password || null;
+}
+
+// Update the module.exports to include this function
 module.exports = {
   createPlayerIfNotExists,
   getPlayerByUsername,
+  getPlayerByRobloxId,
   searchPlayersByUsername: async (username) => {
     const { data, error } = await supabase
       .from("players")
@@ -738,7 +752,6 @@ module.exports = {
   removeShiftAttendee,
   verifyPlayerPassword,
   updatePlayerPassword,
-  getPlayerByRobloxId,
   setBirthday,
   // Player labels functions
   getPlayerLabels,
@@ -751,6 +764,7 @@ module.exports = {
   // Announcements functions
   getAnnouncements,
   addAnnouncement,
+  deleteAnnouncement,
   getBirthday,
   getAllBirthdays,
   deleteBirthday,
@@ -758,11 +772,9 @@ module.exports = {
   resetWeeklyData,
   getLastResetDate,
   getLastWeekHistory,
-  getPlayerLabels,
-  addPlayerLabel,
-  removePlayerLabel,
-  getAllPlayerLabels,
-  deleteAnnouncement,
+  // Password management
+  getPlayerPassword,
+  // Verification
   addVerificationRequest,
   getVerificationRequest,
   deleteVerificationRequest,
