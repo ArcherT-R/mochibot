@@ -44,3 +44,5 @@ router.post('/game-claim', bodyParser.json(), async (req, res) => {
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
+
+module.exports = router;
