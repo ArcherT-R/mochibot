@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const crypto = require('crypto');
-const db = require('../endpoints/database'); // make sure this exports addVerificationCode
+const db = require('../../endpoints/database'); // make sure this exports addVerificationCode
 
 module.exports = {
   data: new SlashCommandBuilder()
