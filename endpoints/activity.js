@@ -8,7 +8,9 @@ const {
     logPlayerSession, 
     logPlayerLive, 
     deletePlayerLiveSession,
-    getOngoingSession 
+    getOngoingSession,
+    updatePlayerInfo,
+    getPlayerByRobloxId
 } = require("./database"); 
 
 // Note: You should replace 35807738 with your actual group ID if it's different
