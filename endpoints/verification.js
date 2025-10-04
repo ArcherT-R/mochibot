@@ -4,38 +4,39 @@ const router = express.Router();
 const db = require('./database'); // your Supabase functions
 const bodyParser = require('body-parser');
 
-// Roblox sends JSON payload { username, code }
 router.post('/game-claim', bodyParser.json(), async (req, res) => {
+  console.log('[Verification] Incoming request:', req.body);
   try {
     const { username, code } = req.body;
-
     if (!username || !code) {
+      console.log('[Verification] Missing username or code');
       return res.status(400).json({ success: false, error: 'Missing username or code' });
     }
 
-    // Look up the verification code in your DB
     const verificationRecord = await db.getVerificationCode(code);
+    console.log('[Verification] Found record:', verificationRecord);
 
     if (!verificationRecord) {
+      console.log('[Verification] Invalid code');
       return res.status(404).json({ success: false, error: 'Invalid code' });
     }
 
-    // The code exists — return the linked Roblox username/password
     const { roblox_id } = verificationRecord;
     const player = await db.getPlayerByRobloxId(roblox_id);
+    console.log('[Verification] Found player:', player);
 
     if (!player) {
+      console.log('[Verification] No player found for code');
       return res.status(404).json({ success: false, error: 'No player found for code' });
     }
 
-    // Delete code after use to prevent reuse
     await db.deleteVerificationCode(code);
 
-    // Return credentials (username/password)
+    console.log('[Verification] Returning credentials for', player.username);
     return res.json({
       success: true,
       username: player.username,
-      password: player.password, // or password_hash if you have plain-text temporarily
+      password: player.password
     });
 
   } catch (err) {
@@ -43,5 +44,3 @@ router.post('/game-claim', bodyParser.json(), async (req, res) => {
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
-
-module.exports = router;
