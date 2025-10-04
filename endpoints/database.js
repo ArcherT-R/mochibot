@@ -678,6 +678,17 @@ async function markRequestNotified(id) {
   return data;
 }
 
+async function getVerificationCode(code) {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .select('*')
+    .eq('code', code)
+    .limit(1)
+    .single();
+
+  if (error) return null; // or throw error
+  return data;
+}
 // -------------------------
 // Exports
 // -------------------------
@@ -742,5 +753,6 @@ module.exports = {
   addVerificationRequest,
   claimVerificationCode,
   getPendingNotifications,
-  markRequestNotified
+  markRequestNotified,
+  getVerificationCode
 };
