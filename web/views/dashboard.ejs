@@ -691,6 +691,26 @@ function renderAccountContent() {
       passwordField.textContent = playerPassword;
       revealBtn.style.background = '#1a85e6';
     };
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try {
+    const response = await fetch('/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      window.location.href = '/login';
+    } else {
+      alert('Logout failed. Please try again.');
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+    alert('An error occurred during logout.');
+  }
+});
     
     const hidePassword = () => {
       passwordField.textContent = maskPassword(playerPassword);
