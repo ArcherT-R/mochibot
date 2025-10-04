@@ -648,25 +648,11 @@ window.deleteAnnouncementByIndex = function(index) {
   }
 };
 
-  function renderMyAccount() {
-    if (currentUser) {
-      // Set up the profile link
-      const viewProfileLink = document.getElementById('viewProfileLink');
-      viewProfileLink.href = `/dashboard/player/${currentUser.username}`;
-      
-      // Render the account content
-      renderAccountContent();
-    } else {
-      accountContent.innerHTML = '<p>Please log in to view your account.</p>';
-    }
-  }
-
-  function renderAccountContent() {
+function renderAccountContent() {
     if (!currentUser) {
       accountContent.innerHTML = '<p>No user data available.</p>';
       return;
     }
-
     // Check if user has access to view account details
     const hasAccess = DIRECTOR_PLUS.includes(userGroupRank);
     
@@ -679,11 +665,9 @@ window.deleteAnnouncementByIndex = function(index) {
       `;
       return;
     }
-
     // Use password from the password field
     const playerPassword = currentUser.password || '';
     const hasPassword = playerPassword && playerPassword.length > 0;
-
     accountContent.innerHTML = `
       <div class="account-field">
         <div class="account-label">Username</div>
@@ -699,14 +683,10 @@ window.deleteAnnouncementByIndex = function(index) {
         </div>
       </div>
     `;
-
     if (!hasPassword) return;
-
     const passwordField = document.getElementById('passwordField');
     const revealBtn = document.getElementById('revealPasswordBtn');
-
     if (!passwordField || !revealBtn) return;
-
     const showPassword = () => {
       passwordField.textContent = playerPassword;
       revealBtn.style.background = '#1a85e6';
@@ -716,7 +696,6 @@ window.deleteAnnouncementByIndex = function(index) {
       passwordField.textContent = maskPassword(playerPassword);
       revealBtn.style.background = '#42b4ff';
     };
-
     revealBtn.addEventListener('mousedown', (e) => {
       e.preventDefault();
       showPassword();
@@ -724,7 +703,6 @@ window.deleteAnnouncementByIndex = function(index) {
     
     revealBtn.addEventListener('mouseup', hidePassword);
     revealBtn.addEventListener('mouseleave', hidePassword);
-
     revealBtn.addEventListener('touchstart', (e) => {
       e.preventDefault();
       showPassword();
@@ -737,7 +715,6 @@ window.deleteAnnouncementByIndex = function(index) {
     
     revealBtn.addEventListener('touchcancel', hidePassword);
   }
-
 function maskPassword(pwd) {
   if (!pwd) return '';
   return '•'.repeat(pwd.length);
