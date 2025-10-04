@@ -21,25 +21,41 @@ const activeSessions = {};
 // /join Endpoint (Player joins game)
 // ---------------------------
 router.post("/join", async (req, res) => {
-  const { roblox_id, username, avatar_url, group_rank } = req.body;
-  if (!roblox_id || !username) {
-    return res.status(400).json({ error: "Missing roblox_id or username" });
-  }
-  try {
-    const player = await createPlayerIfNotExists({
-      roblox_id,
-      username,
-      avatar_url: avatar_url || "",
-      group_rank: group_rank || "Guest",
-    });
-    console.log(`✅ Player ensured in DB: ${username} (${roblox_id})`);
-    res.json(player);
-  } catch (err) {
-    console.error("❌ Failed to ensure player:", err);
-    res.status(500).json({ error: "Failed to process player join." });
-  }
+  const { roblox_id, username, avatar_url, group_rank, password } = req.body;
+  if (!roblox_id || !username) {
+    return res.status(400).json({ error: "Missing roblox_id or username" });
+  }
+  try {
+    // Check if player already exists
+    const existingPlayer = await getPlayerByRobloxId(roblox_id);
+    
+    if (existingPlayer) {
+      // Player exists - update their info (including username and rank changes)
+      await updatePlayerInfo(roblox_id, {
+        username,
+        avatar_url: avatar_url || existingPlayer.avatar_url,
+        group_rank: group_rank || existingPlayer.group_rank
+        // Don't update password - keep existing one
+      });
+      console.log(`✅ Player updated in DB: ${username} (${roblox_id})`);
+      res.json({ ...existingPlayer, username, group_rank });
+    } else {
+      // Player doesn't exist - create new
+      const player = await createPlayerIfNotExists({
+        roblox_id,
+        username,
+        avatar_url: avatar_url || "",
+        group_rank: group_rank || "Guest",
+        password: password || null
+      });
+      console.log(`✅ Player created in DB: ${username} (${roblox_id})`);
+      res.json(player);
+    }
+  } catch (err) {
+    console.error("❌ Failed to ensure player:", err);
+    res.status(500).json({ error: "Failed to process player join." });
+  }
 });
-
 // ---------------------------
 // /log-session Endpoint (Session completed)
 // ---------------------------
