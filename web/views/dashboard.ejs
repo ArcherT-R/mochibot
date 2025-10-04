@@ -1687,22 +1687,24 @@ async function renderModalAttendees() {
         const searchInput = addBox.querySelector('.attendee-search-input');
         const resultsContainer = addBox.querySelector('.attendee-search-results');
         
-        // Add click event to all attendee items
-        const attendeeItems = addBox.querySelectorAll('.attendee-search-item');
-        attendeeItems.forEach(item => {
-          item.addEventListener('click', async () => {
-            const robloxId = item.dataset.robloxId;
-            const username = item.dataset.username;
-            
-            await fetch('/shifts/add-attendee', {
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({shiftId: currentShiftId, robloxId, username})
+        // Add click event to all attendee items - THIS IS THE FIX
+        setTimeout(() => {
+          const attendeeItems = addBox.querySelectorAll('.attendee-search-item');
+          attendeeItems.forEach(item => {
+            item.addEventListener('click', async () => {
+              const robloxId = item.dataset.robloxId;
+              const username = item.dataset.username;
+              
+              await fetch('/shifts/add-attendee', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({shiftId: currentShiftId, robloxId, username})
+              });
+              
+              await renderModalAttendees();
             });
-            
-            await renderModalAttendees();
           });
-        });
+        }, 100);
         
         // Add search functionality
         searchInput.addEventListener('input', () => {
@@ -1710,6 +1712,7 @@ async function renderModalAttendees() {
           
           // If query is empty, show all items
           if (!query) {
+            const attendeeItems = addBox.querySelectorAll('.attendee-search-item');
             attendeeItems.forEach(item => {
               item.classList.remove('hidden');
             });
@@ -1725,6 +1728,7 @@ async function renderModalAttendees() {
           }
           
           // Filter items based on query
+          const attendeeItems = addBox.querySelectorAll('.attendee-search-item');
           attendeeItems.forEach(item => {
             const username = item.dataset.username.toLowerCase();
             const rank = item.querySelector('.attendee-search-rank').textContent.toLowerCase();
