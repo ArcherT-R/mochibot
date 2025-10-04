@@ -1023,8 +1023,11 @@ async function renderUserRequirements() {
 
 async function renderRequirementsBox() {
   try {
+    const requirementsBox = document.getElementById('requirementsBox');
+    
     // Only render user requirements if current user has labels
     if (!currentUser || !currentUserLabels.length) {
+      requirementsBox.innerHTML = '<p style="text-align:center;color:#888;">No department assignments</p>';
       userRequirements.style.display = 'none';
       return;
     }
@@ -1049,8 +1052,8 @@ async function renderRequirementsBox() {
       'Supervision': { type: 'minutes', required: 90, current: weeklyMinutes }
     };
     
-    // Build user requirements HTML
-    let userRequirementsHTML = '';
+    // Build requirements HTML only for user's labels
+    let requirementsHTML = '';
     
     currentUserLabels.forEach(label => {
       if (tagRequirements[label]) {
@@ -1065,31 +1068,34 @@ async function renderRequirementsBox() {
           progressText = `${req.current}/${req.required} minutes`;
         }
         
-        userRequirementsHTML += `
-          <div class="user-requirement-item">
-            <span class="user-requirement-label">${label}</span>
-            <div class="user-requirement-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${progress}%"></div>
-              <span class="progress-text ${isComplete ? 'progress-complete' : 'progress-incomplete'}">
-                ${isComplete ? '✓' : ''} ${progressText}
-              </span>
+        requirementsHTML += `
+          <div class="requirement-tag">
+            <div>
+              <div class="requirement-tag-name">${label}</div>
+              <div class="requirement-tag-desc">${progressText}</div>
+            </div>
+            <div class="progress-bar" style="width:150px;">
+              <div class="progress-fill" style="width: ${progress}%; background: ${isComplete ? '#28a745' : '#42b4ff'};"></div>
             </div>
           </div>
         `;
       }
     });
     
-    // Display the requirements
-    if (userRequirementsHTML) {
-      userRequirements.style.display = 'block';
-      userRequirementsList.innerHTML = userRequirementsHTML;
+    // Display in requirementsBox
+    if (requirementsHTML) {
+      requirementsBox.innerHTML = requirementsHTML;
     } else {
-      userRequirements.style.display = 'none';
+      requirementsBox.innerHTML = '<p style="text-align:center;color:#888;">No requirements to display</p>';
     }
+    
+    // Hide the userRequirements section since we're using requirementsBox
+    userRequirements.style.display = 'none';
     
   } catch (err) {
     console.error('Error rendering requirements box:', err);
+    const requirementsBox = document.getElementById('requirementsBox');
+    requirementsBox.innerHTML = '<p style="text-align:center;color:#888;">Error loading requirements</p>';
     userRequirements.style.display = 'none';
   }
 }
