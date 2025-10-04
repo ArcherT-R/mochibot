@@ -624,6 +624,17 @@ async function getLastWeekHistory() {
 // Verification Requests
 // -------------------------
 
+async function updatePlayerInfo(roblox_id, updates) {
+  const { data, error } = await supabase
+    .from("players")
+    .update(updates)
+    .eq("roblox_id", roblox_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 async function addVerificationRequest(discordId, code, expiresAt) {
   const { data, error } = await supabase
     .from('verification_requests')
@@ -798,5 +809,6 @@ module.exports = {
   getPendingNotifications,
   markRequestNotified,
   claimVerificationCode,
-  getVerificationRequestByDiscordId
+  getVerificationRequestByDiscordId,
+  updatePlayerInfo
 };
