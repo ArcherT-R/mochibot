@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const requireLogin = require("../../middleware/requireLogin");
+const db = require("../../endpoints/database"); // Added this import
 const {
   getAllPlayers,
   getPlayerByUsername,
@@ -9,7 +10,8 @@ const {
   searchPlayersByUsername,
   getAnnouncements,
   addAnnouncement,
-  deleteAnnouncement
+  deleteAnnouncement,
+  getPlayerByRobloxId // Added this import
 } = require("../../endpoints/database");
 
 // ----------------------------
@@ -122,9 +124,9 @@ router.delete("/announcements", requireLogin, async (req, res) => {
 // ----------------------------
 // Current user endpoint
 // ----------------------------
-app.get('/dashboard/current-user', async (req, res) => {
+router.get('/current-user', requireLogin, async (req, res) => {
   try {
-    const currentUser = req.user; // Adjust based on your auth method
+    const currentUser = req.session?.player; // Using session player instead of req.user
     
     if (!currentUser) {
       return res.status(401).json({ error: 'Not authenticated' });
