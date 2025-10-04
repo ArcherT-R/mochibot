@@ -1499,15 +1499,17 @@ async function renderModalAttendees() {
         const supervision = playersWithLabels.filter(p => p.labels.includes('Supervision'));
         const others = playersWithLabels.filter(p => p.labels.length === 0);
         
-        // Create search interface
+        // Create wider search interface
         addBox.style.background = '#fff';
         addBox.style.border = '2px solid #42b4ff';
         addBox.style.padding = '0';
         addBox.style.marginTop = '10px';
+        addBox.style.width = '100%';
+        addBox.style.maxWidth = '600px'; // Increased max width
         addBox.innerHTML = `
-          <div class="add-attendee-search">
-            <input type="text" placeholder="Search players..." class="attendee-search-input" style="width:100%;padding:10px;border:1px solid #e0e6f0;border-radius:8px 8px 0 0;outline:none;box-sizing:border-box;">
-            <div class="attendee-search-results" style="max-height:300px;overflow-y:auto;background:#f9f9f9;border:1px solid #e0e6f0;border-top:none;">
+          <div class="add-attendee-search" style="width:100%;">
+            <input type="text" placeholder="Search players by username or rank..." class="attendee-search-input" style="width:100%;padding:12px 15px;border:1px solid #e0e6f0;border-radius:8px 8px 0 0;outline:none;box-sizing:border-box;font-size:14px;">
+            <div class="attendee-search-results" style="max-height:400px;overflow-y:auto;background:#f9f9f9;border:1px solid #e0e6f0;border-top:none;">
               <div class="attendee-category" style="margin:0;">
                 <div class="attendee-category-title">Management</div>
                 <div class="attendee-search-category" data-category="management">
@@ -1633,10 +1635,16 @@ async function renderModalAttendees() {
         // Add styles for the search interface
         const style = document.createElement('style');
         style.textContent = `
+          .add-attendee-search {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+          }
           .attendee-search-item {
             display: flex;
             align-items: center;
-            padding: 10px;
+            padding: 12px 15px;
             border-bottom: 1px solid #e0e6f0;
             cursor: pointer;
             transition: background 0.2s;
@@ -1648,32 +1656,46 @@ async function renderModalAttendees() {
             display: none;
           }
           .attendee-search-avatar {
-            width: 40px;
-            height: 40px;
-            margin-right: 10px;
+            width: 45px;
+            height: 45px;
+            margin-right: 12px;
+            flex-shrink: 0;
           }
           .attendee-search-avatar img {
             width: 100%;
             height: 100%;
             border-radius: 50%;
             object-fit: cover;
+            border: 2px solid #e0e6f0;
           }
           .attendee-search-info {
             flex: 1;
+            min-width: 0;
           }
           .attendee-search-name {
             font-weight: 600;
             color: #333;
+            font-size: 15px;
+            margin-bottom: 2px;
+            word-break: break-word;
           }
           .attendee-search-rank {
-            font-size: 12px;
+            font-size: 13px;
             color: #666;
           }
           .no-results {
-            padding: 10px;
+            padding: 15px;
             text-align: center;
             color: #888;
             font-style: italic;
+            font-size: 14px;
+          }
+          .attendee-search-input {
+            font-family: 'Roboto', sans-serif;
+          }
+          .attendee-search-input:focus {
+            border-color: #42b4ff;
+            box-shadow: 0 0 0 2px rgba(66, 180, 255, 0.2);
           }
         `;
         document.head.appendChild(style);
@@ -1707,6 +1729,14 @@ async function renderModalAttendees() {
           if (!query) {
             attendeeItems.forEach(item => {
               item.classList.remove('hidden');
+            });
+            
+            // Show all categories
+            const categories = addBox.querySelectorAll('.attendee-search-category');
+            const categoryTitles = addBox.querySelectorAll('.attendee-category-title');
+            categories.forEach((category, index) => {
+              category.style.display = 'block';
+              categoryTitles[index].style.display = 'block';
             });
             return;
           }
