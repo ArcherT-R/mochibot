@@ -432,9 +432,8 @@ async function loadCurrentUser() {
     
     // Now render the requirements box directly (without setTimeout)
     renderRequirementsBox();
-  } catch (error) {
-    console.error('Error loading current user:', error);
-    accountContent.innerHTML = '<p>Error loading account information.</p>';
+  } catch (err) {
+    console.error('Failed to load current user:', err);
     userGroupRank = '';
   }
 }
