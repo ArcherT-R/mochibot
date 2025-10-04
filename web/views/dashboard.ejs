@@ -2110,7 +2110,7 @@ window.openAddPlayer = async function() {
     });
   };
 
- window.managePlayerLabels = async function(robloxId, username) {
+window.managePlayerLabels = async function(robloxId, username) {
     const res = await fetch(`/settings/labels/${robloxId}`);
     const currentLabels = res.ok ? await res.json() : [];
     
