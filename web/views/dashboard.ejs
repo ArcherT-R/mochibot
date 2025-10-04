@@ -1809,7 +1809,7 @@ async function renderModalAttendees() {
 
       // Group shifts by day of the week
       const shiftsByDay = {};
-      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       
       sortedShifts.forEach(shift => {
         const shiftTime = shift.shift_time || shift.time;
