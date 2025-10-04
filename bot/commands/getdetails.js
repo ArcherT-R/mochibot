@@ -1,46 +1,34 @@
+// commands/getdetails.js
 const { SlashCommandBuilder } = require('discord.js');
 const crypto = require('crypto');
-const db = require('../../endpoints/database'); // import your DB functions
+const db = require('../../endpoints/database'); // adjust path if needed
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('getdetails')
-    .setDescription('Verify in-game to receive your Roblox username & password'),
+    .setDescription('Request a verification code to use in-game (no Roblox link required).'),
 
   async execute(interaction, client) {
     try {
       const discordId = interaction.user.id;
+      // generate 6-digit numeric code
+      const code = (crypto.randomInt(0, 1_000_000) + 1_000_000).toString().slice(1); // ensures 6 digits
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      // Lookup linked Roblox ID
-      const robloxId = await db.getLinkedRobloxId(discordId);
-      if (!robloxId) {
-        // Use return so nothing else executes
-        return interaction.reply({
-          content: '❌ Your Discord account is not linked to a Roblox account.',
-          ephemeral: true, // You can change to flags if you want (see note below)
-        });
-      }
-
-      // Generate a verification code
-      const code = crypto.randomInt(100000, 999999).toString();
-
-      // Store code in verification_codes table
-      await db.addVerificationCode(robloxId, code);
+      // Save request
+      await db.addVerificationRequest(discordId, code, expiresAt);
 
       const gameLink = `https://www.roblox.com/games/YOUR_PLACE_ID/Your-Game-Name`;
 
-      // Reply with the code
-      return interaction.reply({
-        content: `🔐 Please join the game below and **say this code in chat**:\n\`\`\`${code}\`\`\`\nGame link: ${gameLink}\n\nThis code expires in 10 minutes.`,
-        ephemeral: true, // can also use flags: 64
+      // Reply once (ephemeral)
+      await interaction.reply({
+        content: `🔐 Your verification code: \`${code}\`\nJoin the game and type that code in chat. This code expires in 10 minutes.\nGame link: ${gameLink}`,
+        ephemeral: true,
       });
     } catch (err) {
-      console.error(err);
+      console.error('getdetails error', err);
       if (!interaction.replied) {
-        return interaction.reply({
-          content: '❌ An error occurred while generating your verification code.',
-          ephemeral: true,
-        });
+        await interaction.reply({ content: '❌ Failed to create verification request.', ephemeral: true });
       }
     }
   },
