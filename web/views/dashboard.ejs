@@ -683,28 +683,6 @@ window.deleteAnnouncementByIndex = function(index) {
         <div class="account-value">${currentUser.username}</div>
       </div>
       <div class="account-field">
-        <div class="account-label">Roblox Username</div>
-        <div class="account-value">${currentUser.username}</div>
-      </div>
-      <div class="account-field">
-        <div class="account-label">Password</div>
-        <div class="account-value">${hasPassword ? 'Set' : 'Not set'}</div>
-      </div>
-    `;
-  }
-
-  function renderSecurity() {
-    if (!currentUser) {
-      accountContent.innerHTML = '<p>No user data available.</p>';
-      return;
-    }
-
-    // Use password from the password field
-    const playerPassword = currentUser.password || '';
-    const hasPassword = playerPassword && playerPassword.length > 0;
-
-    accountContent.innerHTML = `
-      <div class="account-field">
         <div class="account-label">Password</div>
         <div class="account-value">
           ${hasPassword ? `
@@ -751,6 +729,23 @@ window.deleteAnnouncementByIndex = function(index) {
     });
     
     revealBtn.addEventListener('touchcancel', hidePassword);
+  }
+
+  function renderSecurity() {
+    if (!currentUser) {
+      accountContent.innerHTML = '<p>No user data available.</p>';
+      return;
+    }
+
+    accountContent.innerHTML = `
+      <div class="account-field">
+        <div class="account-label">Security Settings</div>
+        <div class="account-value">
+          <p>Your account security settings would be displayed here.</p>
+          <p>This could include options like two-factor authentication, login history, etc.</p>
+        </div>
+      </div>
+    `;
   }
 
   function toggleUserSettingsPanel() {
