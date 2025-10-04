@@ -150,6 +150,20 @@
   .progress-text { font-size:12px; font-weight:600; color:#666; min-width:40px; text-align:right; }
   .progress-complete { color:#28a745; }
   .progress-incomplete { color:#ff4444; }
+  
+  /* My Account specific styles */
+  .account-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .account-title { font-size:24px; font-weight:700; color:#333; display:flex; align-items:center; gap:10px; }
+  .account-actions { display:flex; gap:10px; }
+  .account-tabs { display:flex; border-bottom:2px solid #e0e6f0; margin-bottom:20px; }
+  .account-tab { padding:12px 20px; background:transparent; border:none; border-bottom:3px solid transparent; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+  .account-tab:hover { color:#42b4ff; }
+  .account-tab.active { color:#42b4ff; border-bottom-color:#42b4ff; }
+  .account-content { padding:20px 0; }
+  .account-field { margin-bottom:15px; }
+  .account-label { font-weight:600; color:#333; margin-bottom:5px; }
+  .account-value { color:#555; }
+  
   @media(max-width:600px){
     header { font-size:36px; padding:20px; }
     h2 { text-align:center; }
@@ -177,6 +191,8 @@
     .home-grid { grid-template-columns:1fr; }
     .user-requirement-progress { flex-direction:column; align-items:flex-start; gap:5px; }
     .progress-bar { width:100%; }
+    .account-header { flex-direction:column; gap:15px; }
+    .account-actions { width:100%; justify-content:center; }
   }
 </style>
 </head>
@@ -263,7 +279,25 @@
     <section class="content-section"><h2>🗓️ Weekly Shifts</h2><div id="shiftsList" class="shifts-list"></div></section>
   </div>
   <div id="myaccount" class="tab-content">
-    <section class="content-section"><h2>🧑‍💻 My Account</h2><div id="accountInfo"></div><div id="settingsPanel" class="settings-panel"></div></section>
+    <section class="content-section">
+      <div class="account-header">
+        <div class="account-title">
+          <span>👤</span>
+          <span>My Account</span>
+        </div>
+        <div class="account-actions">
+          <a href="#" class="profile-link" id="viewProfileLink">View Profile</a>
+          <button id="userSettingsBtn" class="btn">User Settings</button>
+        </div>
+      </div>
+      
+      <div class="account-tabs">
+        <button class="account-tab active" data-tab="account">Account Details</button>
+        <button class="account-tab" data-tab="security">Security</button>
+      </div>
+      
+      <div class="account-content" id="accountContent"></div>
+    </section>
   </div>
 <div id="settings" class="tab-content">
     <section class="content-section"><h2>⚙️ Settings</h2><div style="display:flex; flex-direction:column; gap:15px; max-width:400px;">
@@ -331,8 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const topPlayersGrid = document.getElementById('topPlayersGrid');
   const fullPlayerList = document.getElementById('fullPlayerList');
   const shiftModal = document.getElementById('shiftModal');
-  const accountInfo = document.getElementById('accountInfo');
-  const settingsPanel = document.getElementById('settingsPanel');
+  const accountContent = document.getElementById('accountContent');
   const latestAnnouncement = document.getElementById('latestAnnouncement');
   const newAnnouncementBtn = document.getElementById('newAnnouncementBtn');
   const viewAllAnnouncementsBtn = document.getElementById('viewAllAnnouncementsBtn');
@@ -607,112 +640,123 @@ window.deleteAnnouncementByIndex = function(index) {
 
   function renderMyAccount() {
     if (currentUser) {
-      accountInfo.innerHTML = `
-        <p><strong>Username:</strong> ${currentUser.username}</p>
-        <p><a href="/dashboard/player/${currentUser.username}" class="profile-link">View Profile</a></p>
-        <button id="userSettingsBtn" class="btn">User Settings</button>
-      `;
-
+      // Set up the profile link
+      const viewProfileLink = document.getElementById('viewProfileLink');
+      viewProfileLink.href = `/dashboard/player/${currentUser.username}`;
+      
+      // Set up the user settings button
       const userSettingsBtn = document.getElementById('userSettingsBtn');
-      if (userSettingsBtn) {
-        userSettingsBtn.addEventListener('click', toggleUserSettingsPanel);
-      }
+      userSettingsBtn.addEventListener('click', toggleUserSettingsPanel);
+      
+      // Set up the account tabs
+      const accountTabs = document.querySelectorAll('.account-tab');
+      accountTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          accountTabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          const selected = tab.dataset.tab;
+          if (selected === 'account') renderAccountDetails();
+          if (selected === 'security') renderSecurity();
+        });
+      });
+      
+      // Render the default account details tab
+      renderAccountDetails();
     } else {
-      accountInfo.innerHTML = '<p>Please log in to view your account.</p>';
+      accountContent.innerHTML = '<p>Please log in to view your account.</p>';
     }
+  }
+
+  function renderAccountDetails() {
+    if (!currentUser) {
+      accountContent.innerHTML = '<p>No user data available.</p>';
+      return;
+    }
+
+    // Use password from the password field
+    const playerPassword = currentUser.password || '';
+    const hasPassword = playerPassword && playerPassword.length > 0;
+
+    accountContent.innerHTML = `
+      <div class="account-field">
+        <div class="account-label">Username</div>
+        <div class="account-value">${currentUser.username}</div>
+      </div>
+      <div class="account-field">
+        <div class="account-label">Roblox Username</div>
+        <div class="account-value">${currentUser.username}</div>
+      </div>
+      <div class="account-field">
+        <div class="account-label">Password</div>
+        <div class="account-value">${hasPassword ? 'Set' : 'Not set'}</div>
+      </div>
+    `;
+  }
+
+  function renderSecurity() {
+    if (!currentUser) {
+      accountContent.innerHTML = '<p>No user data available.</p>';
+      return;
+    }
+
+    // Use password from the password field
+    const playerPassword = currentUser.password || '';
+    const hasPassword = playerPassword && playerPassword.length > 0;
+
+    accountContent.innerHTML = `
+      <div class="account-field">
+        <div class="account-label">Password</div>
+        <div class="account-value">
+          ${hasPassword ? `
+            <span id="passwordField" style="font-family:monospace;">${maskPassword(playerPassword)}</span>
+            <button id="revealPasswordBtn" class="btn small" style="user-select:none; margin-left:10px;">Hold to Reveal</button>
+          ` : 'Not set'}
+        </div>
+      </div>
+    `;
+
+    if (!hasPassword) return;
+
+    const passwordField = document.getElementById('passwordField');
+    const revealBtn = document.getElementById('revealPasswordBtn');
+
+    if (!passwordField || !revealBtn) return;
+
+    const showPassword = () => {
+      passwordField.textContent = playerPassword;
+      revealBtn.style.background = '#1a85e6';
+    };
+    
+    const hidePassword = () => {
+      passwordField.textContent = maskPassword(playerPassword);
+      revealBtn.style.background = '#42b4ff';
+    };
+
+    revealBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      showPassword();
+    });
+    
+    revealBtn.addEventListener('mouseup', hidePassword);
+    revealBtn.addEventListener('mouseleave', hidePassword);
+
+    revealBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      showPassword();
+    });
+    
+    revealBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      hidePassword();
+    });
+    
+    revealBtn.addEventListener('touchcancel', hidePassword);
   }
 
   function toggleUserSettingsPanel() {
-    if (settingsPanel.style.display === 'none' || settingsPanel.style.display === '') {
-      renderSettingsPanel();
-      settingsPanel.style.display = 'block';
-    } else {
-      settingsPanel.style.display = 'none';
-    }
+    // This function can be used to show additional settings if needed
+    alert('User Settings panel would open here');
   }
-
-  function renderSettingsPanel() {
-    settingsPanel.innerHTML = `
-      <div class="settings-tabs">
-        <button class="settings-tab active" data-tab="account">Account Details</button>
-        <button class="settings-tab" data-tab="security">Security</button>
-      </div>
-      <div class="settings-content" id="settingsContent"></div>
-    `;
-
-    const tabs = settingsPanel.querySelectorAll('.settings-tab');
-    const content = document.getElementById('settingsContent');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        const selected = tab.dataset.tab;
-        if (selected === 'account') renderAccountDetails(content);
-        if (selected === 'security') renderSecurity(content);
-      });
-    });
-
-    renderAccountDetails(content);
-  }
-
-function renderAccountDetails(container) {
-  if (!currentUser) {
-    container.innerHTML = '<p>No user data available.</p>';
-    return;
-  }
-
-  // Use password from the password field
-  const playerPassword = currentUser.password || '';
-  const hasPassword = playerPassword && playerPassword.length > 0;
-
-  container.innerHTML = `
-    <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
-    ${hasPassword ? `
-      <p><strong>Password:</strong> 
-        <span id="passwordField" style="font-family:monospace;">${maskPassword(playerPassword)}</span>
-      </p>
-      <button id="revealPasswordBtn" class="btn small" style="user-select:none;">Hold to Reveal</button>
-    ` : '<p><strong>Password:</strong> Not set</p>'}
-  `;
-
-  if (!hasPassword) return;
-
-  const passwordField = document.getElementById('passwordField');
-  const revealBtn = document.getElementById('revealPasswordBtn');
-
-  if (!passwordField || !revealBtn) return;
-
-  const showPassword = () => {
-    passwordField.textContent = playerPassword;
-    revealBtn.style.background = '#1a85e6';
-  };
-  
-  const hidePassword = () => {
-    passwordField.textContent = maskPassword(playerPassword);
-    revealBtn.style.background = '#42b4ff';
-  };
-
-  revealBtn.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    showPassword();
-  });
-  
-  revealBtn.addEventListener('mouseup', hidePassword);
-  revealBtn.addEventListener('mouseleave', hidePassword);
-
-  revealBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    showPassword();
-  });
-  
-  revealBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    hidePassword();
-  });
-  
-  revealBtn.addEventListener('touchcancel', hidePassword);
-}
 
 function maskPassword(pwd) {
   if (!pwd) return '';
@@ -1301,7 +1345,7 @@ async function renderModalAttendees() {
     const attendees = res.ok ? await res.json() : [];
     
     const shiftRes = await fetch('/shifts');
-    const shifts = shiftRes.ok ? await shiftRes.json() : [];
+    const shifts = shiftRes.ok ? await shiftsRes.json() : [];
     const currentShift = shifts.find(s => s.id === currentShiftId);
     
     // Check if current user is in leadership ranks
@@ -1402,7 +1446,7 @@ async function renderModalAttendees() {
         supervisionDiv.appendChild(box);
       });
       
-      container.appendChild(supervDiv);
+      container.appendChild(supervisionDiv);
     }
     
     if (others.length > 0) {
