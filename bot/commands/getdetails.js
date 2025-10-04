@@ -52,7 +52,7 @@ module.exports = {
       // Save request
       await db.addVerificationRequest(discordId, code, expiresAt);
 
-      const gameLink = `https://www.roblox.com/games/103428047387843/Verification`;
+      const gameLink = `https://www.roblox.com/games/106840187055900/Mochi-Bar-TIPS`;
 
       // Create a nice embed for the response
       const embed = {
