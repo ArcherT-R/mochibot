@@ -410,6 +410,13 @@ document.addEventListener('DOMContentLoaded', () => {
     'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
     'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
   ];
+  const SUPERVISION_PLUS
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Developer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Manager',
+    'Assistant Mochi Director', 'Supervisor', 'Mochi Leader'
+  ];
 
 async function loadCurrentUser() {
   try {
@@ -655,7 +662,7 @@ function renderAccountContent() {
       return;
     }
     // Check if user has access to view account details
-    const hasAccess = DIRECTOR_PLUS.includes(userGroupRank);
+    const hasAccess = SUPERVISION_PLUS.includes(userGroupRank);
     
     if (!hasAccess) {
       accountContent.innerHTML = `
