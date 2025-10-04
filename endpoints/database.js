@@ -715,5 +715,5 @@ module.exports = {
   addVerificationCode,
   getVerificationCode,
   deleteVerificationCode,
-  getLinkedRobloxID
+  getLinkedRobloxId
 };
