@@ -59,6 +59,20 @@ router.get("/", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
+// Log out route
+// ----------------------------
+router.post('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to logout' });
+    }
+    res.clearCookie('connect.sid');
+    res.json({ success: true, message: 'Logged out' });
+  });
+});
+
+// ----------------------------
 // Announcements endpoints
 // ----------------------------
 router.get("/announcements", requireLogin, async (req, res) => {
