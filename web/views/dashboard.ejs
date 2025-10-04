@@ -2304,21 +2304,17 @@ window.managePlayerLabels = async function(robloxId, username) {
       const nextReset = new Date(data.nextReset);
       const lastReset = data.lastReset ? new Date(data.lastReset) : null;
       
-      modalBody.innerHTML = `
-        <div style="line-height:2;">
-          <p><strong>Next Reset:</strong> ${nextReset.toLocaleString()}</p>
-          ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>
-          <p><strong>Players Affected:</strong> ${data.playersAffected}</p>
-          <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0; margin:20px 0;border:none; }
-          <button onclick="manualReset()" style="width:100%;padding:12px;background:#ff4444;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
-            Manual Reset (Use with caution)
-          </button>
-        </div>
-      `;
-    } catch (err) {
-      modalBody.innerHTML = '<div class="no-data" style="color:#e74c3c;">Failed to load reset status</div>';
-    }
-  };
+ modalBody.innerHTML = `
+   <div style="line-height:2;">
+     <p><strong>Next Reset:</strong> ${nextReset.toLocaleString()}</p>
+     ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>
+     <p><strong>Players Affected:</strong> ${data.playersAffected}</p>` : ''}
+     <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0;">
+     <button onclick="manualReset()" style="width:100%;padding:12px;background:#ff4444;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+       Manual Reset (Use with caution)
+     </button>
+   </div>
+ `;
 
   window.manualReset = async function() {
     if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
