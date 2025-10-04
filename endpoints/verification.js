@@ -1,49 +1,66 @@
-// routes/verification.js
+// src/endpoints/verification.js
 const express = require('express');
 const router = express.Router();
-const { supabase } = require('./database'); // export supabase from database.js
+const db = require('./database');
+const crypto = require('crypto');
 
-// Generate code
-router.post('/generate-verification-code', async (req, res) => {
-    const { robloxUsername } = req.body;
-    if (!robloxUsername) return res.status(400).json({ error: 'Missing robloxUsername' });
+// Helper: generate a 6-digit numeric code
+function generateCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+// -------------------------
+// Create / Generate a verification code
+// POST /verify/generate
+// Body: { roblox_id, username }
+// -------------------------
+router.post('/generate', async (req, res) => {
+  try {
+    const { roblox_id, username } = req.body;
+    if (!roblox_id || !username) {
+      return res.status(400).json({ success: false, error: 'Missing roblox_id or username' });
+    }
 
-    const { error } = await supabase
-        .from('verification_codes')
-        .upsert({ username: robloxUsername, code, created_at: new Date().toISOString() }, { onConflict: 'username' });
+    const code = generateCode();
 
-    if (error) return res.status(500).json({ error: 'Failed to generate code' });
+    // Save code to Supabase
+    await db.addVerificationCode(roblox_id, code);
 
+    // Return code (in production, you might DM it to Discord or send via other method)
     res.json({ success: true, code });
+  } catch (err) {
+    console.error('[Verification Generate] Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// Verify code
-router.post('/verify-code', async (req, res) => {
-    const { robloxUsername, code } = req.body;
-    if (!robloxUsername || !code) return res.status(400).json({ error: 'Missing fields' });
+// -------------------------
+// Verify a code
+// POST /verify/confirm
+// Body: { roblox_id, code }
+// -------------------------
+router.post('/confirm', async (req, res) => {
+  try {
+    const { roblox_id, code } = req.body;
+    if (!roblox_id || !code) {
+      return res.status(400).json({ success: false, error: 'Missing roblox_id or code' });
+    }
 
-    const { data: codeRow, error: codeErr } = await supabase
-        .from('verification_codes')
-        .select('*')
-        .eq('username', robloxUsername)
-        .eq('code', code)
-        .single();
+    const entry = await db.getVerificationCode(roblox_id, code);
 
-    if (codeErr || !codeRow) return res.status(401).json({ error: 'Invalid or expired code' });
+    if (!entry) {
+      return res.status(400).json({ success: false, error: 'Invalid code or already used' });
+    }
 
-    await supabase.from('verification_codes').delete().eq('username', robloxUsername);
+    // Delete the code after successful verification
+    await db.deleteVerificationCode(roblox_id, code);
 
-    const { data: player, error: playerErr } = await supabase
-        .from('players')
-        .select('username, password')
-        .eq('username', robloxUsername)
-        .single();
-
-    if (playerErr || !player) return res.status(404).json({ error: 'User not found' });
-
-    res.json({ username: player.username, password: player.password });
+    // You can also mark the player as verified in your "players" table if needed
+    res.json({ success: true, message: 'Verification successful' });
+  } catch (err) {
+    console.error('[Verification Confirm] Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 module.exports = router;
