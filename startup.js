@@ -112,8 +112,8 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
   app.use('/settings', settingsRoute);
 
   // Verification routes
-  const verificationRoutes = require('./endpoints/verification');
-  app.use('/', verificationRoutes);
+  const verificationRouter = require('./endpoints/verification');
+  app.use('/verification', verificationRouter);
   
   // ----------------------------
   // Discord-Dependent Routes (Conditional)
