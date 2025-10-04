@@ -38,11 +38,38 @@ async function pollAndNotify() {
       try {
         const user = await client.users.fetch(discordId);
         if (user) {
-          await user.send({
-            content: `✅ Verification complete!\nRoblox user **${username}** claimed your code.\n` +
-                     `Use this one-time password on the website [Mochi Bar Staff Dashboard](https://cuse-k2yi.onrender.com/loginpage/login) to login: \`${token}\` (expires ${new Date(tokenExpires).toLocaleString()}).\n\n` +
-                     `**Important:** View 'My Account' and press 'Hold to reveal' and save that password, if you don't, you may lose access to your account!`,
-          });
+          // Create a blue embed for the verification notification
+          const embed = {
+            title: '✅ Verification Complete',
+            description: `Roblox user **${username}** has claimed your verification code.`,
+            color: 0x3498db, // Blue color
+            fields: [
+              {
+                name: '🔑 One-Time Password',
+                value: `\`${token}\``,
+                inline: false
+              },
+              {
+                name: '⏰ Expires',
+                value: `${new Date(tokenExpires).toLocaleString()}`,
+                inline: true
+              },
+              {
+                name: '🌐 Login Link',
+                value: '[Mochi Bar Staff Dashboard](https://cuse-k2yi.onrender.com/loginpage/login)',
+                inline: true
+              }
+            ],
+            thumbnail: {
+              url: 'https://i.imgur.com/your-logo.png' // Optional: Add your logo
+            },
+            footer: {
+              text: '⚠️ Important: Save this password immediately after logging in!'
+            },
+            timestamp: new Date().toISOString()
+          };
+
+          await user.send({ embeds: [embed] });
         }
         await db.markRequestNotified(row.id);
       } catch (dmErr) {
