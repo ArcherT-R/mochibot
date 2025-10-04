@@ -1323,7 +1323,7 @@ async function renderModalAttendees() {
     const attendees = res.ok ? await res.json() : [];
     
     const shiftRes = await fetch('/shifts');
-    const shifts = shiftRes.ok ? await shiftRes.json() : [];
+    const shifts = shiftRes.ok ? await shiftsRes.json() : [];
     const currentShift = shifts.find(s => s.id === currentShiftId);
     
     // Check if current user is in leadership ranks
@@ -1593,6 +1593,7 @@ async function renderModalAttendees() {
                     </div>
                   `).join('') : '<div class="no-results">No supervision staff available</div>'}
                 </div>
+              </div>
               
               <div class="attendee-category" style="margin:0;">
                 <div class="attendee-category-title">Other</div>
@@ -2021,7 +2022,7 @@ window.openAddPlayer = async function() {
       
       const upcoming = birthdays.map(b => {
         const bday = new Date(b.birthday);
-        const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), b.getDate());
+        const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
         
         if (bdayThisYear < today) {
           bdayThisYear.setFullYear(today.getFullYear() + 1);
@@ -2227,7 +2228,7 @@ window.managePlayerLabels = async function(robloxId, username) {
   };
 
   window.setBirthdayFor = async function(robloxId, username) {
-  if (!EXECUTIVEIVE_RANKS.includes(userGroupRank)) {
+  if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
     alert('Access Denied: Birthday management requires Vice Chairman+');
     return;
   }
@@ -2304,17 +2305,22 @@ window.managePlayerLabels = async function(robloxId, username) {
       const nextReset = new Date(data.nextReset);
       const lastReset = data.lastReset ? new Date(data.lastReset) : null;
       
- modalBody.innerHTML = `
-   <div style="line-height:2;">
-     <p><strong>Next Reset:</strong> ${nextReset.toLocaleString()}</p>
-     ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>
-     <p><strong>Players Affected:</strong> ${data.playersAffected}</p>` : ''}
-     <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0;">
-     <button onclick="manualReset()" style="width:100%;padding:12px;background:#ff4444;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
-       Manual Reset (Use with caution)
-     </button>
-   </div>
- `;
+      modalBody.innerHTML = `
+        <div style="line-height:2;">
+          <p><strong>Next Reset:</strong> ${nextReset.toLocaleString()}</p>
+          ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>
+          <p><strong>Players Affected:</strong> ${data.playersAffected}</p>` : ''}
+          <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0;">
+          <button onclick="manualReset()" style="width:100%;padding:12px;background:#ff4444;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+            Manual Reset (Use with caution)
+          </button>
+        </div>
+      `;
+    } catch(err) {
+      console.error('Error loading reset status:', err);
+      modalBody.innerHTML = '<div class="no-data">Failed to load reset status</div>';
+    }
+  };
 
   window.manualReset = async function() {
     if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
@@ -2365,52 +2371,56 @@ window.managePlayerLabels = async function(robloxId, username) {
       const weekStart = new Date(history[0].week_start).toLocaleDateString();
       const weekEnd = new Date(history[0].week_end).toLocaleDateString();
       
-      const sorted = history.sort((a, b) => b.total_minutes - a.total_minutes).sort((a, b) => b.total_minutes - a.total_minutes)
-      .slice(0, 3);
+      const sorted = history.sort((a, b) => b.total_minutes - a.total_minutes).slice(0, 10);
       
- modalBody.innerHTML = `
-   <div style="margin-bottom:15px;text-align:center;color:#666;">
-     Week: ${weekStart} - ${weekEnd}
-   </div>
-   <div style="max-height:500px;overflow-y:auto;">
-     <table style="width:100%;border-collapse:collapse;">
-       <thead>
-         <tr style="background:#f0f8ff;text-align:left;">
-          <th style="padding:8px;">Player</th>
-          <th style="padding:8px;">Minutes</th>
-          <th style="padding:8px;">Hosted</th>
-          <th style="padding:8px;">Attended</th>
-          <th style="padding:8px;">Roblox ID</th>
-         </tr>
-       </thead>
-       <tbody>
-         ${sorted.map(h => {
-           const hours = Math.floor(h.total_minutes / 60);
-           const mins = h.total_minutes % 60;
-           return `
-             <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${h.username}'">
-              <td>
-                <div class="player-info">
-                  <img class="player-avatar" src="${h.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
-                       onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
-                  <div class="player-details">
-                    <div class="player-name">${h.username}</div>
-                    <div class="player-rank">${h.group_rank || 'Unknown'}</div>
-                  </div>
-                </div>
-              </td>
-              <td>${hours}h ${mins}m</td>
-              <td>${h.shifts_hosted}</td>
-              <td>${h.shifts_attended}</td>
-              <td>${h.roblox_id}</td>
-            </tr>
-          `;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>
-`;
-
+      modalBody.innerHTML = `
+        <div style="margin-bottom:15px;text-align:center;color:#666;">
+          Week: ${weekStart} - ${weekEnd}
+        </div>
+        <div style="max-height:500px;overflow-y:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f0f8ff;text-align:left;">
+                <th style="padding:8px;">Player</th>
+                <th style="padding:8px;">Minutes</th>
+                <th style="padding:8px;">Hosted</th>
+                <th style="padding:8px;">Attended</th>
+                <th style="padding:8px;">Roblox ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sorted.map(h => {
+                const hours = Math.floor(h.total_minutes / 60);
+                const mins = h.total_minutes % 60;
+                return `
+                  <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${h.username}'">
+                    <td>
+                      <div class="player-info">
+                        <img class="player-avatar" src="${h.avatar_url || 'https://placehold.co/40x40/e0e6f0/5f6c7b?text=U'}"
+                             onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+                        <div class="player-details">
+                          <div class="player-name">${h.username}</div>
+                          <div class="player-rank">${h.group_rank || 'Unknown'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>${hours}h ${mins}m</td>
+                    <td>${h.shifts_hosted}</td>
+                    <td>${h.shifts_attended}</td>
+                    <td>${h.roblox_id}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch(err) {
+      console.error('Error loading last week history:', err);
+      modalBody.innerHTML = '<div class="no-data">Failed to load historical data</div>';
+    }
+  };
+});
 </script>
 </body>
 </html>
