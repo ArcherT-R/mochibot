@@ -17,6 +17,13 @@ async function resolveDiscordName(client, guild, text) {
   return text.trim();
 }
 
+function parseTimestamps(timeString) {
+  // Match all <t:TIMESTAMP:t> patterns in the string
+  const timestampRegex = /<t:(\d+):[tTdDfFR]>/g;
+  const matches = [...timeString.matchAll(timestampRegex)];
+  return matches.map(match => parseInt(match[1], 10));
+}
+
 module.exports = (client) => {
   const router = express.Router();
   
@@ -38,15 +45,19 @@ module.exports = (client) => {
         let host = null;
         let cohost = null;
         let overseer = null;
-        let timestamp = null;
+        let timestamps = [];
         
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
-          const [key, ...rest] = line.split(':');
-          const value = rest.join(':').trim();
+          const colonIndex = line.indexOf(':');
+          if (colonIndex === -1) continue;
+          
+          const key = line.substring(0, colonIndex).trim().toLowerCase();
+          const value = line.substring(colonIndex + 1).trim();
+          
           if (!value) continue;
           
-          switch (key.trim().toLowerCase()) {
+          switch (key) {
             case 'host':
               host = await resolveDiscordName(client, guild, value);
               break;
@@ -56,22 +67,25 @@ module.exports = (client) => {
             case 'overseer':
               overseer = await resolveDiscordName(client, guild, value);
               break;
+            case 'times':
             case 'time':
-              const tsMatch = value.match(/\d+/);
-              if (tsMatch) timestamp = parseInt(tsMatch[0], 10);
+              timestamps = parseTimestamps(value);
               break;
           }
         }
         
-        if (host && timestamp) {
-          const session = { 
-            host, 
-            cohost, 
-            overseer, 
-            shift_time: timestamp, // Keep as Unix timestamp
-            timestamp
-          };
-          sessions.push(session);
+        // Create a separate session entry for each timestamp
+        if (host && timestamps.length > 0) {
+          for (const timestamp of timestamps) {
+            const session = { 
+              host, 
+              cohost, 
+              overseer, 
+              shift_time: timestamp,
+              timestamp
+            };
+            sessions.push(session);
+          }
         }
       }
       
@@ -82,7 +96,7 @@ module.exports = (client) => {
     }
   });
 
-  // NEW: Sync Discord sessions to database
+  // Sync Discord sessions to database
   router.post('/sync', async (req, res) => {
     try {
       if (!client.isReady()) return res.status(503).json({ error: 'Bot not ready' });
@@ -101,15 +115,19 @@ module.exports = (client) => {
         let host = null;
         let cohost = null;
         let overseer = null;
-        let timestamp = null;
+        let timestamps = [];
         
         const lines = msg.content.split(/\r?\n/);
         for (const line of lines) {
-          const [key, ...rest] = line.split(':');
-          const value = rest.join(':').trim();
+          const colonIndex = line.indexOf(':');
+          if (colonIndex === -1) continue;
+          
+          const key = line.substring(0, colonIndex).trim().toLowerCase();
+          const value = line.substring(colonIndex + 1).trim();
+          
           if (!value) continue;
           
-          switch (key.trim().toLowerCase()) {
+          switch (key) {
             case 'host':
               host = await resolveDiscordName(client, guild, value);
               break;
@@ -119,29 +137,30 @@ module.exports = (client) => {
             case 'overseer':
               overseer = await resolveDiscordName(client, guild, value);
               break;
+            case 'times':
             case 'time':
-              const tsMatch = value.match(/\d+/);
-              if (tsMatch) timestamp = parseInt(tsMatch[0], 10);
+              timestamps = parseTimestamps(value);
               break;
           }
         }
         
-        if (host && timestamp) {
-          // Check if shift already exists
-          const existing = await getShiftByTime(timestamp);
-          
-          if (!existing) {
-            // Add to database
-            await addShift({ 
-              shift_time: timestamp, 
-              host, 
-              cohost, 
-              overseer 
-            });
-            added++;
-            console.log(`✅ Synced shift: ${host} at ${new Date(timestamp * 1000).toISOString()}`);
-          } else {
-            skipped++;
+        // Create a separate shift entry for each timestamp
+        if (host && timestamps.length > 0) {
+          for (const timestamp of timestamps) {
+            const existing = await getShiftByTime(timestamp);
+            
+            if (!existing) {
+              await addShift({ 
+                shift_time: timestamp, 
+                host, 
+                cohost, 
+                overseer 
+              });
+              added++;
+              console.log(`✅ Synced shift: ${host} at ${new Date(timestamp * 1000).toISOString()}`);
+            } else {
+              skipped++;
+            }
           }
         }
       }
