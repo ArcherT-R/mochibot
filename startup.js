@@ -23,6 +23,39 @@ async function main() {
   // ----------------------------
   const app = express();
 
+  // in bot startup (after client ready)
+const db = require('../../endpoints/database');
+
+async function pollAndNotify() {
+  try {
+    const pending = await db.getPendingNotifications();
+    for (const row of pending) {
+      const discordId = row.discord_id;
+      const token = row.one_time_token;
+      const username = row.claimed_by_username;
+      const tokenExpires = row.token_expires_at;
+
+      try {
+        const user = await client.users.fetch(discordId);
+        if (user) {
+          await user.send({
+            content: `✅ Verification complete!\nRoblox user **${username}** claimed your code.\n` +
+                     `Use this one-time token to continue the flow: \`${token}\` (expires ${new Date(tokenExpires).toLocaleString()}).\n\n` +
+                     `Note: this token is not a password — it lets you securely finalize verification or trigger a reset flow.`,
+          });
+        }
+        await db.markRequestNotified(row.id);
+      } catch (dmErr) {
+        console.warn('Failed to DM user', discordId, dmErr);
+      }
+    }
+  } catch (err) {
+    console.error('pollAndNotify error', err);
+  }
+}
+
+setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
+
   // ----------------------------
   // Session Middleware
   // ----------------------------
