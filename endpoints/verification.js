@@ -13,7 +13,7 @@ router.post('/game-claim', bodyParser.json(), async (req, res) => {
       return res.status(400).json({ success: false, error: 'Missing username or code' });
     }
 
-    const verificationRecord = await db.getVerificationCode(code);
+    const verificationRecord = await db.getVerificationRequest(code);
     console.log('[Verification] Found record:', verificationRecord);
 
     if (!verificationRecord) {
