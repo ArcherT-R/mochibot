@@ -646,10 +646,15 @@ async function claimVerificationCode(code, robloxUsername) {
 
   if (!request) return { success: false, error: 'No matching request' };
 
+  // Generate a temp password
   const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase();
+  const password_hash = await bcrypt.hash(tempPassword, 10);
 
-  // Save temp password in both fields
-  await updatePlayerPassword(robloxUsername, tempPassword);
+  // Update only the hashed password
+  await supabase
+    .from('players')
+    .update({ password_hash })
+    .eq('username', robloxUsername);
 
   // Mark request claimed
   await supabase
