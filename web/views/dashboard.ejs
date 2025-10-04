@@ -908,7 +908,7 @@ function findClosestUsername(target, usernames) {
 
 async function renderTopShiftLeaders(){
   try{
-    const shiftsRes = await fetch('/shifts');
+    const shiftRes = await fetch('/shifts');
     const shifts = shiftsRes.ok ? await shiftsRes.json() : [];
 
     const attendeesPromises = shifts.map(async shift => {
