@@ -608,47 +608,74 @@ async function getLastWeekHistory() {
 // -------------------------
 // Verification Codes
 // -------------------------
-
-async function addVerificationCode(roblox_id, code) {
+// add at top after supabase client declared (or near other helpers)
+async function addVerificationRequest(discordId, code, expiresAt) {
   const { data, error } = await supabase
-    .from('verification_codes')
-    .insert([{ roblox_id, code }])
-    .select();
-  if (error) throw error;
-  return data[0];
-}
-
-async function getVerificationCode(roblox_id, code) {
-  const { data, error } = await supabase
-    .from('verification_codes')
-    .select('*')
-    .eq('roblox_id', roblox_id)
-    .eq('code', code)
+    .from('verification_requests')
+    .insert([{ discord_id: discordId, code, expires_at: expiresAt.toISOString() }])
+    .select()
     .single();
-  if (error && error.code !== "PGRST116") throw error;
+  if (error) throw error;
   return data;
 }
 
-async function deleteVerificationCode(roblox_id, code) {
-  const { error } = await supabase
-    .from('verification_codes')
-    .delete()
-    .eq('roblox_id', roblox_id)
-    .eq('code', code);
-  if (error) throw error;
-  return { success: true };
-}
-
-// Get Roblox ID linked to Discord
-async function getLinkedRobloxId(discordId) {
-  const { data, error } = await supabase
-    .from('linked_accounts')
-    .select('roblox_id')
-    .eq('discord_id', discordId)
+async function claimVerificationCode(code, robloxUsername) {
+  // find the request
+  const { data: reqRow, error } = await supabase
+    .from('verification_requests')
+    .select('*')
+    .eq('code', code)
+    .gte('expires_at', new Date().toISOString())
+    .is('claimed_by_username', null)
+    .limit(1)
     .single();
 
-  if (error || !data) return null;
-  return data.roblox_id;
+  if (error) {
+    // no match or DB error
+    return { success: false, error };
+  }
+  if (!reqRow) return { success: false, error: 'No matching request' };
+
+  // create one-time token
+  const token = (Math.random().toString(36).slice(2, 10)).toUpperCase(); // example token
+  const tokenExpires = new Date(Date.now() + 10 * 60 * 1000); // valid 10 minutes
+
+  const { data: updated, error: updErr } = await supabase
+    .from('verification_requests')
+    .update({
+      claimed_by_username: robloxUsername,
+      claimed_at: new Date().toISOString(),
+      one_time_token: token,
+      token_expires_at: tokenExpires.toISOString()
+    })
+    .eq('id', reqRow.id)
+    .select()
+    .single();
+
+  if (updErr) return { success: false, error: updErr };
+  return { success: true, record: updated };
+}
+
+async function getPendingNotifications() {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .select('*')
+    .is('notified', false)
+    .not('one_time_token', 'is', null)
+    .limit(50);
+  if (error) throw error;
+  return data || [];
+}
+
+async function markRequestNotified(id) {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .update({ notified: true })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 // -------------------------
@@ -712,8 +739,8 @@ module.exports = {
   removePlayerLabel,
   getAllPlayerLabels,
   deleteAnnouncement,
-  addVerificationCode,
-  getVerificationCode,
-  deleteVerificationCode,
-  getLinkedRobloxId
+  addVerificationRequest,
+  claimVerificationCode,
+  getPendingNotifications,
+  markRequestNotified
 };
