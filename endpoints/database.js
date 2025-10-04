@@ -717,7 +717,75 @@ async function getVerificationRequestByDiscordId(discordId) {
   return data || null;
 }
 
-// --=----------------------
+async function generatePassword() {
+  try {
+    const res = await fetch('/settings/generate-password');
+    const data = await res.json();
+    
+    if (data.password) {
+      document.getElementById('newPassword').value = data.password;
+    } else {
+      alert('Failed to generate password');
+    }
+  } catch (err) {
+    console.error('Error generating password:', err);
+    alert('Error generating password');
+  }
+}
+
+// 在 openAddPlayer 函数中替换生成密码按钮的点击事件
+document.getElementById('newPassword').addEventListener('click', generatePassword);
+
+// 在 openAddPlayer 函数中替换生成密码按钮的点击事件
+document.getElementById('newPassword').addEventListener('click', generatePassword);
+
+// 在 submitAddPlayer 函数中，如果密码为空，阻止提交表单
+document.getElementById('addPlayerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const robloxId = document.getElementById('newRobloxId').value;
+  const username = document.getElementById('newUsername').value;
+  const groupRank = document.getElementById('newGroupRank').value;
+  const avatarUrl = document.getElementById('newAvatarUrl').value;
+  const password = document.getElementById('newPassword').value;
+  
+  if (!password) {
+    alert('Please generate a password first');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/settings/add-player', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        roblox_id: robloxId,
+        username: username,
+        group_rank: groupRank,
+        avatar_url: avatarUrl,
+        password: password
+      })
+    });
+    
+    const result = await res.json();
+    
+    if (res.ok) {
+      alert(`Player added successfully!\n\nUsername: ${username}\nPassword: ${password}\n\nMake sure to save this password!`);
+      closeShiftModal();
+      
+      if (allPlayersData.length) {
+        loadPlayerList();
+      }
+    } else {
+      alert(`Failed to add player: ${result.error || 'Unknown error'}`);
+    }
+  } catch (err) {
+    console.error('Error adding player:', err);
+    alert('Error adding player. Please try again.');
+  }
+  });
+
+// -------------------------
 // Password Management
 // -------------------------
 
@@ -796,5 +864,6 @@ module.exports = {
   getPendingNotifications,
   markRequestNotified,
   claimVerificationCode,
-  getVerificationRequestByDiscordId
+  getVerificationRequestByDiscordId,
+  generatePassword
 };
