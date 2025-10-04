@@ -122,22 +122,33 @@ router.delete("/announcements", requireLogin, async (req, res) => {
 // ----------------------------
 // Current user endpoint
 // ----------------------------
-router.get("/current-user", requireLogin, async (req, res) => {
+app.get('/dashboard/current-user', async (req, res) => {
   try {
-    const player = req.session?.player;
-    if (!player) return res.status(401).json({ error: 'Not authenticated' });
-
-    console.log('Current user session data:', player);
-
+    const currentUser = req.user; // Adjust based on your auth method
+    
+    if (!currentUser) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    // Get full user data including password
+    const userData = await db.getPlayerByRobloxId(currentUser.roblox_id);
+    
+    if (!userData) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Return user data with password
     res.json({
-      username: player.username,
-      roblox_id: player.roblox_id,
-      password: player.password || null,      
-      group_rank: player.group_rank || 'Guest',
+      username: userData.username,
+      roblox_id: userData.roblox_id,
+      group_rank: userData.group_rank,
+      avatar_url: userData.avatar_url,
+      password: userData.password, // Include the plain text password
+      weekly_minutes: userData.weekly_minutes
     });
-  } catch (err) {
-    console.error("Error fetching current user:", err);
-    res.status(500).json({ error: "Failed to fetch current user" });
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ error: 'Failed to fetch user data' });
   }
 });
 
