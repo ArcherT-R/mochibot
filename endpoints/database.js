@@ -639,6 +639,18 @@ async function deleteVerificationCode(roblox_id, code) {
   return { success: true };
 }
 
+// Get Roblox ID linked to Discord
+async function getLinkedRobloxId(discordId) {
+  const { data, error } = await supabase
+    .from('linked_accounts')
+    .select('roblox_id')
+    .eq('discord_id', discordId)
+    .single();
+
+  if (error || !data) return null;
+  return data.roblox_id;
+}
+
 // -------------------------
 // Exports
 // -------------------------
@@ -702,5 +714,6 @@ module.exports = {
   deleteAnnouncement,
   addVerificationCode,
   getVerificationCode,
-  deleteVerificationCode
+  deleteVerificationCode,
+  getLinkedRobloxID
 };
