@@ -1,7 +1,7 @@
 // commands/getdetails.js
 const { SlashCommandBuilder } = require('discord.js');
 const crypto = require('crypto');
-const db = require('../../endpoints/database'); // Adjust path if needed
+const { getLinkedRobloxId, addVerificationCode } = require('../../endpoints/database');
 
 module.exports = {
   data: new SlashCommandBuilder()
