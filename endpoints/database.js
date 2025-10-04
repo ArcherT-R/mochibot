@@ -782,5 +782,6 @@ module.exports = {
   claimVerificationRequest,
   deleteVerificationRequest,
   getPendingNotifications,
-  markRequestNotified
+  markRequestNotified,
+  claimVerificationCode
 };
