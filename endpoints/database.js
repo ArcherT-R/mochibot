@@ -615,15 +615,10 @@ async function addVerificationRequest(discordId, code, expiresAt) {
     .insert([{ discord_id: discordId, code, expires_at: expiresAt.toISOString() }])
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
 
-/**
- * Get a verification request by code (unclaimed and not expired)
- * @param {string} code - 6-digit code
- */
 async function getVerificationRequest(code) {
   const { data, error } = await supabase
     .from('verification_requests')
@@ -633,18 +628,11 @@ async function getVerificationRequest(code) {
     .gte('expires_at', new Date().toISOString())
     .limit(1)
     .single();
-
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+  if (error && error.code !== 'PGRST116') throw error;
   return data || null;
 }
 
-/**
- * Claim a verification request
- * @param {string} code - 6-digit code
- * @param {string} robloxUsername - username that claimed the code
- */
 async function claimVerificationCode(code, robloxUsername) {
-  // Get verification request
   const request = await supabase
     .from('verification_requests')
     .select('*')
@@ -658,15 +646,10 @@ async function claimVerificationCode(code, robloxUsername) {
 
   if (!request) return { success: false, error: 'No matching request' };
 
-  // Look up player by username
-  const player = await getPlayerByUsername(robloxUsername);
-  if (!player) return { success: false, error: 'Player not found' };
-
-  // Generate temporary password
   const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase();
 
-  // Update player's password using numeric roblox_id
-  await updatePlayerPassword(player.roblox_id, tempPassword); // stores hashed password
+  // Save temp password in both fields
+  await updatePlayerPassword(robloxUsername, tempPassword);
 
   // Mark request claimed
   await supabase
@@ -689,14 +672,10 @@ async function deleteVerificationRequest(code) {
     .eq('code', code)
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
 
-/**
- * Get pending notifications (requests with token not notified)
- */
 async function getPendingNotifications() {
   const { data, error } = await supabase
     .from('verification_requests')
@@ -704,15 +683,10 @@ async function getPendingNotifications() {
     .not('one_time_token', 'is', null)
     .is('notified', false)
     .limit(50);
-
   if (error) throw error;
   return data || [];
 }
 
-/**
- * Mark a verification request as notified
- * @param {number} id
- */
 async function markRequestNotified(id) {
   const { data, error } = await supabase
     .from('verification_requests')
@@ -720,7 +694,6 @@ async function markRequestNotified(id) {
     .eq('id', id)
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
