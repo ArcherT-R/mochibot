@@ -22,6 +22,12 @@ const LEADERSHIP_RANKS = [
   'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
 ];
 
+const CORPORATE_RANKS = [
+  'Chairman', 'Vice Chairman', 'Chief Administrative Officer',
+  'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+  'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
+];
+
 // ----------------------------
 // Helper: Attach ongoing session data to players
 // ----------------------------
@@ -217,8 +223,9 @@ router.get("/players", requireLogin, async (req, res) => {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
 
-    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: 'Access denied: Leadership rank required' });
+    // Allow access to Corporate ranks and above
+    if (!CORPORATE_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: 'Access denied: Corporate rank or higher required' });
     }
 
     const players = await getAllPlayers();
