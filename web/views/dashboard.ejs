@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mochi Bar Dashboard</title>
+<title>Mochi Bar Staff Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="https://i.ibb.co/S4NjLxNL/Gemini-Generated-Image-hbcyjkhbcyjkhbcy-removebg-preview.png">
 <style>
@@ -662,9 +662,9 @@ function renderAccountDetails(container) {
     return;
   }
 
-  // Use password first, fallback to password_hash
-  const playerPassword = currentUser.password || currentUser.password_hash || '';
-  const hasPassword = playerPassword.length > 0;
+  // Use password from the password field
+  const playerPassword = currentUser.password || '';
+  const hasPassword = playerPassword && playerPassword.length > 0;
 
   container.innerHTML = `
     <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
