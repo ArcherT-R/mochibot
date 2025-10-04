@@ -643,34 +643,37 @@ async function getVerificationRequest(code) {
  * @param {string} code - 6-digit code
  * @param {string} robloxUsername - username that claimed the code
  */
-async function claimVerificationRequest(code, robloxUsername) {
-  const request = await getVerificationRequest(code);
-  if (!request) return { success: false, error: 'Code invalid or expired' };
+async function claimVerificationCode(code, robloxUsername) {
+  const request = await supabase
+    .from('verification_requests')
+    .select('*')
+    .eq('code', code)
+    .is('claimed_by_username', null)
+    .gte('expires_at', new Date().toISOString())
+    .limit(1)
+    .single()
+    .then(r => r.data)
+    .catch(() => null);
 
-  const token = Math.random().toString(36).slice(2, 10).toUpperCase(); // 8-char token
-  const tokenExpires = new Date(Date.now() + 10 * 60 * 1000); // valid 10 min
+  if (!request) return { success: false, error: 'No matching request' };
 
-  const { data, error } = await supabase
+  const tempPassword = Math.random().toString(36).slice(2, 10).toUpperCase();
+  await updatePlayerPassword(robloxUsername, tempPassword); // hash stored inside
+
+  // mark request claimed
+  await supabase
     .from('verification_requests')
     .update({
       claimed_by_username: robloxUsername,
       claimed_at: new Date().toISOString(),
-      one_time_token: token,
-      token_expires_at: tokenExpires.toISOString()
+      one_time_token: tempPassword,
+      token_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     })
-    .eq('id', request.id)
-    .select()
-    .single();
+    .eq('id', request.id);
 
-  if (error) return { success: false, error };
-
-  return { success: true, record: data };
+  return { success: true, tempPassword };
 }
 
-/**
- * Delete a verification request by code (optional)
- * @param {string} code
- */
 async function deleteVerificationRequest(code) {
   const { data, error } = await supabase
     .from('verification_requests')
