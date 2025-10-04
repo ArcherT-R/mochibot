@@ -2110,7 +2110,7 @@ window.openAddPlayer = async function() {
     });
   };
 
-  window.managePlayerLabels = async function(robloxId, username) {
+ window.managePlayerLabels = async function(robloxId, username) {
     const res = await fetch(`/settings/labels/${robloxId}`);
     const currentLabels = res.ok ? await res.json() : [];
     
@@ -2123,10 +2123,10 @@ window.openAddPlayer = async function() {
         ${allLabels.map(label => {
           const isActive = currentLabels.includes(label);
           return `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:${isActive ? '#e6f3ff' : '#f9f9f9f9; border-radius:8px;border:2px solid ${isActive ? '#42b4ff' : '#eee';}">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:${isActive ? '#e6f3ff' : '#f9f9f9'};border-radius:8px;border:2px solid ${isActive ? '#42b4ff' : '#eee'};">
               <span style="font-weight:600;">${label}</span>
               <button onclick="toggleLabel(${robloxId}, '${username}', '${label}', ${isActive})" 
-                      style="padding:6px 16px;background:${isActive ? '#ff4444' : '#42b4ff'; color:white; border-radius:6px; cursor:pointer;font-weight:600;">
+                      style="padding:6px 16px;background:${isActive ? '#ff4444' : '#42b4ff'};color:white;border-radius:6px;cursor:pointer;font-weight:600;">
                 ${isActive ? 'Remove' : 'Add'}
               </button>
             </div>
@@ -2134,8 +2134,8 @@ window.openAddPlayer = async function() {
         }).join('')}
       </div>
       <button onclick="openLabelsManager()" style="margin-top:20px;width:100%;padding:12px;background:#42b4ff;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
-      ← Back to Search
-    </button>
+        ← Back to Search
+      </button>
     `;
   };
 
