@@ -1,25 +1,46 @@
 // endpoints/verification.js
 const express = require('express');
 const router = express.Router();
-const db = require('./database'); // adjust path
-const AUTH_SECRET = process.env.GAME_SHARED_SECRET; // set in env
+const db = require('./database'); // your Supabase functions
+const bodyParser = require('body-parser');
 
-// POST /verification/game-claim
-// body: { secret, username, code }
-router.post('/game-claim', async (req, res) => {
+// Roblox sends JSON payload { username, code }
+router.post('/game-claim', bodyParser.json(), async (req, res) => {
   try {
-    const { secret, username, code } = req.body;
-    if (!secret || secret !== AUTH_SECRET) return res.status(403).json({ error: 'Forbidden' });
-    if (!username || !code) return res.status(400).json({ error: 'Missing fields' });
+    const { username, code } = req.body;
 
-    const result = await db.claimVerificationCode(code, username);
-    if (!result.success) return res.status(400).json({ success: false, error: result.error || 'Invalid code' });
+    if (!username || !code) {
+      return res.status(400).json({ success: false, error: 'Missing username or code' });
+    }
 
-    // result.record contains the one_time_token etc.
-    return res.json({ success: true, one_time_token: result.record.one_time_token });
+    // Look up the verification code in your DB
+    const verificationRecord = await db.getVerificationCode(code);
+
+    if (!verificationRecord) {
+      return res.status(404).json({ success: false, error: 'Invalid code' });
+    }
+
+    // The code exists — return the linked Roblox username/password
+    const { roblox_id } = verificationRecord;
+    const player = await db.getPlayerByRobloxId(roblox_id);
+
+    if (!player) {
+      return res.status(404).json({ success: false, error: 'No player found for code' });
+    }
+
+    // Delete code after use to prevent reuse
+    await db.deleteVerificationCode(code);
+
+    // Return credentials (username/password)
+    return res.json({
+      success: true,
+      username: player.username,
+      password: player.password, // or password_hash if you have plain-text temporarily
+    });
+
   } catch (err) {
-    console.error('game-claim error', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('[Verification] Error:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
