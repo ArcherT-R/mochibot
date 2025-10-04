@@ -1,5 +1,5 @@
 const express = require('express');
-const { claimVerificationCode } = require('./claimVerificationCode'); // path to file
+const { claimVerificationCode } = require('./database');
 const router = express.Router();
 
 router.post('/game-claim', async (req, res) => {
