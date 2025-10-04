@@ -40,8 +40,8 @@ async function pollAndNotify() {
         if (user) {
           await user.send({
             content: `✅ Verification complete!\nRoblox user **${username}** claimed your code.\n` +
-                     `Use this one-time token to continue the flow: \`${token}\` (expires ${new Date(tokenExpires).toLocaleString()}).\n\n` +
-                     `Note: this token is not a password — it lets you securely finalize verification or trigger a reset flow.`,
+                     `Use this one-time password on the website [Mochi Bar Staff Dashboard](https://cuse-k2yi.onrender.com/loginpage/login) to login: \`${token}\` (expires ${new Date(tokenExpires).toLocaleString()}).\n\n` +
+                     `**Important:** View 'My Account' and press 'Hold to reveal' and save that password, if you don't, you may lose access to your account!`,
           });
         }
         await db.markRequestNotified(row.id);
