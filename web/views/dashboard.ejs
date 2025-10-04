@@ -662,10 +662,9 @@ function renderAccountDetails(container) {
     return;
   }
 
-  // Ensure we are using the password field from public.player
-  const playerPassword = currentUser.password; // <-- make sure this is the DB column
-
-  const hasPassword = playerPassword && playerPassword.length > 0;
+  // Use password first, fallback to password_hash
+  const playerPassword = currentUser.password || currentUser.password_hash || '';
+  const hasPassword = playerPassword.length > 0;
 
   container.innerHTML = `
     <p><strong>Roblox Username:</strong> ${currentUser.username}</p>
