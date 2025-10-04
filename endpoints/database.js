@@ -779,7 +779,6 @@ module.exports = {
   deleteAnnouncement,
   addVerificationRequest,
   getVerificationRequest,
-  claimVerificationRequest,
   deleteVerificationRequest,
   getPendingNotifications,
   markRequestNotified,
