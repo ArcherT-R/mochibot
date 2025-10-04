@@ -702,7 +702,22 @@ async function markRequestNotified(id) {
   if (error) throw error;
   return data;
 }
-// -------------------------
+
+async function getVerificationRequestByDiscordId(discordId) {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .select('*')
+    .eq('discord_id', discordId)
+    .is('claimed_by_username', null)
+    .gte('expires_at', new Date().toISOString())
+    .order('expires_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data || null;
+}
+
+// --=----------------------
 // Password Management
 // -------------------------
 
@@ -780,5 +795,6 @@ module.exports = {
   deleteVerificationRequest,
   getPendingNotifications,
   markRequestNotified,
-  claimVerificationCode
+  claimVerificationCode,
+  getVerificationRequestByDiscordId
 };
