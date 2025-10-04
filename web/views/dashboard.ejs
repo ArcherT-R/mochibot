@@ -413,29 +413,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadCurrentUser() {
   try {
-    const res = await fetch('/dashboard/current-user');
-    if (res.ok) {
-      currentUser = await res.json();
-      userGroupRank = currentUser.group_rank || '';
-      console.log('Current user loaded:', currentUser.username, 'Rank:', userGroupRank);
-      updateTabAccess();
-      renderMyAccount();
-      
-      if (LEADERSHIP_RANKS.includes(userGroupRank)) {
-        newAnnouncementBtn.style.display = 'block';
-      }
-      
-      loadAnnouncements();
-      
-      // Load user labels FIRST, then render requirements
-      await loadCurrentUserLabels();
-      console.log('Labels loaded:', currentUserLabels);
-      
-      // Now render the requirements box directly (without setTimeout)
-      renderRequirementsBox();
-    }
-  } catch (err) {
-    console.error('Failed to load current user:', err);
+    const response = await fetch('/dashboard/current-user');
+    if (!response.ok) throw new Error('Failed to fetch user');
+    currentUser = await response.json();
+    userGroupRank = currentUser.group_rank || '';
+    
+    // Set the profile link
+    const viewProfileLink = document.getElementById('viewProfileLink');
+    viewProfileLink.href = `/dashboard/player/${currentUser.username}`;
+    
+    updateTabAccess();
+    renderMyAccount();
+    loadAnnouncements();
+    
+    // Load user labels FIRST, then render requirements
+    await loadCurrentUserLabels();
+    console.log('Labels loaded:', currentUserLabels);
+    
+    // Now render the requirements box directly (without setTimeout)
+    renderRequirementsBox();
+  } catch (error) {
+    console.error('Error loading current user:', error);
+    accountContent.innerHTML = '<p>Error loading account information.</p>';
     userGroupRank = '';
   }
 }
