@@ -1340,7 +1340,7 @@ async function renderModalAttendees() {
     const attendees = res.ok ? await res.json() : [];
     
     const shiftRes = await fetch('/shifts');
-    const shifts = shiftRes.ok ? await shiftsRes.json() : [];
+    const shifts = shiftRes.ok ? await shiftRes.json() : [];
     const currentShift = shifts.find(s => s.id === currentShiftId);
     
     // Check if current user is in leadership ranks
