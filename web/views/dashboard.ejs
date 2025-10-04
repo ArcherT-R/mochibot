@@ -163,6 +163,24 @@
   .account-field { margin-bottom:15px; }
   .account-label { font-weight:600; color:#333; margin-bottom:5px; }
   .account-value { color:#555; }
+  .no-access-message {
+    background: #fff3cd;
+    border-left: 4px solid #ff9801;
+    padding: 15px;
+    border-radius:8px;
+    margin-bottom:20px;
+    text-align: center;
+    color: #333;
+  }
+  .no-access-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom:10px;
+  }
+  .no-access-text {
+    font-size: 14px;
+    color: #666;
+  }
   
   @media(max-width:600px){
     header { font-size:36px; padding:20px; }
@@ -284,19 +302,11 @@
         <div class="account-title">
           <span>👤</span>
           <span>My Account</span>
-        </div>
-        <div class="account-actions">
           <a href="#" class="profile-link" id="viewProfileLink">View Profile</a>
-          <button id="userSettingsBtn" class="btn">User Settings</button>
         </div>
       </div>
       
-      <div class="account-tabs">
-        <button class="account-tab active" data-tab="account">Account Details</button>
-        <button class="account-tab" data-tab="security">Security</button>
-      </div>
-      
-      <div class="account-content" id="accountContent"></div>
+      <div id="accountContent"></div>
     </section>
   </div>
 <div id="settings" class="tab-content">
@@ -644,32 +654,29 @@ window.deleteAnnouncementByIndex = function(index) {
       const viewProfileLink = document.getElementById('viewProfileLink');
       viewProfileLink.href = `/dashboard/player/${currentUser.username}`;
       
-      // Set up the user settings button
-      const userSettingsBtn = document.getElementById('userSettingsBtn');
-      userSettingsBtn.addEventListener('click', toggleUserSettingsPanel);
-      
-      // Set up the account tabs
-      const accountTabs = document.querySelectorAll('.account-tab');
-      accountTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          accountTabs.forEach(t => t.classList.remove('active'));
-          tab.classList.add('active');
-          const selected = tab.dataset.tab;
-          if (selected === 'account') renderAccountDetails();
-          if (selected === 'security') renderSecurity();
-        });
-      });
-      
-      // Render the default account details tab
-      renderAccountDetails();
+      // Render the account content
+      renderAccountContent();
     } else {
       accountContent.innerHTML = '<p>Please log in to view your account.</p>';
     }
   }
 
-  function renderAccountDetails() {
+  function renderAccountContent() {
     if (!currentUser) {
       accountContent.innerHTML = '<p>No user data available.</p>';
+      return;
+    }
+
+    // Check if user has access to view account details
+    const hasAccess = DIRECTOR_PLUS.includes(userGroupRank);
+    
+    if (!hasAccess) {
+      accountContent.innerHTML = `
+        <div class="no-access-message">
+          <div class="no-access-title">Access Denied</div>
+          <div class="no-access-text">You don't have permission to view account details.</div>
+        </div>
+      `;
       return;
     }
 
@@ -729,28 +736,6 @@ window.deleteAnnouncementByIndex = function(index) {
     });
     
     revealBtn.addEventListener('touchcancel', hidePassword);
-  }
-
-  function renderSecurity() {
-    if (!currentUser) {
-      accountContent.innerHTML = '<p>No user data available.</p>';
-      return;
-    }
-
-    accountContent.innerHTML = `
-      <div class="account-field">
-        <div class="account-label">Security Settings</div>
-        <div class="account-value">
-          <p>Your account security settings would be displayed here.</p>
-          <p>This could include options like two-factor authentication, login history, etc.</p>
-        </div>
-      </div>
-    `;
-  }
-
-  function toggleUserSettingsPanel() {
-    // This function can be used to show additional settings if needed
-    alert('User Settings panel would open here');
   }
 
 function maskPassword(pwd) {
@@ -1037,7 +1022,6 @@ async function renderUserRequirements() {
             <div class="user-requirement-progress">
               <div class="progress-bar">
                 <div class="progress-fill" style="width: ${progress}%"></div>
-              </div>
               <span class="progress-text ${isComplete ? 'progress-complete' : 'progress-incomplete'}">
                 ${isComplete ? '✓' : ''} ${progressText}
               </span>
@@ -1109,7 +1093,6 @@ async function renderRequirementsBox() {
             <div class="user-requirement-progress">
               <div class="progress-bar">
                 <div class="progress-fill" style="width: ${progress}%"></div>
-              </div>
               <span class="progress-text ${isComplete ? 'progress-complete' : 'progress-incomplete'}">
                 ${isComplete ? '✓' : ''} ${progressText}
               </span>
@@ -1610,7 +1593,6 @@ async function renderModalAttendees() {
                     </div>
                   `).join('') : '<div class="no-results">No supervision staff available</div>'}
                 </div>
-              </div>
               
               <div class="attendee-category" style="margin:0;">
                 <div class="attendee-category-title">Other</div>
@@ -1695,7 +1677,7 @@ async function renderModalAttendees() {
           }
           .attendee-search-input:focus {
             border-color: #42b4ff;
-            box-shadow: 0 0 0 2px rgba(66, 180, 255, 0.2);
+            box-shadow: 0 0 0 0 2px rgba(66, 180, 255, 0.2);
           }
         `;
         document.head.appendChild(style);
@@ -1739,6 +1721,7 @@ async function renderModalAttendees() {
               categoryTitles[index].style.display = 'block';
             });
             return;
+          }
           }
           
           // Filter items based on query
@@ -1838,7 +1821,7 @@ async function renderModalAttendees() {
 
       // Group shifts by day of the week
       const shiftsByDay = {};
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
       
       sortedShifts.forEach(shift => {
         const shiftTime = shift.shift_time || shift.time;
@@ -1884,7 +1867,7 @@ async function renderModalAttendees() {
             card.innerHTML = `
               <div class="shift-header">
                 <div class="shift-left">
-                  <span class="shift-icon">🏷️</span>
+                  <span class="shift-icon">🏷️️</span>
                   <div class="shift-info">
                     <div class="shift-datetime">${date} at ${time}</div>
                     <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
@@ -2039,7 +2022,7 @@ window.openAddPlayer = async function() {
       
       const upcoming = birthdays.map(b => {
         const bday = new Date(b.birthday);
-        const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+        const bdayThisYear = new Date(today.getFullYear(), bday.getMonth(), b.getDate());
         
         if (bdayThisYear < today) {
           bdayThisYear.setFullYear(today.getFullYear() + 1);
@@ -2141,10 +2124,10 @@ window.openAddPlayer = async function() {
         ${allLabels.map(label => {
           const isActive = currentLabels.includes(label);
           return `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:${isActive ? '#e6f3ff' : '#f9f9f9'};border-radius:8px;border:2px solid ${isActive ? '#42b4ff' : '#eee'};">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:${isActive ? '#e6f3ff' : '#f9f9f9f9; border-radius:8px;border:2px solid ${isActive ? '#42b4ff' : '#eee';}">
               <span style="font-weight:600;">${label}</span>
               <button onclick="toggleLabel(${robloxId}, '${username}', '${label}', ${isActive})" 
-                      style="padding:6px 16px;background:${isActive ? '#ff4444' : '#42b4ff'};color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;">
+                      style="padding:6px 16px;background:${isActive ? '#ff4444' : '#42b4ff'; color:white; border-radius:6px; cursor:pointer;font-weight:600;">
                 ${isActive ? 'Remove' : 'Add'}
               </button>
             </div>
@@ -2152,8 +2135,8 @@ window.openAddPlayer = async function() {
         }).join('')}
       </div>
       <button onclick="openLabelsManager()" style="margin-top:20px;width:100%;padding:12px;background:#42b4ff;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
-        ← Back to Search
-      </button>
+      ← Back to Search
+    </button>
     `;
   };
 
@@ -2245,7 +2228,7 @@ window.openAddPlayer = async function() {
   };
 
   window.setBirthdayFor = async function(robloxId, username) {
-  if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+  if (!EXECUTIVEIVE_RANKS.includes(userGroupRank)) {
     alert('Access Denied: Birthday management requires Vice Chairman+');
     return;
   }
@@ -2325,9 +2308,9 @@ window.openAddPlayer = async function() {
       modalBody.innerHTML = `
         <div style="line-height:2;">
           <p><strong>Next Reset:</strong> ${nextReset.toLocaleString()}</p>
-          ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>` : ''}
+          ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>
           <p><strong>Players Affected:</strong> ${data.playersAffected}</p>
-          <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0;">
+          <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0; margin:20px 0;border:none; }
           <button onclick="manualReset()" style="width:100%;padding:12px;background:#ff4444;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
             Manual Reset (Use with caution)
           </button>
@@ -2387,7 +2370,8 @@ window.openAddPlayer = async function() {
       const weekStart = new Date(history[0].week_start).toLocaleDateString();
       const weekEnd = new Date(history[0].week_end).toLocaleDateString();
       
-      const sorted = history.sort((a, b) => b.total_minutes - a.total_minutes);
+      const sorted = history.sort((a, b) => b.total_minutes - a.total_minutes).sort((a, b) => b.total_minutes - a.total_minutes)
+      .slice(0, 3);
       
       modalBody.innerHTML = `
         <div style="margin-bottom:15px;text-align:center;color:#666;">
@@ -2401,6 +2385,7 @@ window.openAddPlayer = async function() {
                 <th style="padding:8px;">Minutes</th>
                 <th style="padding:8px;">Hosted</th>
                 <th style="padding:8px;">Attended</th>
+                <th style="padding:8px;">Roblox ID</th>
               </tr>
             </thead>
             <tbody>
@@ -2408,24 +2393,34 @@ window.openAddPlayer = async function() {
                 const hours = Math.floor(h.total_minutes / 60);
                 const mins = h.total_minutes % 60;
                 return `
-                  <tr style="border-bottom:1px solid #eee;">
-                    <td style="padding:8px;font-weight:600;">${h.username}</td>
-                    <td style="padding:8px;">${hours}h ${mins}m</td>
-                    <td style="padding:8px;">${h.shifts_hosted}</td>
-                    <td style="padding:8px;">${h.shifts_attended}</td>
-                  </tr>
-                `;
-              }).join('')}
+                  <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${h.username}">
+                    <td>
+                      <div class="player-info">
+                        <img class="player-avatar" src="${h.avatar_url || 'https://placehold.co/80x80/e0e6f0/5f6c7b?text=U'}"
+                             onerror="this.src='https://placehold.co/80x80/e0e6f0/5f6c7b?text=U';"/>
+                        <div class="player-info">
+                          <div class="player-name">${h.username}</div>
+                        <div class="player-rank">${h.group_rank || 'Unknown'}</div>
+                      </div>
+                    </td>
+                    <td>${hours}h}h ${mins}m</td>
+                    <td>${h.total_minutes}m</td>
+                    <td>${h.shifts_hosted}</td>
+                    <td>${h.shifts_attended}</td>
+                    <td>${h.roblox_id}</td>
+                  </tr>`;
+              `).join('');
             </tbody>
           </table>
         </div>
       `;
-    } catch (err) {
+    } catch(err) {
       modalBody.innerHTML = '<div class="no-data" style="color:#e74c3c;">Failed to load history</div>';
     }
-  };
-});
+  }
+};
 
+</script>
 </script>
 </body>
 </html>
