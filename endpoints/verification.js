@@ -1,47 +1,44 @@
 // endpoints/verification.js
 const express = require('express');
 const router = express.Router();
-const db = require('./database'); // your Supabase functions
+const db = require('./database'); // make sure path is correct
 const bodyParser = require('body-parser');
 
 router.post('/game-claim', bodyParser.json(), async (req, res) => {
-  console.log('[Verification] Incoming request:', req.body);
   try {
     const { username, code } = req.body;
+
     if (!username || !code) {
-      console.log('[Verification] Missing username or code');
       return res.status(400).json({ success: false, error: 'Missing username or code' });
     }
 
-    const verificationRecord = await db.getVerificationRequest(code);
-    console.log('[Verification] Found record:', verificationRecord);
+    console.log('[Verification] Incoming request:', { username, code });
 
-    if (!verificationRecord) {
-      console.log('[Verification] Invalid code');
-      return res.status(404).json({ success: false, error: 'Invalid code' });
+    // Get the verification request
+    const request = await db.getVerificationRequest(code);
+    if (!request) {
+      return res.status(404).json({ success: false, error: 'Invalid or expired code' });
     }
 
-    const { roblox_id } = verificationRecord;
-    const player = await db.getPlayerByRobloxId(roblox_id);
-    console.log('[Verification] Found player:', player);
+    console.log('[Verification] Found record:', request);
 
-    if (!player) {
-      console.log('[Verification] No player found for code');
-      return res.status(404).json({ success: false, error: 'No player found for code' });
+    // Claim the code (assign it to Roblox username, generate token)
+    const claimResult = await db.claimVerificationRequest(code, username);
+    if (!claimResult.success) {
+      console.error('[Verification] Claim failed:', claimResult.error);
+      return res.status(500).json({ success: false, error: 'Failed to claim verification code' });
     }
 
-    await db.deleteVerificationCode(code);
-
-    console.log('[Verification] Returning credentials for', player.username);
-    return res.json({
+    // Send back the claimed token or Roblox info (depending on your flow)
+    res.json({
       success: true,
-      username: player.username,
-      password: player.password
+      token: claimResult.record.one_time_token,
+      expires_at: claimResult.record.token_expires_at
     });
 
   } catch (err) {
     console.error('[Verification] Error:', err);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
