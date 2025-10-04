@@ -16,8 +16,31 @@ module.exports = {
       const existingRequest = await db.getVerificationRequestByDiscordId(discordId);
       if (existingRequest && new Date(existingRequest.expires_at) > new Date()) {
         const timeLeft = Math.ceil((new Date(existingRequest.expires_at) - new Date()) / 1000 / 60);
+        
+        const embed = {
+          title: '⚠️ Pending Verification Code',
+          description: `You already have a verification code: **\`${existingRequest.code}\`**`,
+          color: 0xFFFF00, // Yellow color for warning
+          fields: [
+            {
+              name: '⏰ Expires In',
+              value: `${timeLeft} minute${timeLeft !== 1 ? 's' : ''}`,
+              inline: true
+            },
+            {
+              name: 'ℹ️ Note',
+              value: 'Please wait for this code to expire before requesting a new one.',
+              inline: false
+            }
+          ],
+          footer: {
+            text: 'Keep this code secure and do not share it with others'
+          },
+          timestamp: new Date().toISOString()
+        };
+
         return await interaction.reply({
-          content: `⚠️ You already have a pending verification code: \`${existingRequest.code}\`\nIt expires in ${timeLeft} minute${timeLeft !== 1 ? 's' : ''}.\n\nIf you need a new code, please wait for this one to expire.`,
+          embeds: [embed],
           ephemeral: true
         });
       }
@@ -29,7 +52,7 @@ module.exports = {
       // Save request
       await db.addVerificationRequest(discordId, code, expiresAt);
 
-      const gameLink = `https://www.roblox.com/games/YOUR_PLACE_ID/Your-Game-Name`;
+      const gameLink = `https://www.roblox.com/games/103428047387843/Verification`;
 
       // Create a nice embed for the response
       const embed = {
@@ -44,7 +67,7 @@ module.exports = {
           },
           {
             name: '🎮 How to Use',
-            value: `1. Join the game: [Click Here](https://www.roblox.com/games/103428047387843/Verification)\n2. Type the code in chat\n3. Check your DMs for your password`,
+            value: `1. Join the game: [Click Here](${gameLink})\n2. Type the code in chat\n3. Check your DMs for your password`,
             inline: false
           }
         ],
@@ -66,17 +89,23 @@ module.exports = {
     } catch (err) {
       console.error('❌ getdetails error:', err);
       
-      // Send error message if not already replied
-      if (!interaction.replied) {
+      // Only reply if the interaction hasn't been replied to yet
+      if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ 
           content: '❌ Failed to create verification request. Please try again later.',
           ephemeral: true 
         });
-      } else {
-        // If already replied, use followUp
+      } else if (interaction.replied && !interaction.deferred) {
+        // Use followUp if already replied
         await interaction.followUp({
           content: '❌ An error occurred while processing your request.',
           ephemeral: true
+        });
+      }
+      // If deferred, use editReply
+      else if (interaction.deferred) {
+        await interaction.editReply({
+          content: '❌ An error occurred while processing your request.'
         });
       }
     }
