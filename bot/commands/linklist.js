@@ -4,38 +4,38 @@ const { loadLinkedUsers, saveLinkedUsers } = require('../../data/data');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('linklist')
-    .setDescription('Show all linked Discord ↔ Roblox accounts (staff only)'),
+    .setDescription('Show all linked Discord and Roblox accounts (staff only)'),
 
   async execute(interaction) {
     const requiredRoleId = '1363595276576620595';
 
     const member = interaction.member;
     if (!member) {
-      return await interaction.reply({ content: '❌ Could not fetch your member data.', ephemeral: true });
+      return await interaction.reply({ content: 'Could not fetch your member data.', ephemeral: true });
     }
     if (!member.roles.cache.has(requiredRoleId)) {
-      return await interaction.reply({ content: '❌ You don't have permission to use this command.', ephemeral: true });
+      return await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
     }
 
     const linkedUsers = interaction.client.botData.linkedUsers || loadLinkedUsers();
     const mappings = linkedUsers.discordToRoblox || {};
 
     if (Object.keys(mappings).length === 0) {
-      return await interaction.reply({ content: '💫 No linked users found, please check data is saved!', ephemeral: true });
+      return await interaction.reply({ content: 'No linked users found, please check data is saved!', ephemeral: true });
     }
 
     const embed = new EmbedBuilder()
-      .setTitle('🔗 Linked Users')
+      .setTitle('Linked Users')
       .setColor(0x0099FF)
       .setDescription(
         Object.entries(mappings)
-          .map(([discordId, robloxName]) => `👤 <@${discordId}> → **${robloxName}**`)
+          .map(([discordId, robloxName]) => `<@${discordId}> -> ${robloxName}`)
           .join('\n')
       )
       .setFooter({ text: 'Select a user below to delete their link' });
 
     const options = Object.entries(mappings).map(([discordId, robloxName]) => ({
-      label: `${robloxName}`,
+      label: robloxName,
       description: `Discord ID: ${discordId}`,
       value: discordId
     }));
@@ -76,9 +76,9 @@ module.exports = {
       const buttonRow = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
 
       const confirmEmbed = new EmbedBuilder()
-        .setTitle('⚠️ Confirm Deletion')
+        .setTitle('Confirm Deletion')
         .setColor(0xFF0000)
-        .setDescription(`Are you sure you want to unlink?\n👤 <@${selectedDiscordId}> → **${robloxName}**`);
+        .setDescription(`Are you sure you want to unlink?\n<@${selectedDiscordId}> -> ${robloxName}`);
 
       await selectInteraction.update({ 
         embeds: [confirmEmbed], 
@@ -116,9 +116,9 @@ module.exports = {
         });
 
         const successEmbed = new EmbedBuilder()
-          .setTitle('✅ Link Deleted')
+          .setTitle('Link Deleted')
           .setColor(0x00FF00)
-          .setDescription(`Successfully unlinked:\n👤 <@${selectedDiscordId}> → **${robloxName}**`);
+          .setDescription(`Successfully unlinked: <@${selectedDiscordId}> -> ${robloxName}`);
 
         await buttonInteraction.update({ 
           embeds: [successEmbed], 
@@ -126,7 +126,7 @@ module.exports = {
         });
       } else if (buttonInteraction.customId === 'cancel_delete') {
         const cancelEmbed = new EmbedBuilder()
-          .setTitle('❌ Deletion Cancelled')
+          .setTitle('Deletion Cancelled')
           .setColor(0x808080)
           .setDescription('No changes were made.');
 
@@ -139,7 +139,7 @@ module.exports = {
     } catch (error) {
       if (error.message.includes('time')) {
         const timeoutEmbed = new EmbedBuilder()
-          .setTitle('⏱️ Timed Out')
+          .setTitle('Timed Out')
           .setColor(0x808080)
           .setDescription('Selection timed out. No changes were made.');
 
