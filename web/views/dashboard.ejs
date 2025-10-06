@@ -461,16 +461,21 @@ async function loadCurrentUser() {
     }
   }
   
-  async function loadAnnouncements() {
-    try {
-      const response = await fetch('/dashboard/announcements');
-      announcements = await response.json();
-      
-      renderLatestAnnouncement();
-    } catch (err) {
-      console.error('Failed to load announcements:', err);
+async function loadAnnouncements() {
+  try {
+    const response = await fetch('/dashboard/announcements');
+    announcements = await response.json();
+    
+    renderLatestAnnouncement();
+    
+    // ADD THIS: Show the new announcement button for leadership
+    if (LEADERSHIP_RANKS.includes(userGroupRank)) {
+      newAnnouncementBtn.style.display = 'block';
     }
+  } catch (err) {
+    console.error('Failed to load announcements:', err);
   }
+}
   
   function renderLatestAnnouncement() {
     if (announcements.length === 0) {
