@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const requireLogin = require("../middleware/requireLogin");
-const db = require("../endpoints/database"); // ✅ Added db import
+const db = require("../endpoints/database");
 
 const {
   getPlayerLabels,
@@ -23,7 +23,6 @@ const {
 
 // Leadership ranks
 const EXECUTIVE_RANKS = ["Chairman", "Vice Chairman"];
-const LEADERSHIP_RANKS = ["Chairman", "Vice Chairman", "Director", "Manager"]; // ✅ Added to fix undefined errors
 
 // Middleware to check executive access
 function requireExecutive(req, res, next) {
@@ -110,6 +109,7 @@ router.delete("/birthdays/:roblox_id", requireLogin, requireExecutive, async (re
 // ------------------
 // LOA Management
 // ------------------
+
 router.get("/loa", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
@@ -125,13 +125,8 @@ router.get("/loa", requireLogin, async (req, res) => {
   }
 });
 
-router.post("/loa", requireLogin, async (req, res) => {
+router.post("/loa", requireLogin, requireExecutive, async (req, res) => {
   try {
-    const player = req.session?.player;
-    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: "Access denied" });
-    }
-
     const { roblox_id, username, start_date, end_date } = req.body;
     const loa = await db.addLOA(roblox_id, username, start_date, end_date);
     res.json(loa);
@@ -141,13 +136,8 @@ router.post("/loa", requireLogin, async (req, res) => {
   }
 });
 
-router.delete("/loa/:roblox_id", requireLogin, async (req, res) => {
+router.delete("/loa/:roblox_id", requireLogin, requireExecutive, async (req, res) => {
   try {
-    const player = req.session?.player;
-    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: "Access denied" });
-    }
-
     await db.removeLOA(req.params.roblox_id);
     res.json({ success: true });
   } catch (err) {
@@ -168,13 +158,8 @@ router.get("/loa/check/:roblox_id", requireLogin, async (req, res) => {
 });
 
 // Delete shift
-router.delete("/shifts/:shiftId", requireLogin, async (req, res) => {
+router.delete("/shifts/:shiftId", requireLogin, requireExecutive, async (req, res) => {
   try {
-    const player = req.session?.player;
-    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: "Access denied" });
-    }
-
     await db.deleteShift(req.params.shiftId);
     res.json({ success: true });
   } catch (err) {
