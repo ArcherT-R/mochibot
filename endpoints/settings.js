@@ -102,6 +102,82 @@ router.delete("/birthdays/:roblox_id", requireLogin, requireExecutive, async (re
   }
 });
 
+// ------------------
+// LOA Management
+// ------------------
+router.get('/loa', requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!EXECUTIVE_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const loas = await db.getAllLOA();
+    res.json(loas);
+  } catch (err) {
+    console.error('Error fetching LOAs:', err);
+    res.status(500).json({ error: 'Failed to fetch LOAs' });
+  }
+});
+
+router.post('/loa', requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { roblox_id, username, start_date, end_date } = req.body;
+    const loa = await db.addLOA(roblox_id, username, start_date, end_date);
+    res.json(loa);
+  } catch (err) {
+    console.error('Error adding LOA:', err);
+    res.status(500).json({ error: 'Failed to add LOA' });
+  }
+});
+
+router.delete('/loa/:roblox_id', requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    await db.removeLOA(req.params.roblox_id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error removing LOA:', err);
+    res.status(500).json({ error: 'Failed to remove LOA' });
+  }
+});
+
+// Check if player is on LOA
+router.get('/loa/check/:roblox_id', requireLogin, async (req, res) => {
+  try {
+    const isOnLOA = await db.isPlayerOnLOA(req.params.roblox_id);
+    res.json({ onLOA: isOnLOA });
+  } catch (err) {
+    console.error('Error checking LOA:', err);
+    res.status(500).json({ error: 'Failed to check LOA' });
+  }
+});
+
+// Delete shift
+router.delete('/shifts/:shiftId', requireLogin, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    await db.deleteShift(req.params.shiftId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting shift:', err);
+    res.status(500).json({ error: 'Failed to delete shift' });
+  }
+});
+
 // ----------------------------
 // Weekly Reset
 // ----------------------------
