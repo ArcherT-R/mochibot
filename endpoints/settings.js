@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const requireLogin = require("../middleware/requireLogin");
+const db = require("../endpoints/database"); // ✅ Added db import
+
 const {
   getPlayerLabels,
   addPlayerLabel,
@@ -17,16 +19,19 @@ const {
   searchPlayersByUsername,
   getAllPlayers,
   createPlayerIfNotExists
-} = require("../endpoints/database");
+} = db;
 
 // Leadership ranks
-const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+const EXECUTIVE_RANKS = ["Chairman", "Vice Chairman"];
+const LEADERSHIP_RANKS = ["Chairman", "Vice Chairman", "Director", "Manager"]; // ✅ Added to fix undefined errors
 
 // Middleware to check executive access
 function requireExecutive(req, res, next) {
   const player = req.session?.player;
   if (!player || !EXECUTIVE_RANKS.includes(player.group_rank)) {
-    return res.status(403).json({ error: 'Access denied: Requires Vice Chairman+' });
+    return res
+      .status(403)
+      .json({ error: "Access denied: Requires Vice Chairman+" });
   }
   next();
 }
@@ -105,76 +110,76 @@ router.delete("/birthdays/:roblox_id", requireLogin, requireExecutive, async (re
 // ------------------
 // LOA Management
 // ------------------
-router.get('/loa', requireLogin, async (req, res) => {
+router.get("/loa", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!EXECUTIVE_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: 'Access denied' });
+      return res.status(403).json({ error: "Access denied" });
     }
-    
+
     const loas = await db.getAllLOA();
     res.json(loas);
   } catch (err) {
-    console.error('Error fetching LOAs:', err);
-    res.status(500).json({ error: 'Failed to fetch LOAs' });
+    console.error("Error fetching LOAs:", err);
+    res.status(500).json({ error: "Failed to fetch LOAs" });
   }
 });
 
-router.post('/loa', requireLogin, async (req, res) => {
+router.post("/loa", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: 'Access denied' });
+      return res.status(403).json({ error: "Access denied" });
     }
-    
+
     const { roblox_id, username, start_date, end_date } = req.body;
     const loa = await db.addLOA(roblox_id, username, start_date, end_date);
     res.json(loa);
   } catch (err) {
-    console.error('Error adding LOA:', err);
-    res.status(500).json({ error: 'Failed to add LOA' });
+    console.error("Error adding LOA:", err);
+    res.status(500).json({ error: "Failed to add LOA" });
   }
 });
 
-router.delete('/loa/:roblox_id', requireLogin, async (req, res) => {
+router.delete("/loa/:roblox_id", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: 'Access denied' });
+      return res.status(403).json({ error: "Access denied" });
     }
-    
+
     await db.removeLOA(req.params.roblox_id);
     res.json({ success: true });
   } catch (err) {
-    console.error('Error removing LOA:', err);
-    res.status(500).json({ error: 'Failed to remove LOA' });
+    console.error("Error removing LOA:", err);
+    res.status(500).json({ error: "Failed to remove LOA" });
   }
 });
 
 // Check if player is on LOA
-router.get('/loa/check/:roblox_id', requireLogin, async (req, res) => {
+router.get("/loa/check/:roblox_id", requireLogin, async (req, res) => {
   try {
     const isOnLOA = await db.isPlayerOnLOA(req.params.roblox_id);
     res.json({ onLOA: isOnLOA });
   } catch (err) {
-    console.error('Error checking LOA:', err);
-    res.status(500).json({ error: 'Failed to check LOA' });
+    console.error("Error checking LOA:", err);
+    res.status(500).json({ error: "Failed to check LOA" });
   }
 });
 
 // Delete shift
-router.delete('/shifts/:shiftId', requireLogin, async (req, res) => {
+router.delete("/shifts/:shiftId", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).json({ error: 'Access denied' });
+      return res.status(403).json({ error: "Access denied" });
     }
-    
+
     await db.deleteShift(req.params.shiftId);
     res.json({ success: true });
   } catch (err) {
-    console.error('Error deleting shift:', err);
-    res.status(500).json({ error: 'Failed to delete shift' });
+    console.error("Error deleting shift:", err);
+    res.status(500).json({ error: "Failed to delete shift" });
   }
 });
 
@@ -185,21 +190,21 @@ router.delete('/shifts/:shiftId', requireLogin, async (req, res) => {
 router.get("/weekly-reset/status", requireLogin, requireExecutive, async (req, res) => {
   try {
     const lastReset = await getLastResetDate();
-    
+
     // Calculate next Monday at midnight
     const now = new Date();
     const nextReset = new Date(now);
     nextReset.setHours(0, 0, 0, 0);
     const daysUntilMonday = (8 - nextReset.getDay()) % 7;
     nextReset.setDate(nextReset.getDate() + daysUntilMonday);
-    
+
     const players = await getAllPlayers();
-    
+
     res.json({
       lastReset: lastReset?.reset_date || null,
       nextReset: nextReset.toISOString(),
       playersAffected: lastReset?.players_affected || 0,
-      totalPlayers: players.length
+      totalPlayers: players.length,
     });
   } catch (err) {
     console.error("Error fetching reset status:", err);
@@ -250,24 +255,24 @@ router.get("/search-players", requireLogin, requireExecutive, async (req, res) =
 router.post("/add-player", requireLogin, requireExecutive, async (req, res) => {
   try {
     const { roblox_id, username, group_rank, avatar_url, password } = req.body;
-    
+
     if (!roblox_id || !username || !group_rank || !avatar_url || !password) {
       return res.status(400).json({ error: "All fields are required" });
     }
-    
+
     // Validate password is 6 digits
     if (!/^\d{6}$/.test(password)) {
       return res.status(400).json({ error: "Password must be 6 digits" });
     }
-    
+
     const player = await createPlayerIfNotExists({
       roblox_id,
       username,
       avatar_url,
       group_rank,
-      password
+      password,
     });
-    
+
     res.json({ success: true, player });
   } catch (err) {
     console.error("Error adding player:", err);
@@ -282,21 +287,21 @@ router.post("/add-player", requireLogin, requireExecutive, async (req, res) => {
 router.get("/generate-password", requireLogin, requireExecutive, async (req, res) => {
   try {
     const players = await getAllPlayers();
-    const existingPasswords = new Set(players.map(p => p.password).filter(Boolean));
-    
+    const existingPasswords = new Set(players.map((p) => p.password).filter(Boolean));
+
     let password;
     let attempts = 0;
     const maxAttempts = 1000;
-    
+
     do {
       password = Math.floor(100000 + Math.random() * 900000).toString();
       attempts++;
-      
+
       if (attempts >= maxAttempts) {
         return res.status(500).json({ error: "Failed to generate unique password" });
       }
     } while (existingPasswords.has(password));
-    
+
     res.json({ password });
   } catch (err) {
     console.error("Error generating password:", err);
