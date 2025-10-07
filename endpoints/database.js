@@ -188,6 +188,79 @@ async function getPlayerByRobloxId(roblox_id) {
 }
 
 // -------------------------
+// Leave of Absence (LOA)
+// -------------------------
+
+async function addLOA(roblox_id, username, start_date, end_date) {
+  const { data, error } = await supabase
+    .from('player_loa')
+    .insert([{ roblox_id, username, start_date, end_date }])
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+async function removeLOA(roblox_id) {
+  const { error } = await supabase
+    .from('player_loa')
+    .delete()
+    .eq('roblox_id', roblox_id);
+  if (error) throw error;
+  return { success: true };
+}
+
+async function getAllLOA() {
+  const { data, error } = await supabase
+    .from('player_loa')
+    .select('*')
+    .order('start_date', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+async function getActiveLOA() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('player_loa')
+    .select('*')
+    .lte('start_date', today)
+    .gte('end_date', today);
+  if (error) throw error;
+  return data;
+}
+
+async function isPlayerOnLOA(roblox_id) {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('player_loa')
+    .select('*')
+    .eq('roblox_id', roblox_id)
+    .lte('start_date', today)
+    .gte('end_date', today)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data ? true : false;
+}
+
+async function deleteShift(shiftId) {
+  // Delete attendees first
+  const { error: attendeesError } = await supabase
+    .from('shift_attendees')
+    .delete()
+    .eq('shift_id', shiftId);
+  if (attendeesError) throw attendeesError;
+  
+  // Delete the shift
+  const { error: shiftError } = await supabase
+    .from('shifts')
+    .delete()
+    .eq('id', shiftId);
+  if (shiftError) throw shiftError;
+  
+  return { success: true };
+}
+
+// -------------------------
 // Authentication
 // -------------------------
 
@@ -810,5 +883,11 @@ module.exports = {
   markRequestNotified,
   claimVerificationCode,
   getVerificationRequestByDiscordId,
-  updatePlayerInfo
+  updatePlayerInfo,
+  addLOA,
+  removeLOA,
+  getAllLOA,
+  getActiveLOA,
+  isPlayerOnLOA,
+  deleteShift
 };
