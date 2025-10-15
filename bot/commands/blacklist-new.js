@@ -26,10 +26,10 @@ module.exports = {
         .setRequired(false)),
 
   async execute(interaction) {
-    // Check if command is used in the correct guild
+    // Check if command is used in the correct guild first
     if (interaction.guildId !== COMMAND_GUILD_ID) {
       return interaction.reply({
-        content: '❌ This command can only be used in the designated server.',
+        content: '❌ This command can only be used in the designated server (ID: 1362322934794031104).',
         ephemeral: true
       });
     }
