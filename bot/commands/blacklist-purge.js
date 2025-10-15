@@ -4,9 +4,9 @@ const axios = require('axios');
 // Role IDs that can use this command
 const ALLOWED_ROLE_IDS = ['1378608309468401766', '1375781357460127844'];
 
-// Channel where command can be used
-const COMMAND_CHANNEL_ID = '1376129878281289769';
-const COMMAND_GUILD_ID = '1362322934794031104';
+// Server and channel configuration
+const CORP_SERVER = '1362322934794031104'; // Corporate server where command can be used
+const COMMAND_CHANNEL_ID = '1376129878281289769'; // Channel where command can be used
 
 // Logging channel
 const LOG_CHANNEL_ID = '1427932394203250789';
@@ -27,9 +27,9 @@ module.exports = {
 
   async execute(interaction) {
     // Check if command is used in the correct guild first
-    if (interaction.guildId !== COMMAND_GUILD_ID) {
+    if (interaction.guildId !== CORP_SERVER) {
       return interaction.reply({
-        content: '❌ This command can only be used in the designated server (ID: 1362322934794031104).',
+        content: '❌ This command can only be used in the corporate server.',
         ephemeral: true
       });
     }
