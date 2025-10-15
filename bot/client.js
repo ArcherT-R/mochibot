@@ -78,15 +78,46 @@ async function startBot() {
 
     try {
       const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-      const commandsData = client.commands.map(cmd => cmd.data.toJSON());
       
-      console.log(`📝 Registering ${commandsData.length} commands:`, commandsData.map(c => c.name).join(', '));
+      // Separate commands by server
+      const mainServerCommands = [];
+      const corpServerCommands = [];
       
-      await rest.put(
-        Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID),
-        { body: commandsData }
-      );
-      console.log('✅ Commands registered with Discord');
+      const CORP_SERVER_ID = '1362322934794031104';
+      const MAIN_SERVER_ID = process.env.GUILD_ID;
+      
+      // Commands that should only be in corporate server
+      const corpOnlyCommands = ['blacklist-new', 'blacklist-purge'];
+      
+      client.commands.forEach(cmd => {
+        if (corpOnlyCommands.includes(cmd.data.name)) {
+          corpServerCommands.push(cmd.data.toJSON());
+        } else {
+          mainServerCommands.push(cmd.data.toJSON());
+        }
+      });
+      
+      // Register main server commands
+      if (mainServerCommands.length > 0 && MAIN_SERVER_ID) {
+        console.log(`📝 Registering ${mainServerCommands.length} commands to main server (${MAIN_SERVER_ID}):`, mainServerCommands.map(c => c.name).join(', '));
+        await rest.put(
+          Routes.applicationGuildCommands(client.user.id, MAIN_SERVER_ID),
+          { body: mainServerCommands }
+        );
+        console.log(`✅ Main server commands registered`);
+      }
+      
+      // Register corporate server commands
+      if (corpServerCommands.length > 0) {
+        console.log(`📝 Registering ${corpServerCommands.length} commands to corporate server (${CORP_SERVER_ID}):`, corpServerCommands.map(c => c.name).join(', '));
+        await rest.put(
+          Routes.applicationGuildCommands(client.user.id, CORP_SERVER_ID),
+          { body: corpServerCommands }
+        );
+        console.log(`✅ Corporate server commands registered`);
+      }
+      
+      console.log('✅ All commands registered successfully');
     } catch (err) {
       console.error('❌ Failed to register commands:', err);
     }
