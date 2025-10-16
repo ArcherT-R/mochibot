@@ -195,7 +195,7 @@ router.post("/end-session", async (req, res) => {
     const session = activeSessions[roblox_id];
     
     if (session) {
-      // Use the accurate current_minutes from Roblox, not timestamp calculation
+      // Session exists in memory - use tracked minutes
       const minutesPlayed = session.current_minutes || 0;
       
       // Save playtime to permanent record
@@ -206,24 +206,35 @@ router.post("/end-session", async (req, res) => {
         new Date() // End time is now
       );
       console.log(`✅ Saved ${minutesPlayed} minutes on disconnect: ${session.username}`);
-    }
-    
-    // Delete from DB first, then memory
-    await deletePlayerLiveSession(roblox_id); 
-    console.log(`🔴 Live session deleted from DB: ${roblox_id}`);
-    
-    // Clean up in-memory session
-    if (activeSessions[roblox_id]) {
-      console.log(`🔴 Live session ended: ${activeSessions[roblox_id].username}`);
+      
+      // Clean up memory first
       delete activeSessions[roblox_id];
     } else {
-      console.warn(`⚠️ /end-session called for non-existent in-memory session: ${roblox_id}`);
+      // Session not in memory but might be in DB (server restart scenario)
+      console.warn(`⚠️ /end-session called for session not in memory: ${roblox_id}`);
+      console.warn(`   This can happen after server restart - checking DB...`);
+      
+      // Try to get session info from database to save minutes
+      const dbSession = await getOngoingSession(roblox_id);
+      if (dbSession && dbSession.current_minutes) {
+        await logPlayerSession(
+          roblox_id,
+          dbSession.current_minutes,
+          dbSession.session_start_time || new Date(),
+          new Date()
+        );
+        console.log(`✅ Recovered and saved ${dbSession.current_minutes} minutes from DB`);
+      }
     }
+    
+    // Always try to delete from DB (whether in memory or not)
+    await deletePlayerLiveSession(roblox_id); 
+    console.log(`🔴 Live session deleted from DB: ${roblox_id}`);
     
     res.json({ success: true });
     
   } catch (err) {
-    console.error("❌ Failed to delete live session:", err);
+    console.error("❌ Failed to end session:", err);
     
     // Still try to clean up memory even if DB fails
     if (activeSessions[roblox_id]) {
@@ -231,7 +242,7 @@ router.post("/end-session", async (req, res) => {
       console.log(`🔴 Removed from memory despite DB failure: ${roblox_id}`);
     }
     
-    res.status(500).json({ error: "Failed to delete live session from DB." });
+    res.status(500).json({ error: "Failed to end session from DB." });
   }
 });
 
