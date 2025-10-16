@@ -94,11 +94,18 @@ router.post("/log-session", async (req, res) => {
     return res.status(400).json({ error: "Missing data" });
   }
   try {
+    // Convert timestamps from seconds to milliseconds if needed
+    let startMs = Number(session_start);
+    let endMs = Number(session_end);
+    
+    if (startMs < 946684800000) startMs = startMs * 1000;
+    if (endMs < 946684800000) endMs = endMs * 1000;
+    
     const updatedPlayer = await logPlayerSession(
       roblox_id,
       Number(minutes_played),
-      new Date(session_start * 1000),
-      new Date(session_end * 1000)
+      new Date(startMs),
+      new Date(endMs)
     );
     console.log(`✅ Logged session for ${roblox_id}: ${minutes_played} minutes`);
     res.json(updatedPlayer);
