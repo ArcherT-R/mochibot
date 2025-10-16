@@ -819,6 +819,14 @@ async function getVerificationRequestByDiscordId(discordId) {
   return data || null;
 }
 
+async function getAllLiveSessions() {
+  const params = {
+    TableName: "player_live",
+  };
+  const result = await dynamodb.scan(params).promise();
+  return result.Items;
+}
+
 // -------------------------
 // Exports
 // -------------------------
@@ -889,5 +897,6 @@ module.exports = {
   getAllLOA,
   getActiveLOA,
   isPlayerOnLOA,
-  deleteShift
+  deleteShift,
+  getAllLiveSessions
 };
