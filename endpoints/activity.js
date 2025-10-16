@@ -24,8 +24,8 @@ setInterval(async () => {
       console.log(`🧹 Cleaning up stale session: ${session.username}`);
       
       try {
-        // Calculate minutes played before deleting
-        const minutesPlayed = Math.floor((now - session.session_start) / 60000);
+        // Use the ACTUAL minutes from Roblox client, not calculated timestamp
+        const minutesPlayed = session.current_minutes || 0;
         
         // Log the session to permanent activity record
         await logPlayerSession(
@@ -124,6 +124,9 @@ router.post("/live", async (req, res) => {
       return res.status(404).json({ error: "No active session found" });
     }
     
+    // Update the current_minutes in memory (critical for accurate cleanup)
+    activeSessions[roblox_id].current_minutes = current_minutes;
+    
     await logPlayerLive(roblox_id, username, current_minutes); 
     res.status(200).json({ success: true });
   } catch (err) {
@@ -183,28 +186,45 @@ router.post("/end-session", async (req, res) => {
 
   try {
     const session = activeSessions[roblox_id];
+    
     if (session) {
-      // Calculate and save playtime before ending session
-      const now = Date.now();
-      const minutesPlayed = Math.floor((now - session.session_start) / 60000);
+      // Use the accurate current_minutes from Roblox, not timestamp calculation
+      const minutesPlayed = session.current_minutes || 0;
       
+      // Save playtime to permanent record
       await logPlayerSession(
         roblox_id,
         minutesPlayed,
         new Date(session.session_start),
-        new Date(now)
+        new Date() // End time is now
       );
-      console.log(`✅ Saved ${minutesPlayed} minutes on normal disconnect: ${session.username}`);
+      console.log(`✅ Saved ${minutesPlayed} minutes on disconnect: ${session.username}`);
     }
     
-    // Then cleanup
+    // Delete from DB first, then memory
     await deletePlayerLiveSession(roblox_id); 
-    delete activeSessions[roblox_id];
+    console.log(`🔴 Live session deleted from DB: ${roblox_id}`);
+    
+    // Clean up in-memory session
+    if (activeSessions[roblox_id]) {
+      console.log(`🔴 Live session ended: ${activeSessions[roblox_id].username}`);
+      delete activeSessions[roblox_id];
+    } else {
+      console.warn(`⚠️ /end-session called for non-existent in-memory session: ${roblox_id}`);
+    }
     
     res.json({ success: true });
+    
   } catch (err) {
-    console.error("❌ Failed to end session:", err);
-    res.status(500).json({ error: "Failed to end session." });
+    console.error("❌ Failed to delete live session:", err);
+    
+    // Still try to clean up memory even if DB fails
+    if (activeSessions[roblox_id]) {
+      delete activeSessions[roblox_id];
+      console.log(`🔴 Removed from memory despite DB failure: ${roblox_id}`);
+    }
+    
+    res.status(500).json({ error: "Failed to delete live session from DB." });
   }
 });
 
@@ -214,7 +234,8 @@ router.post("/end-session", async (req, res) => {
 router.get("/active", (req, res) => {
   const list = Object.values(activeSessions).map(s => ({
     ...s,
-    minutes_played: Math.floor((Date.now() - s.session_start) / 60000),
+    // Use the tracked current_minutes from Roblox instead of timestamp calculation
+    minutes_played: s.current_minutes || 0,
   }));
   res.json(list);
 });
