@@ -155,6 +155,39 @@
   .progress-complete { color:#28a745; }
   .progress-incomplete { color:#ff4444; }
   
+  /* Loading spinner styles */
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(66, 180, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #42b4ff;
+    animation: spin 1s ease-in-out infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    border-radius: 12px;
+  }
+  
+  .loading-container {
+    position: relative;
+  }
+  
   /* My Account specific styles */
   .account-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
   .account-title { font-size:24px; font-weight:700; color:#333; display:flex; align-items:center; gap:10px; }
@@ -423,6 +456,57 @@ document.addEventListener('DOMContentLoaded', () => {
     'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Manager',
     'Assistant Mochi Director', 'Supervisor', 'Mochi Leader'
   ];
+  
+  // Rank hierarchy for sorting
+  const RANK_HIERARCHY = {
+    'Chairman': 100,
+    'Vice Chairman': 90,
+    'Chief Administrative Officer': 85,
+    'Developer': 84,
+    'Chief of Operations': 80,
+    'Chief of Human Resources': 79,
+    'Chief Of Public Relations': 78,
+    'Head Corporate': 70,
+    'Senior Corporate': 60,
+    'Junior Corporate': 50,
+    'Corporate Intern': 40,
+    'Lead Mochi Director': 35,
+    'Senior Mochi Director': 30,
+    'Mochi Director': 25,
+    'Mochi Manager': 20,
+    'Assistant Mochi Director': 15,
+    'Supervisor': 14,
+    'Mochi Leader': 13,
+    'Senior Mochi': 12,
+    'Mochi': 11,
+    'Junior Mochi': 10,
+    'Intern': 5,
+    'Trainee': 1
+  };
+
+  // Function to show loading indicator
+  function showLoading(element) {
+    if (!element) return;
+    
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
+    
+    // Make the parent container relative if it's not already
+    if (element.style.position !== 'relative' && element.style.position !== 'absolute') {
+      element.style.position = 'relative';
+    }
+    
+    element.appendChild(loadingOverlay);
+    return loadingOverlay;
+  }
+  
+  // Function to hide loading indicator
+  function hideLoading(loadingOverlay) {
+    if (loadingOverlay && loadingOverlay.parentNode) {
+      loadingOverlay.parentNode.removeChild(loadingOverlay);
+    }
+  }
 
 async function loadCurrentUser() {
   try {
@@ -990,7 +1074,7 @@ async function renderUserRequirements() {
   }
   
   try {
-    const userRes = await fetch(`/dashboard/players`);
+    const userRes = await fetch('/dashboard/players');
     const allPlayers = userRes.ok ? await userRes.json() : [];
     const freshUserData = allPlayers.find(p => p.roblox_id === currentUser.roblox_id);
     
@@ -1061,7 +1145,7 @@ async function renderRequirementsBox() {
     }
     
     // Get fresh user data
-    const userRes = await fetch(`/dashboard/players`);
+    const userRes = await fetch('/dashboard/players');
     const allPlayers = userRes.ok ? await userRes.json() : [];
     const freshUserData = allPlayers.find(p => p.roblox_id === currentUser.roblox_id);
     
@@ -1234,6 +1318,13 @@ async function calculateShiftStats() {
         
         playersWithLabels = await Promise.all(labelsPromises);
         playersWithLabels = playersWithLabels.filter(p => p.labels.includes(currentPlayerFilter));
+        
+        // Sort players by rank hierarchy
+        playersWithLabels.sort((a, b) => {
+          const rankA = RANK_HIERARCHY[a.group_rank] || 0;
+          const rankB = RANK_HIERARCHY[b.group_rank] || 0;
+          return rankB - rankA; // Higher rank first
+        });
       }
       
       if(!playersWithLabels.length){
@@ -1253,9 +1344,29 @@ async function calculateShiftStats() {
           let requirementMet = false;
           let requirementText = '';
           
+          // Updated requirements for Operations and Human Resources
           if (currentPlayerFilter === 'Human Resources' || currentPlayerFilter === 'Operations') {
-            requirementMet = stats.hosted >= 2;
-            requirementText = `${stats.hosted}/2 shifts hosted`;
+            // Check if user has a corporate rank
+            if (p.group_rank === 'Head Corporate') {
+              const minutesMet = (p.weekly_minutes || 0) >= 60;
+              const shiftsMet = stats.hosted >= 2;
+              requirementMet = minutesMet && shiftsMet;
+              requirementText = `${(p.weekly_minutes || 0)}/60 mins, ${stats.hosted}/2 shifts`;
+            } else if (p.group_rank === 'Senior Corporate') {
+              const minutesMet = (p.weekly_minutes || 0) >= 70;
+              const shiftsMet = stats.hosted >= 2;
+              requirementMet = minutesMet && shiftsMet;
+              requirementText = `${(p.weekly_minutes || 0)}/70 mins, ${stats.hosted}/2 shifts`;
+            } else if (p.group_rank === 'Junior Corporate') {
+              const minutesMet = (p.weekly_minutes || 0) >= 80;
+              const shiftsMet = stats.hosted >= 3;
+              requirementMet = minutesMet && shiftsMet;
+              requirementText = `${(p.weekly_minutes || 0)}/80 mins, ${stats.hosted}/3 shifts`;
+            } else {
+              // Default requirement for other ranks
+              requirementMet = stats.hosted >= 2;
+              requirementText = `${stats.hosted}/2 shifts hosted`;
+            }
           } else if (currentPlayerFilter === 'Public Relations' || currentPlayerFilter === 'Management') {
             requirementMet = stats.attended >= 2;
             requirementText = `${stats.attended}/2 shifts attended`;
@@ -1307,6 +1418,10 @@ async function calculateShiftStats() {
   }
 
   async function openShiftModal(shift) {
+    // Show loading indicator
+    const modalBody = document.querySelector('.modal-body');
+    const loadingOverlay = showLoading(modalBody);
+    
     currentShiftId = shift.id;
     const shiftTime = shift.shift_time || shift.time;
     const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
@@ -1321,6 +1436,9 @@ async function calculateShiftStats() {
     
     await renderModalAttendees();
     
+    // Hide loading indicator
+    hideLoading(loadingOverlay);
+    
     shiftModal.style.display = 'block';
   }
 
@@ -1329,6 +1447,9 @@ async function renderModalAttendees() {
   
   const container = document.getElementById('modalAttendees');
   const addBox = document.getElementById('modalAddAttendee');
+  
+  // Show loading indicator
+  const loadingOverlay = showLoading(container);
   
   try {
     const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
@@ -1776,6 +1897,9 @@ async function renderModalAttendees() {
     }
   } catch(err) {
     console.error('Error loading attendees:', err);
+  } finally {
+    // Hide loading indicator
+    hideLoading(loadingOverlay);
   }
 }
 
@@ -1982,7 +2106,9 @@ window.removeLOA = async function(robloxId) {
   };
 
   async function loadShifts(){
-    shiftsList.innerHTML = `<div class="no-data">Fetching shifts...</div>`;
+    // Show loading indicator
+    const loadingOverlay = showLoading(shiftsList);
+    
     try{
       const res = await fetch('/shifts');
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -2000,6 +2126,7 @@ window.removeLOA = async function(robloxId) {
 
       if(!sortedShifts.length){
         shiftsList.innerHTML = '<div class="no-data">No shifts found.</div>';
+        hideLoading(loadingOverlay);
         return;
       }
 
@@ -2074,6 +2201,9 @@ window.removeLOA = async function(robloxId) {
     } catch(err){
       console.error('Failed to load shifts:', err);
       shiftsList.innerHTML = '<div class="no-data">Failed to load shifts.</div>';
+    } finally {
+      // Hide loading indicator
+      hideLoading(loadingOverlay);
     }
   }
 
