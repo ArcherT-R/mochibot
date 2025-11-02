@@ -18,12 +18,12 @@ const {
 // Leadership ranks (word-based)
 // ----------------------------
 const LEADERSHIP_RANKS = [
-  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer'
+  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer', 
   'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
 ];
 
 const CORPORATE_RANKS = [
-  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer'
+  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
   'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
   'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
 ];
