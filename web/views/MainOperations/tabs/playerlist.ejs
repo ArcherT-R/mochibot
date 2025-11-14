@@ -1,0 +1,27 @@
+<div id="playerlist" class="tab-content">
+  <section class="content-section">
+    <h2>🧑‍💼 Player List</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="filter-button active" data-filter="all" onclick="filterPlayerList('all')">All Players</button>
+      <button class="filter-button" data-filter="Management" onclick="filterPlayerList('Management')">Management</button>
+      <button class="filter-button" data-filter="Public Relations" onclick="filterPlayerList('Public Relations')">Public Relations</button>
+      <button class="filter-button" data-filter="Operations" onclick="filterPlayerList('Operations')">Operations</button>
+      <button class="filter-button" data-filter="Human Resources" onclick="filterPlayerList('Human Resources')">Human Resources</button>
+      <button class="filter-button" data-filter="Supervision" onclick="filterPlayerList('Supervision')">Supervision</button>
+    </div>
+    <div class="player-table-wrapper">
+      <table class="player-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Rank</th>
+            <th>Weekly Minutes</th>
+            <th id="requirementHeader" style="display:none;">Requirements Met</th>
+            <th>Roblox ID</th>
+          </tr>
+        </thead>
+        <tbody id="fullPlayerList"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
