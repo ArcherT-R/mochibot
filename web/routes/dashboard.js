@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const requireLogin = require("../../middleware/requireLogin");
-const db = require("../../endpoints/database"); // Added this import
+const db = require("../../endpoints/database");
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
 const {
   getAllPlayers,
   getPlayerByUsername,
@@ -11,11 +15,11 @@ const {
   getAnnouncements,
   addAnnouncement,
   deleteAnnouncement,
-  getPlayerByRobloxId // Added this import
+  getPlayerByRobloxId
 } = require("../../endpoints/database");
 
 // ----------------------------
-// Leadership ranks (word-based)
+// Leadership ranks
 // ----------------------------
 const LEADERSHIP_RANKS = [
   'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer', 
@@ -27,6 +31,36 @@ const CORPORATE_RANKS = [
   'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
   'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
 ];
+
+const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+
+// ----------------------------
+// Maintenance Check Middleware
+// ----------------------------
+async function checkMaintenance(req, res, next) {
+  try {
+    const { data } = await supabase
+      .from('maintenance_status')
+      .select('is_active')
+      .eq('id', 1)
+      .single();
+    
+    // If maintenance is active and user is not an executive, redirect
+    if (data?.is_active) {
+      const player = req.session?.player;
+      
+      // Allow executives to bypass maintenance
+      if (!player || !EXECUTIVE_RANKS.includes(player.group_rank)) {
+        return res.redirect('/maintenance');
+      }
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Maintenance check error:', error);
+    next(); // Fail open - allow access on error
+  }
+}
 
 // ----------------------------
 // Helper: Attach ongoing session data to players
@@ -40,9 +74,34 @@ async function attachLiveSessionData(players) {
 }
 
 // ----------------------------
-// Main dashboard (protected)
+// Maintenance status page (public)
 // ----------------------------
-router.get("/", requireLogin, async (req, res) => {
+router.get("/maintenance", async (req, res) => {
+  try {
+    // Check if maintenance is actually active
+    const { data } = await supabase
+      .from('maintenance_status')
+      .select('*')
+      .eq('id', 1)
+      .single();
+    
+    // If not in maintenance, redirect to dashboard
+    if (!data?.is_active) {
+      return res.redirect('/dashboard');
+    }
+    
+    // Serve the maintenance page
+    res.sendFile('maintenance.html', { root: './web/public' });
+  } catch (error) {
+    console.error('Error loading maintenance page:', error);
+    res.status(500).send('Error loading maintenance page');
+  }
+});
+
+// ----------------------------
+// Main dashboard (protected + maintenance check)
+// ----------------------------
+router.get("/", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const allPlayers = await getAllPlayers();
     const topPlayersRaw = [...allPlayers]
@@ -75,7 +134,7 @@ router.post('/logout', (req, res) => {
 // ----------------------------
 // Announcements endpoints
 // ----------------------------
-router.get("/announcements", requireLogin, async (req, res) => {
+router.get("/announcements", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const announcements = await getAnnouncements();
     res.json(announcements);
@@ -85,12 +144,11 @@ router.get("/announcements", requireLogin, async (req, res) => {
   }
 });
 
-router.post("/announcements", requireLogin, async (req, res) => {
+router.post("/announcements", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const { title, content } = req.body;
     const player = req.session?.player;
     
-    // Verify user is in leadership
     if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
       return res.status(403).json({ error: "Only leadership can create announcements" });
     }
@@ -107,22 +165,19 @@ router.post("/announcements", requireLogin, async (req, res) => {
   }
 });
 
-router.delete("/announcements", requireLogin, async (req, res) => {
+router.delete("/announcements", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const { id, title, date } = req.body;
     const player = req.session?.player;
     
-    // Verify user is in leadership
     if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
       return res.status(403).json({ error: "Only leadership can delete announcements" });
     }
     
-    // Check if we have the required parameters
     if (!id && (!title || !date)) {
       return res.status(400).json({ error: "Either announcement ID or both title and date are required" });
     }
     
-    // Delete the announcement
     try {
       if (id) {
         await deleteAnnouncement(id);
@@ -146,26 +201,24 @@ router.delete("/announcements", requireLogin, async (req, res) => {
 // ----------------------------
 router.get('/current-user', requireLogin, async (req, res) => {
   try {
-    const currentUser = req.session?.player; // Using session player instead of req.user
+    const currentUser = req.session?.player;
     
     if (!currentUser) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     
-    // Get full user data including password
     const userData = await db.getPlayerByRobloxId(currentUser.roblox_id);
     
     if (!userData) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Return user data with password
     res.json({
       username: userData.username,
       roblox_id: userData.roblox_id,
       group_rank: userData.group_rank,
       avatar_url: userData.avatar_url,
-      password: userData.password, // Include the plain text password
+      password: userData.password,
       weekly_minutes: userData.weekly_minutes
     });
   } catch (error) {
@@ -177,7 +230,7 @@ router.get('/current-user', requireLogin, async (req, res) => {
 // ----------------------------
 // Player profile page
 // ----------------------------
-router.get("/player/:username", requireLogin, async (req, res) => {
+router.get("/player/:username", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const username = req.params.username;
     const currentPlayer = req.session?.player;
@@ -185,7 +238,6 @@ router.get("/player/:username", requireLogin, async (req, res) => {
     const player = await getPlayerByUsername(username);
     if (!player) return res.status(404).send("Player not found");
 
-    // Leadership check
     const isLeader = LEADERSHIP_RANKS.includes(currentPlayer.group_rank);
     if (!isLeader && currentPlayer.username !== username) {
       return res.status(403).send("Access denied");
@@ -207,9 +259,9 @@ router.get("/player/:username", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Top players (everyone)
+// Top players
 // ----------------------------
-router.get("/top-players", requireLogin, async (req, res) => {
+router.get("/top-players", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const players = await getAllPlayers();
     const withLiveData = await attachLiveSessionData(players);
@@ -230,14 +282,13 @@ router.get("/top-players", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Full players list (leadership only)
+// Full players list
 // ----------------------------
-router.get("/players", requireLogin, async (req, res) => {
+router.get("/players", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
 
-    // Allow access to Corporate ranks and above
     if (!CORPORATE_RANKS.includes(player.group_rank)) {
       return res.status(403).json({ error: 'Access denied: Corporate rank or higher required' });
     }
@@ -251,9 +302,9 @@ router.get("/players", requireLogin, async (req, res) => {
 });
 
 // ----------------------------
-// Player search (leadership only)
+// Player search
 // ----------------------------
-router.get("/search", requireLogin, async (req, res) => {
+router.get("/search", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
