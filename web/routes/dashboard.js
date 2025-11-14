@@ -47,9 +47,9 @@ async function attachLiveSessionData(players) {
 }
 
 // ----------------------------
-// Maintenance status page (public, no auth needed)
+// Maintenance status page (accessible to logged-in users only)
 // ----------------------------
-router.get("/maintenance", async (req, res) => {
+router.get("/maintenance", requireLogin, async (req, res) => {
   try {
     // Check if maintenance is actually active
     const { data } = await supabase
@@ -58,12 +58,19 @@ router.get("/maintenance", async (req, res) => {
       .eq('id', 1)
       .single();
     
+    const player = req.session?.player;
+    
     // If not in maintenance AND user is logged in, redirect to dashboard
-    if (!data?.is_active && req.session?.player) {
+    if (!data?.is_active) {
       return res.redirect('/dashboard');
     }
     
-    // Serve the maintenance page
+    // If user is executive, allow them to bypass to dashboard
+    if (player && EXECUTIVE_RANKS.includes(player.group_rank)) {
+      return res.redirect('/dashboard');
+    }
+    
+    // Serve the maintenance page for non-executive users
     res.sendFile('maintenance.html', { root: './web/public' });
   } catch (error) {
     console.error('Error loading maintenance page:', error);
