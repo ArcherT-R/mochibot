@@ -828,6 +828,106 @@ async function getAllLiveSessions() {
 }
 
 // -------------------------
+// Maintenance Status
+// -------------------------
+
+async function getMaintenanceStatus() {
+  const { data, error } = await supabase
+    .from('maintenance_status')
+    .select('*')
+    .eq('id', 1)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+}
+
+async function setMaintenanceStatus({
+  is_active,
+  description = null,
+  estimated_completion = null,
+  timezone = 'AEDT',
+  affected_areas = [],
+  updated_by = 'System'
+}) {
+  const { data, error } = await supabase
+    .from('maintenance_status')
+    .upsert([{
+      id: 1,
+      is_active,
+      description,
+      estimated_completion,
+      timezone,
+      affected_areas,
+      updated_at: new Date().toISOString(),
+      updated_by
+    }], { onConflict: 'id' })
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
+async function enableMaintenance({
+  description,
+  estimated_completion,
+  timezone = 'AEDT',
+  affected_areas = [],
+  updated_by = 'System'
+}) {
+  return await setMaintenanceStatus({
+    is_active: true,
+    description,
+    estimated_completion,
+    timezone,
+    affected_areas,
+    updated_by
+  });
+}
+
+async function disableMaintenance(updated_by = 'System') {
+  return await setMaintenanceStatus({
+    is_active: false,
+    description: null,
+    estimated_completion: null,
+    timezone: 'AEDT',
+    affected_areas: [],
+    updated_by
+  });
+}
+
+async function isMaintenanceActive() {
+  try {
+    const status = await getMaintenanceStatus();
+    return status?.is_active || false;
+  } catch (error) {
+    console.error('Error checking maintenance status:', error);
+    return false;
+  }
+}
+
+async function updateMaintenanceArea(area_name, new_status, updated_by = 'System') {
+  const current = await getMaintenanceStatus();
+  if (!current) throw new Error('No maintenance status record found');
+  
+  const updatedAreas = (current.affected_areas || []).map(area =>
+    area.name === area_name
+      ? { ...area, status: new_status }
+      : area
+  );
+  
+  return await setMaintenanceStatus({
+    is_active: current.is_active,
+    description: current.description,
+    estimated_completion: current.estimated_completion,
+    timezone: current.timezone,
+    affected_areas: updatedAreas,
+    updated_by
+  });
+}
+
+// -------------------------
 // Exports
 // -------------------------
 
@@ -898,5 +998,11 @@ module.exports = {
   getActiveLOA,
   isPlayerOnLOA,
   deleteShift,
-  getAllLiveSessions
+  getAllLiveSessions,
+  getMaintenanceStatus,
+  setMaintenanceStatus,
+  enableMaintenance,
+  disableMaintenance,
+  isMaintenanceActive,
+  updateMaintenanceArea
 };
