@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const requireLogin = require("../../middleware/requireLogin");
+const checkMaintenance = require("../../middleware/checkMaintenance");
 const db = require("../../endpoints/database");
 const { createClient } = require("@supabase/supabase-js");
 
@@ -35,34 +36,6 @@ const CORPORATE_RANKS = [
 const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
 
 // ----------------------------
-// Maintenance Check Middleware
-// ----------------------------
-async function checkMaintenance(req, res, next) {
-  try {
-    const { data } = await supabase
-      .from('maintenance_status')
-      .select('is_active')
-      .eq('id', 1)
-      .single();
-    
-    // If maintenance is active and user is not an executive, redirect
-    if (data?.is_active) {
-      const player = req.session?.player;
-      
-      // Allow executives to bypass maintenance
-      if (!player || !EXECUTIVE_RANKS.includes(player.group_rank)) {
-        return res.redirect('/maintenance');
-      }
-    }
-    
-    next();
-  } catch (error) {
-    console.error('Maintenance check error:', error);
-    next(); // Fail open - allow access on error
-  }
-}
-
-// ----------------------------
 // Helper: Attach ongoing session data to players
 // ----------------------------
 async function attachLiveSessionData(players) {
@@ -74,7 +47,7 @@ async function attachLiveSessionData(players) {
 }
 
 // ----------------------------
-// Maintenance status page (public)
+// Maintenance status page (public, no auth needed)
 // ----------------------------
 router.get("/maintenance", async (req, res) => {
   try {
@@ -85,8 +58,8 @@ router.get("/maintenance", async (req, res) => {
       .eq('id', 1)
       .single();
     
-    // If not in maintenance, redirect to dashboard
-    if (!data?.is_active) {
+    // If not in maintenance AND user is logged in, redirect to dashboard
+    if (!data?.is_active && req.session?.player) {
       return res.redirect('/dashboard');
     }
     
@@ -118,7 +91,7 @@ router.get("/", requireLogin, checkMaintenance, async (req, res) => {
 });
 
 // ----------------------------
-// Log out route
+// Log out route (always accessible, no maintenance check)
 // ----------------------------
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
@@ -197,7 +170,7 @@ router.delete("/announcements", requireLogin, checkMaintenance, async (req, res)
 });
 
 // ----------------------------
-// Current user endpoint
+// Current user endpoint (no maintenance check - needed for API)
 // ----------------------------
 router.get('/current-user', requireLogin, async (req, res) => {
   try {
@@ -259,9 +232,9 @@ router.get("/player/:username", requireLogin, checkMaintenance, async (req, res)
 });
 
 // ----------------------------
-// Top players
+// Top players (API endpoint, no maintenance check for data)
 // ----------------------------
-router.get("/top-players", requireLogin, checkMaintenance, async (req, res) => {
+router.get("/top-players", requireLogin, async (req, res) => {
   try {
     const players = await getAllPlayers();
     const withLiveData = await attachLiveSessionData(players);
@@ -282,9 +255,9 @@ router.get("/top-players", requireLogin, checkMaintenance, async (req, res) => {
 });
 
 // ----------------------------
-// Full players list
+// Full players list (API endpoint, no maintenance check for data)
 // ----------------------------
-router.get("/players", requireLogin, checkMaintenance, async (req, res) => {
+router.get("/players", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
@@ -302,9 +275,9 @@ router.get("/players", requireLogin, checkMaintenance, async (req, res) => {
 });
 
 // ----------------------------
-// Player search
+// Player search (API endpoint, no maintenance check for data)
 // ----------------------------
-router.get("/search", requireLogin, checkMaintenance, async (req, res) => {
+router.get("/search", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
     if (!player) return res.status(401).json({ error: 'Not authenticated' });
