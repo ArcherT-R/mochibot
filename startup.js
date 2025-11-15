@@ -5,7 +5,7 @@ const session = require('express-session');
 
 async function main() {
   let client = null;
-  
+
   // ----------------------------
   // Start Discord Bot (Optional)
   // ----------------------------
@@ -23,65 +23,70 @@ async function main() {
   // ----------------------------
   const app = express();
 
-  // in bot startup (after client ready)
-const db = require('./endpoints/database');
+  // ----------------------------
+  // Load DB for verification notifications
+  // ----------------------------
+  const db = require('./endpoints/database');
 
-async function pollAndNotify() {
-  try {
-    const pending = await db.getPendingNotifications();
-    for (const row of pending) {
-      const discordId = row.discord_id;
-      const token = row.one_time_token;
-      const username = row.claimed_by_username;
-      const tokenExpires = row.token_expires_at;
+  // ONLY for verification DMs — nothing else!
+  async function pollAndNotify() {
+    try {
+      const pending = await db.getPendingNotifications();
+      for (const row of pending) {
+        const discordId = row.discord_id;
+        const token = row.one_time_token;
+        const username = row.claimed_by_username;
+        const tokenExpires = row.token_expires_at;
 
-      try {
-        const user = await client.users.fetch(discordId);
-        if (user) {
-          // Create a blue embed for verification notification
-          const embed = {
-            title: '✅ Verification Complete',
-            description: `Roblox user **${username}** has claimed your verification code.`,
-            color: 0x3498db, // Blue color
-            fields: [
-              {
-                name: '🔑 One-Time Password',
-                value: `\`${token}\``,
-                inline: false
+        try {
+          const user = await client.users.fetch(discordId);
+          if (user) {
+            const embed = {
+              title: '✅ Verification Complete',
+              description: `Roblox user **${username}** has claimed your verification code.`,
+              color: 0x3498db,
+              fields: [
+                {
+                  name: '🔑 One-Time Password',
+                  value: `\`${token}\``,
+                  inline: false
+                },
+                {
+                  name: '⏰ Expires',
+                  value: `${new Date(tokenExpires).toLocaleString()}`,
+                  inline: true
+                },
+                {
+                  name: '🌐 Login Link',
+                  value: '[Mochi Bar Staff Dashboard](https://cuse-k2yi.onrender.com/loginpage/login)',
+                  inline: true
+                }
+              ],
+              thumbnail: {
+                url: 'https://i.imgur.com/your-logo.png'
               },
-              {
-                name: '⏰ Expires',
-                value: `${new Date(tokenExpires).toLocaleString()}`,
-                inline: true
+              footer: {
+                text: '⚠️ Important: Save this password immediately after logging in!'
               },
-              {
-                name: '🌐 Login Link',
-                value: '[Mochi Bar Staff Dashboard](https://cuse-k2yi.onrender.com/loginpage/login)',
-                inline: true
-              }
-            ],
-            thumbnail: {
-              url: 'https://i.imgur.com/your-logo.png' // Optional: Add your logo
-            },
-            footer: {
-              text: '⚠️ Important: Save this password immediately after logging in!'
-            },
-            timestamp: new Date().toISOString()
-          };
+              timestamp: new Date().toISOString()
+            };
 
-          await user.send({ embeds: [embed] });
+            await user.send({ embeds: [embed] });
+          }
+
+          await db.markRequestNotified(row.id);
+
+        } catch (dmErr) {
+          console.warn('Failed to DM user', discordId, dmErr);
         }
-        await db.markRequestNotified(row.id);
-      } catch (dmErr) {
-        console.warn('Failed to DM user', discordId, dmErr);
       }
+    } catch (err) {
+      console.error('pollAndNotify error', err);
     }
-  } catch (err) {
-    console.error('pollAndNotify error', err);
   }
-}
 
-setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
+  // Run only every 5 seconds (verification DMs only)
+  setInterval(pollAndNotify, 5000);
 
   // ----------------------------
   // Session Middleware
@@ -106,72 +111,37 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Request logging (development only)
   if (process.env.NODE_ENV === 'development') {
     app.use((req, res, next) => {
       console.log(`${req.method} ${req.path}`);
       next();
     });
   }
+
   // ----------------------------
   // Core Routes (Always Available)
   // ----------------------------
+  app.use('/maintenance', require('./endpoints/maintenance'));
+  app.use('/activity', require('./endpoints/activity'));
+  app.use('/shifts', require('./endpoints/shifts'));
+  app.use('/dashboard', require('./web/routes/dashboard'));
+  app.use('/loginpage', require('./web/loginpage/routes'));
+  app.use('/settings', require('./endpoints/settings'));
+  app.use('/verification', require('./endpoints/verification'));
 
-  // Maintenance Page
-  const maintenanceRoute = require('./endpoints/maintenance');
-  app.use('/maintenance', maintenanceRoute);
-  
-  // Activity tracking from Roblox
-  const activityRoute = require('./endpoints/activity');
-  app.use('/activity', activityRoute);
-
-  // Shifts management
-  const shiftsRoute = require('./endpoints/shifts');
-  app.use('/shifts', shiftsRoute);
-
-  // Dashboard routes
-  const dashboardRoute = require('./web/routes/dashboard');
-  app.use('/dashboard', dashboardRoute);
-
-  // Log In Routes
-  const loginPageRoutes = require('./web/loginpage/routes');
-  app.use('/loginpage', loginPageRoutes);
-
-  // Settings routes
-  const settingsRoute = require('./endpoints/settings');
-  app.use('/settings', settingsRoute);
-
-  // Verification routes
-  const verificationRouter = require('./endpoints/verification');
-  app.use('/verification', verificationRouter);
-  
   // ----------------------------
-  // Discord-Dependent Routes (Conditional)
+  // Discord Routes (Only if bot online)
   // ----------------------------
-  
   if (client) {
-    // Sessions route (Discord integration)
-    const sessionsRoute = require('./endpoints/sessions')(client);
-    app.use('/sessions', sessionsRoute);
-
-    // SOTW role management (Discord integration)
-    const sotwRoleRoute = require('./endpoints/sotw-role')(client);
-    app.use('/sotw-role', sotwRoleRoute);
+    app.use('/sessions', require('./endpoints/sessions')(client));
+    app.use('/sotw-role', require('./endpoints/sotw-role')(client));
   } else {
-    // Provide fallback responses when Discord bot unavailable
-    app.use('/sessions', (req, res) => {
-      res.status(503).json({ 
-        error: 'Discord bot not available',
-        message: 'Sessions endpoint requires Discord integration'
-      });
-    });
-
-    app.use('/sotw-role', (req, res) => {
-      res.status(503).json({ 
-        error: 'Discord bot not available',
-        message: 'SOTW role management requires Discord integration'
-      });
-    });
+    app.use('/sessions', (_, res) =>
+      res.status(503).json({ error: 'Discord bot not available' })
+    );
+    app.use('/sotw-role', (_, res) =>
+      res.status(503).json({ error: 'Discord bot not available' })
+    );
   }
 
   // ----------------------------
@@ -181,9 +151,9 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
     res.redirect('/dashboard');
   });
 
-  // Health check endpoint
+  // Health
   app.get('/health', (req, res) => {
-    res.json({ 
+    res.json({
       status: 'healthy',
       discord: client ? 'connected' : 'disconnected',
       uptime: process.uptime()
@@ -191,29 +161,26 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
   });
 
   // ----------------------------
-  // Error Handlers (Must be last)
+  // 404 Handler
   // ----------------------------
-
-  // 404 Not Found
   app.use((req, res) => {
-    res.status(404).json({ 
+    res.status(404).json({
       error: 'Endpoint not found',
       path: req.path,
       method: req.method
     });
   });
 
-  // Global error handler
+  // ----------------------------
+  // Global Error Handler
+  // ----------------------------
   app.use((err, req, res, next) => {
     console.error('❌ Server Error:', err);
-    
-    // Don't leak error details in production
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
-    res.status(err.status || 500).json({ 
+    const dev = process.env.NODE_ENV === 'development';
+    res.status(err.status || 500).json({
       error: 'Internal Server Error',
-      message: isDevelopment ? err.message : 'An error occurred',
-      stack: isDevelopment ? err.stack : undefined
+      message: dev ? err.message : 'An error occurred',
+      stack: dev ? err.stack : undefined
     });
   });
 
@@ -225,40 +192,22 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
 
   const server = app.listen(PORT, HOST, () => {
     console.log('\n╔════════════════════════════════════════════╗');
-    console.log('║     🌐 Mochi Bar Dashboard Server         ║');
+    console.log('║           Mochi Bar Dashboard Server       ║');
     console.log('╚════════════════════════════════════════════╝\n');
-    console.log(`📊 Dashboard:        http://localhost:${PORT}/dashboard`);
-    console.log(`📊 Player List:      http://localhost:${PORT}/dashboard/playerlist`);
-    console.log(`📊 Shifts:           http://localhost:${PORT}/dashboard/shifts`);
-    console.log(`📊 Settings:         http://localhost:${PORT}/dashboard/settings`);
-    console.log(`📊 My Account:       http://localhost:${PORT}/dashboard/account`);
-    console.log(`🎮 Activity API:     http://localhost:${PORT}/activity`);
-    console.log(`📅 Shifts API:       http://localhost:${PORT}/shifts`);
-    console.log(`💚 Health Check:     http://localhost:${PORT}/health`);
-    
-    if (client) {
-      console.log(`🤖 Discord Sessions: http://localhost:${PORT}/sessions`);
-      console.log(`👑 SOTW Roles:       http://localhost:${PORT}/sotw-role`);
-    } else {
-      console.log(`⚠️  Discord routes unavailable (bot offline)`);
-    }
-    
-    console.log(`\n🚀 Server running on ${HOST}:${PORT}`);
-    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+    console.log(`Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`Health:    http://localhost:${PORT}/health\n`);
+    if (client) console.log('🤖 Discord Routes Enabled\n');
   });
 
   // ----------------------------
-  // Auto-sync Discord shifts (if bot available)
+  // Auto-sync (if bot is online)
   // ----------------------------
   if (client) {
-    const fetch = require('node-fetch'); // Make sure to: npm install node-fetch@2
-    
-    // Auto-sync every 5 minutes
+    const fetch = require('node-fetch');
+
     setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:${PORT}/sessions/sync`, {
-          method: 'POST'
-        });
+        const response = await fetch(`http://localhost:${PORT}/sessions/sync`, { method: 'POST' });
         const result = await response.json();
         if (result.added > 0) {
           console.log(`🔄 Auto-sync: ${result.message}`);
@@ -266,52 +215,34 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
       } catch (err) {
         console.error('❌ Auto-sync failed:', err.message);
       }
-    }, 5 * 60 * 1000); // 5 minutes
-    
-    console.log('🔄 Auto-sync enabled: Discord shifts sync every 5 minutes\n');
+    }, 5 * 60 * 1000);
   }
 
   // ----------------------------
   // Graceful Shutdown
   // ----------------------------
   process.on('SIGTERM', () => {
-    console.log('\n🛑 SIGTERM received, shutting down gracefully...');
-    if (client) {
-      client.destroy();
-      console.log('Discord bot disconnected');
-    }
-    server.close(() => {
-      console.log('Server closed');
-      process.exit(0);
-    });
+    console.log('🛑 Shutting down...');
+    if (client) client.destroy();
+    server.close(() => process.exit(0));
   });
 
   process.on('SIGINT', () => {
-    console.log('\n🛑 SIGINT received, shutting down gracefully...');
-    if (client) {
-      client.destroy();
-      console.log('Discord bot disconnected');
-    }
-    server.close(() => {
-      console.log('Server closed');
-      process.exit(0);
-    });
+    console.log('🛑 Shutting down...');
+    if (client) client.destroy();
+    server.close(() => process.exit(0));
   });
 
-  // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    console.error('❌ Unhandled Rejection:', reason);
   });
 
-  process.on('uncaughtException', (err) => {
+  process.on('uncaughtException', err => {
     console.error('❌ Uncaught Exception:', err);
     process.exit(1);
   });
 }
 
-// ----------------------------
-// Start Application
-// ----------------------------
 main().catch(err => {
   console.error('❌ Fatal startup error:', err);
   process.exit(1);
