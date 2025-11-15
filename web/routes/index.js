@@ -1,9 +1,7 @@
 // /web/loginpage/routes/index.js
 const express = require('express');
 const router = express.Router();
-const { getPlayerByUsername, verifyPlayerPassword, isMaintenanceActive } = require('../../../endpoints/database');
-
-const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+const { getPlayerByUsername, verifyPlayerPassword } = require('../../../endpoints/database');
 
 // GET /loginpage/login - Render login page
 router.get('/login', async (req, res) => {
@@ -12,7 +10,7 @@ router.get('/login', async (req, res) => {
     return res.redirect('/dashboard');
   }
   
-  res.render('login'); // Assumes you have a login.ejs file
+  res.render('login');
 });
 
 // POST /loginpage/login - Handle login
@@ -36,16 +34,29 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    // Verify password using bcrypt (secure method)
-    const verification = await verifyPlayerPassword(username, password);
+    // Verify password - try both methods for compatibility
+    let isValid = false;
     
-    if (!verification.success) {
+    // Try bcrypt verification first (more secure)
+    try {
+      const verification = await verifyPlayerPassword(username, password);
+      isValid = verification.success;
+    } catch (err) {
+      console.log('Bcrypt verification failed, trying plain text');
+    }
+    
+    // Fallback to plain text comparison if bcrypt fails
+    if (!isValid && player.password === password) {
+      isValid = true;
+    }
+    
+    if (!isValid) {
       return res.status(401).json({ 
         error: 'Invalid username or password' 
       });
     }
     
-    // Store complete player info in session FIRST
+    // Store complete player info in session
     req.session.player = {
       roblox_id: player.roblox_id,
       username: player.username,
@@ -55,7 +66,7 @@ router.post('/login', async (req, res) => {
     };
     
     // Ensure session is saved before responding
-    req.session.save(async (err) => {
+    req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
         return res.status(500).json({ 
@@ -65,20 +76,7 @@ router.post('/login', async (req, res) => {
       
       console.log(`✅ User logged in: ${player.username} (${player.group_rank})`);
       
-      // NOW check if maintenance is active (after session is saved)
-      const maintenanceActive = await isMaintenanceActive();
-      
-      // If maintenance is active and user is not executive, redirect to maintenance page
-      if (maintenanceActive && !EXECUTIVE_RANKS.includes(player.group_rank)) {
-        return res.json({ 
-          success: true, 
-          message: 'Logged in successfully',
-          redirect: '/dashboard/maintenance', // Redirect to maintenance page
-          maintenance: true
-        });
-      }
-      
-      // Normal login - redirect to dashboard
+      // Simple redirect - let middleware handle maintenance checking
       res.json({ 
         success: true, 
         message: 'Logged in successfully',
@@ -115,20 +113,6 @@ router.post('/logout', (req, res) => {
       redirect: '/loginpage/login'
     });
   });
-});
-
-// GET /loginpage/check-session - Check if user is logged in
-router.get('/check-session', (req, res) => {
-  if (req.session?.player) {
-    res.json({ 
-      loggedIn: true, 
-      player: req.session.player 
-    });
-  } else {
-    res.json({ 
-      loggedIn: false 
-    });
-  }
 });
 
 module.exports = router;
