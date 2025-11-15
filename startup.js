@@ -113,10 +113,13 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
       next();
     });
   }
-
   // ----------------------------
   // Core Routes (Always Available)
   // ----------------------------
+
+  // Maintenance Page
+  const maintenanceRoute = require('./endpoints/maintenance');
+  app.use('/maintenance', maintenanceRoute);
   
   // Activity tracking from Roblox
   const activityRoute = require('./endpoints/activity');
