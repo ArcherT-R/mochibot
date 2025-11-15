@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mochi Bar Staff Dashboard - Player List</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.ibb.co/S4NjLxNL/Gemini-Generated-Image-hbcyjkhbcyjkhbcy-removebg-preview.png">
+<style>
+  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
+  header {
+    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
+    background-size: 300% 100%;
+    animation: gradientFlow 6s ease infinite;
+    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15);
+  }
+  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+  .nav-tabs {
+    background:white; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
+  }
+  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
+  .tab-button.active { background:#42b4ff; color:white; }
+  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
+  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
+  .search-wrapper input:focus { border-color:#42b4ff; }
+  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:#f0f8ff; }
+  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
+  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
+  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
+  .filter-button { display:flex; align-items:center; gap:8px; padding:10px 20px; background:white; border:2px solid #e0e6f0; border-radius:8px; cursor:pointer; font-size:14px; font-weight:600; color:#555; transition:all 0.3s; }
+  .filter-button:hover { background:#f0f8ff; color:#42b4ff; border-color:#42b4ff; }
+  .filter-button.active { background:#42b4ff; color:white; border-color:#42b4ff; }
+  .player-table-wrapper { width:100%; overflow-x:auto; }
+  .player-table { width:100%; border-collapse:collapse; min-width:600px; }
+  .player-table th { background:linear-gradient(135deg,#42b4ff 0%,#1a85e6 100%); color:white; padding:12px; text-align:left; font-weight:600; text-transform:uppercase; font-size:13px; letter-spacing:0.5px; }
+  .player-table td { padding:12px; border-bottom:1px solid #e0e6f0; }
+  .player-table tr:hover { background:#f0f8ff; }
+  .player-table .player-info { display:flex; align-items:center; gap:12px; }
+  .player-table .player-avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; }
+  .player-table .player-name { font-weight:600; color:#333; }
+  .player-table .player-rank { color:#666; font-size:13px; }
+  .no-data { text-align:center; color:#888; padding:20px; font-style:italic; }
+  
+  @media(max-width:600px){
+    header { font-size:36px; padding:20px; }
+    h2 { text-align:center; }
+    .nav-tabs { flex-direction:column; gap:10px; }
+    .nav-buttons { width:100%; justify-content:center; flex-wrap:wrap; }
+    .search-wrapper { width:100%; max-width:100%; }
+    .tab-button { padding:10px 16px; font-size:14px; }
+    .player-table-wrapper { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .player-table { font-size:12px; min-width:100%; table-layout:fixed; }
+    .player-table th, .player-table td { padding:10px 8px; word-break:break-word; }
+    .player-table .player-avatar { width:32px; height:32px; }
+    .player-table .player-info { gap:8px; flex-wrap:wrap; }
+    .filter-button { padding:8px 12px; font-size:12px; margin-bottom:5px; }
+    .player-table th:nth-child(3), .player-table td:nth-child(3),
+    .player-table th:nth-child(5), .player-table td:nth-child(5) { display:none; }
+  }
+</style>
+</head>
+<body>
+<header>Mochi Bar Staff Dashboard</header>
+<nav class="nav-tabs">
+  <div class="nav-buttons">
+    <a href="/" class="tab-button"><span class="tab-icon">👋</span>Home</a>
+    <button class="tab-button active" data-tab="playerlist"><span class="tab-icon">⭐️</span>Player List</button>
+    <a href="/shifts" class="tab-button"><span class="tab-icon">🗓️</span>Shifts</a>
+    <a href="/account" class="tab-button"><span class="tab-icon">💫</span>My Account</a>
+    <a href="/settings" class="tab-button"><span class="tab-icon">🔗</span>Settings</a>
+  </div>
+  <div class="search-wrapper">
+    <input type="text" id="playerSearch" placeholder="Search Roblox username...">
+    <div id="suggestions" class="suggestions"></div>
+  </div>
+</nav>
+<div class="container">
+  <div id="playerlist" class="tab-content active">
+    <section class="content-section">
+      <h2>🧑‍💼 Player List</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+        <button class="filter-button active" data-filter="all" onclick="filterPlayerList('all')">All Players</button>
+        <button class="filter-button" data-filter="Management" onclick="filterPlayerList('Management')">Management</button>
+        <button class="filter-button" data-filter="Public Relations" onclick="filterPlayerList('Public Relations')">Public Relations</button>
+        <button class="filter-button" data-filter="Operations" onclick="filterPlayerList('Operations')">Operations</button>
+        <button class="filter-button" data-filter="Human Resources" onclick="filterPlayerList('Human Resources')">Human Resources</button>
+        <button class="filter-button" data-filter="Supervision" onclick="filterPlayerList('Supervision')">Supervision</button>
+      </div>
+      <div class="player-table-wrapper">
+        <table class="player-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Rank</th>
+              <th>Weekly Minutes</th>
+              <th id="requirementHeader" style="display:none;">Requirements Met</th>
+              <th>Roblox ID</th>
+            </tr>
+          </thead>
+          <tbody id="fullPlayerList"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('playerSearch');
+  const suggestionsBox = document.getElementById('suggestions');
+  const fullPlayerList = document.getElementById('fullPlayerList');
+  
+  let currentUser = null;
+  let userGroupRank = '';
+  let allPlayersData = [];
+  let playerShiftStats = {};
+  let currentPlayerFilter = 'all';
+
+  const LEADERSHIP_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
+  ];
+  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+  const DIRECTOR_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+  ];
+  const SUPERVISION_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Manager',
+    'Assistant Mochi Director', 'Supervisor', 'Mochi Leader'
+  ];
+  
+  // Rank hierarchy for sorting
+  const RANK_HIERARCHY = {
+    'Chairman': 100,
+    'Vice Chairman': 90,
+    'Chief Administrative Officer': 85,
+    'Leadership Overseer': 84,
+    'Chief of Operations': 80,
+    'Chief of Human Resources': 79,
+    'Chief Of Public Relations': 78,
+    'Head Corporate': 70,
+    'Senior Corporate': 60,
+    'Junior Corporate': 50,
+    'Corporate Intern': 40,
+    'Lead Mochi Director': 35,
+    'Senior Mochi Director': 30,
+    'Mochi Director': 25,
+    'Mochi Manager': 20,
+    'Assistant Mochi Director': 15,
+    'Supervisor': 14,
+    'Mochi Leader': 13,
+    'Senior Mochi': 12,
+    'Mochi': 11,
+    'Junior Mochi': 10,
+    'Intern': 5,
+    'Trainee': 1
+  };
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch('/dashboard/current-user');
+      if (!response.ok) throw new Error('Failed to fetch user');
+      currentUser = await response.json();
+      userGroupRank = currentUser.group_rank || '';
+      
+      // Check if user has access to this page
+      if (!LEADERSHIP_RANKS.includes(userGroupRank)) {
+        document.querySelector('.container').innerHTML = `
+          <div class="content-section">
+            <h2>Access Denied</h2>
+            <p>You don't have permission to view the player list. This requires Mochi Director+ rank.</p>
+            <p><a href="/" class="btn">Return to Home</a></p>
+          </div>
+        `;
+        return;
+      }
+      
+      loadPlayerList();
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+      userGroupRank = '';
+    }
+  }
+
+  loadCurrentUser();
+
+  input.addEventListener('input', async () => {
+    const q = input.value.trim();
+    if (!q) { suggestionsBox.innerHTML = ''; return; }
+    try {
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      suggestionsBox.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>`).join('');
+    } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+  });
+  
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
+  });
+
+  async function filterPlayerList(filter) {
+    currentPlayerFilter = filter;
+    
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+      if (btn.dataset.filter === filter) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    const requirementHeader = document.getElementById('requirementHeader');
+    if (filter === 'all') {
+      requirementHeader.style.display = 'none';
+    } else {
+      requirementHeader.style.display = '';
+    }
+    
+    await renderFullPlayers();
+  }
+
+  window.filterPlayerList = filterPlayerList;
+
+  async function loadPlayerList() {
+    try {
+      const res = await fetch('/dashboard/players');
+      const players = res.ok ? await res.json() : [];
+      allPlayersData = players;
+      playerShiftStats = await calculateShiftStats();
+      await renderFullPlayers();
+    } catch(err) {
+      console.error('Error loading player list:', err);
+    }
+  }
+
+  async function renderFullPlayers(){
+    try {
+      const res = await fetch('/dashboard/players');
+      const players = res.ok ? await res.json() : [];
+      allPlayersData = players;
+      
+      playerShiftStats = await calculateShiftStats();
+      
+      let playersWithLabels = players;
+      
+      if (currentPlayerFilter !== 'all') {
+        const labelsPromises = players.map(async p => {
+          try {
+            const labelRes = await fetch(`/settings/labels/${p.roblox_id}`);
+            const labels = labelRes.ok ? await labelRes.json() : [];
+            return { ...p, labels };
+          } catch {
+            return { ...p, labels: [] };
+          }
+        });
+        
+        playersWithLabels = await Promise.all(labelsPromises);
+        playersWithLabels = playersWithLabels.filter(p => p.labels.includes(currentPlayerFilter));
+        
+        // Sort players by rank hierarchy
+        playersWithLabels.sort((a, b) => {
+          const rankA = RANK_HIERARCHY[a.group_rank] || 0;
+          const rankB = RANK_HIERARCHY[b.group_rank] || 0;
+          return rankB - rankA; // Higher rank first
+        });
+      }
+      
+      if(!playersWithLabels.length){
+        const colspan = currentPlayerFilter === 'all' ? 4 : 5;
+        fullPlayerList.innerHTML = `<tr><td colspan="${colspan}" class="no-data">No players found.</td></tr>`;
+        return;
+      }
+      
+      fullPlayerList.innerHTML = playersWithLabels.map(p => {
+        const hours = Math.floor((p.weekly_minutes || 0) / 60);
+        const mins = (p.weekly_minutes || 0) % 60;
+        
+        let requirementCell = '';
+        if (currentPlayerFilter !== 'all') {
+          const stats = playerShiftStats[p.username.toLowerCase()] || { hosted: 0, attended: 0 };
+          
+          let requirementMet = false;
+          let requirementText = '';
+          
+          // Updated requirements for Operations and Human Resources
+          if (currentPlayerFilter === 'Human Resources' || currentPlayerFilter === 'Operations') {
+            // Check if user has a corporate rank
+            if (p.group_rank === 'Head Corporate') {
+              const minutesMet = (p.weekly_minutes || 0) >= 60;
+              const shiftsMet = stats.hosted >= 2;
+              requirementMet = minutesMet && shiftsMet;
+              requirementText = `${(p.weekly_minutes || 0)}/60 mins, ${stats.hosted}/2 shifts`;
+            } else if (p.group_rank === 'Senior Corporate') {
+              const minutesMet = (p.weekly_minutes || 0) >= 70;
+              const shiftsMet = stats.hosted >= 2;
+              requirementMet = minutesMet && shiftsMet;
+              requirementText = `${(p.weekly_minutes || 0)}/70 mins, ${stats.hosted}/2 shifts`;
+            } else if (p.group_rank === 'Junior Corporate') {
+              const minutesMet = (p.weekly_minutes || 0) >= 80;
+              const shiftsMet = stats.hosted >= 3;
+              requirementMet = minutesMet && shiftsMet;
+              requirementText = `${(p.weekly_minutes || 0)}/80 mins, ${stats.hosted}/3 shifts`;
+            } else {
+              // Default requirement for other ranks
+              requirementMet = stats.hosted >= 2;
+              requirementText = `${stats.hosted}/2 shifts hosted`;
+            }
+          } else if (currentPlayerFilter === 'Public Relations' || currentPlayerFilter === 'Management') {
+            requirementMet = stats.attended >= 2;
+            requirementText = `${stats.attended}/2 shifts attended`;
+          } else if (currentPlayerFilter === 'Supervision') {
+            const minutes = (p.weekly_minutes || 0);
+            requirementMet = minutes >= 90;
+            requirementText = `${minutes}/90 minutes`;
+          }
+          
+          const color = requirementMet ? '#28a745' : '#ff4444';
+          const icon = requirementMet ? '✓' : '✗';
+          requirementCell = `<td><span style="color:${color};font-weight:700;">${icon} ${requirementText}</span></td>`;
+        }
+        
+        return `
+          <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${p.username}'">
+            <td>
+              <div class="player-info">
+                <img class="player-avatar" src="${p.avatar_url || 'https://placehold.co/40x40/e0e6f0/5f6c7b?text=U'}"
+                     onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+                <div>
+                  <div class="player-name">${p.username}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="player-rank">${p.group_rank || 'Unknown'}</span></td>
+            <td>${hours}h ${mins}m</td>
+            ${requirementCell}
+            <td>${p.roblox_id}</td>
+          </tr>`;
+      }).join('');
+    } catch(err){ 
+      console.error(err); 
+      const colspan = currentPlayerFilter === 'all' ? 4 : 5;
+      fullPlayerList.innerHTML = `<tr><td colspan="${colspan}" class="no-data">Failed to load players.</td></tr>`; 
+    }
+  }
+
+  async function calculateShiftStats() {
+    try {
+      const shiftRes = await fetch('/shifts');
+      const shifts = shiftRes.ok ? await shiftRes.json() : [];
+      
+      const now = Date.now();
+      const weekStart = new Date(now);
+      weekStart.setHours(0, 0, 0, 0);
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+      
+      const stats = {};
+      
+      for (const shift of shifts) {
+        const shiftTime = shift.shift_time || shift.time;
+        const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+        
+        if (timestamp < weekStart.getTime()) continue;
+        
+        if (shift.host && shift.host !== 'TBD') {
+          const hostLower = shift.host.toLowerCase();
+          if (!stats[hostLower]) stats[hostLower] = { hosted: 0, attended: 0 };
+          stats[hostLower].hosted++;
+        }
+        
+        if (shift.cohost) {
+          const cohostLower = shift.cohost.toLowerCase();
+          if (!stats[cohostLower]) stats[cohostLower] = { hosted: 0, attended: 0 };
+          stats[cohostLower].hosted++;
+        }
+        
+        const attendeesRes = await fetch(`/shifts/attendees?shiftId=${shift.id}`);
+        if (attendeesRes.ok) {
+          const attendees = await attendeesRes.json();
+          attendees.forEach(a => {
+            const usernameLower = a.username.toLowerCase();
+            if (!stats[usernameLower]) stats[usernameLower] = { hosted: 0, attended: 0 };
+            stats[usernameLower].attended++;
+          });
+        }
+      }
+      
+      return stats;
+    } catch(err) {
+      console.error('Error calculating shift stats:', err);
+      return {};
+    }
+  }
+});
+</script>
+</body>
+</html>
