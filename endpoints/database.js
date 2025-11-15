@@ -1009,5 +1009,6 @@ module.exports = {
   enableMaintenance,
   disableMaintenance,
   isMaintenanceActive,
-  updateMaintenanceArea
+  updateMaintenanceArea,
+  getAllLiveSessions
 };
