@@ -397,8 +397,7 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
   const { data, error } = await supabase
     .from("player_shifts")
     .insert([{ roblox_id, type, name, host }])
-    .select()
-    .single();
+    .select();
   if (error) throw error;
   return data;
 }
@@ -468,8 +467,7 @@ async function addShift({ shift_time, host, cohost, overseer }) {
   const { data, error } = await supabase
     .from('shifts')
     .insert([{ shift_time, host, cohost, overseer }])
-    .select()
-    .single();
+    .select();
   if (error) throw error;
   return data;
 }
@@ -518,12 +516,31 @@ async function removeShiftAttendee(shiftId, robloxId) {
 // -------------------------
 
 async function setBirthday(roblox_id, username, birthday) {
-  const { data, error } = await supabase
+  // Check if birthday already exists
+  const { data: existing } = await supabase
     .from('player_birthdays')
-    .upsert([{ roblox_id, username, birthday }], { onConflict: 'roblox_id' })
-    .select();
-  if (error) throw error;
-  return data;
+    .select('id')
+    .eq('roblox_id', roblox_id)
+    .single();
+
+  if (existing) {
+    // Update existing birthday
+    const { data, error } = await supabase
+      .from('player_birthdays')
+      .update({ birthday })
+      .eq('roblox_id', roblox_id)
+      .select();
+    if (error) throw error;
+    return data;
+  } else {
+    // Insert new birthday
+    const { data, error } = await supabase
+      .from('player_birthdays')
+      .insert([{ roblox_id, username, birthday }])
+      .select();
+    if (error) throw error;
+    return data;
+  }
 }
 
 async function getBirthday(roblox_id) {
@@ -533,7 +550,7 @@ async function getBirthday(roblox_id) {
     .eq('roblox_id', roblox_id)
     .single();
   if (error && error.code !== "PGRST116") throw error;
-  return data;
+  return data?.birthday || null;
 }
 
 async function getAllBirthdays() {
@@ -648,7 +665,7 @@ async function resetWeeklyData() {
 
   if (clearErr) throw clearErr;
 
-  // Log the reset
+  // Log reset
   const { error: logErr } = await supabase
     .from('weekly_reset_log')
     .insert([{
@@ -712,8 +729,7 @@ async function addVerificationRequest(discordId, code, expiresAt) {
   const { data, error } = await supabase
     .from('verification_requests')
     .insert([{ discord_id: discordId, code, expires_at: expiresAt.toISOString() }])
-    .select()
-    .single();
+    .select();
   if (error) throw error;
   return data;
 }
@@ -773,12 +789,10 @@ async function claimVerificationCode(code, robloxUsername) {
 }
 
 async function deleteVerificationRequest(code) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('verification_requests')
     .delete()
-    .eq('code', code)
-    .select()
-    .single();
+    .eq('code', code);
   if (error) throw error;
   return data;
 }
@@ -788,14 +802,13 @@ async function getPendingNotifications() {
     .from('verification_requests')
     .select('*')
     .not('one_time_token', 'is', null)
-    .is('notified', false)
     .limit(50);
   if (error) throw error;
   return data || [];
 }
 
 async function markRequestNotified(id) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('verification_requests')
     .update({ notified: true })
     .eq('id', id)
@@ -819,14 +832,6 @@ async function getVerificationRequestByDiscordId(discordId) {
   return data || null;
 }
 
-async function getAllLiveSessions() {
-  const params = {
-    TableName: "player_live",
-  };
-  const result = await dynamodb.scan(params).promise();
-  return result.Items;
-}
-
 // -------------------------
 // Maintenance Status
 // -------------------------
@@ -838,7 +843,7 @@ async function getMaintenanceStatus() {
     .eq('id', 1)
     .single();
   
-  if (error && error.code !== 'PGRST116') throw error;
+  if (error && error.code !== "PGRST116") throw error;
   return data;
 }
 
