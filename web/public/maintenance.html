@@ -1,1 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mochi Bar - System Status</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.ibb.co/S4NjLxNL/Gemini-Generated-Image-hbcyjkhbcyjkhbcy-removebg-preview.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 900px;
+    width: 100%;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+  }
+  
+  .header {
+    background: linear-gradient(90deg, #42b4ff, #1a85e6);
+    color: white;
+    padding: 30px;
+    text-align: center;
+  }
+  
+  .header h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+  }
+  
+  .header p {
+    opacity: 0.9;
+    font-size: 16px;
+  }
+  
+  .content {
+    padding: 40px 30px;
+  }
+  
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 30px;
+  }
+  
+  .status-badge.operational {
+    background: #d4edda;
+    color: #155724;
+    border: 2px solid #c3e6cb;
+  }
+  
+  .status-badge.maintenance {
+    background: #fff3cd;
+    color: #856404;
+    border: 2px solid #ffeaa7;
+  }
+  
+  .status-icon {
+    font-size: 24px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  
+  .maintenance-info {
+    background: #f8f9fa;
+    border-left: 4px solid #ffc107;
+    padding: 25px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+  }
+  
+  .maintenance-info h2 {
+    color: #856404;
+    margin-bottom: 15px;
+    font-size: 22px;
+  }
+  
+  .info-item {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+  }
+  
+  .info-label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 160px;
+  }
+  
+  .info-value {
+    color: #212529;
+    flex: 1;
+  }
+  
+  .areas-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 30px;
+  }
+  
+  .area-card {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  
+  .area-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .area-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: #212529;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .area-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .area-status.operational {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .area-status.updating {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .area-status.down {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .operational-message {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  
+  .operational-message h2 {
+    color: #155724;
+    font-size: 28px;
+    margin-bottom: 15px;
+  }
+  
+  .operational-message p {
+    color: #6c757d;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  
+  .loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+  }
+  
+  .loading-spinner {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #42b4ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #42b4ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 20px;
+  }
+  
+  .refresh-btn:hover {
+    background: #1a85e6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(66, 180, 255, 0.4);
+  }
+  
+  .last-updated {
+    text-align: center;
+    color: #6c757d;
+    font-size: 14px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .back-to-dashboard {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    margin-right: 10px;
+  }
+  
+  .back-to-dashboard:hover {
+    background: #218838;
+    transform: translateY(-2px);
+  }
+  
+  @media (max-width: 600px) {
+    .header h1 { font-size: 24px; }
+    .content { padding: 30px 20px; }
+    .areas-list { grid-template-columns: 1fr; }
+    .info-item { flex-direction: column; gap: 5px; }
+    .info-label { min-width: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>
+      <span>🏪</span>
+      <span>Mochi Bar System Status</span>
+    </h1>
+    <p>Real-time status of all systems and services</p>
+  </div>
+  
+  <div class="content" id="mainContent">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Checking system status...</p>
+    </div>
+  </div>
+</div>
 
+<script>
+  let lastUpdateTime = null;
+
+  async function checkMaintenanceStatus() {
+    try {
+      const response = await fetch('/maintenance/status');
+      const data = await response.json();
+      
+      lastUpdateTime = new Date();
+      renderStatus(data);
+    } catch (error) {
+      console.error('Failed to fetch maintenance status:', error);
+      renderError();
+    }
+  }
+
+  function renderStatus(data) {
+    const content = document.getElementById('mainContent');
+    
+    if (!data.maintenance_active) {
+      // System is operational - redirect to dashboard after 3 seconds
+      content.innerHTML = `
+        <div style="text-align: center;">
+          <div class="status-badge operational">
+            <span class="status-icon">✅</span>
+            <span>All Systems Operational</span>
+          </div>
+        </div>
+        
+        <div class="operational-message">
+          <h2>Maintenance Complete!</h2>
+          <p>All Mochi Bar systems are operational and running as expected.</p>
+          <p style="margin-top: 20px;">
+            <a href="/dashboard" class="back-to-dashboard">
+              <span>🏠</span>
+              <span>Return to Dashboard</span>
+            </a>
+          </p>
+          <p style="margin-top: 10px; color: #6c757d; font-size: 14px;">
+            You will be automatically redirected in <span id="countdown">3</span> seconds...
+          </p>
+        </div>
+        
+        ${renderAreas(data.areas || [])}
+        ${renderLastUpdated()}
+      `;
+      
+      // Countdown and redirect
+      let seconds = 3;
+      const countdownEl = document.getElementById('countdown');
+      const interval = setInterval(() => {
+        seconds--;
+        if (countdownEl) countdownEl.textContent = seconds;
+        if (seconds <= 0) {
+          clearInterval(interval);
+          window.location.href = '/dashboard';
+        }
+      }, 1000);
+      
+    } else {
+      // System is under maintenance
+      content.innerHTML = `
+        <div style="text-align: center;">
+          <div class="status-badge maintenance">
+            <span class="status-icon">🔧</span>
+            <span>Maintenance in Progress</span>
+          </div>
+        </div>
+        
+        <div class="maintenance-info">
+          <h2>⚠️ Scheduled Maintenance</h2>
+          
+          ${data.description ? `
+            <div class="info-item">
+              <span class="info-label">📝 Description:</span>
+              <span class="info-value">${escapeHtml(data.description)}</span>
+            </div>
+          ` : ''}
+          
+          ${data.estimated_completion ? `
+            <div class="info-item">
+              <span class="info-label">⏰ Estimated Completion:</span>
+              <span class="info-value">${formatDateTime(data.estimated_completion)}</span>
+            </div>
+          ` : ''}
+          
+          ${data.timezone ? `
+            <div class="info-item">
+              <span class="info-label">🌏 Timezone:</span>
+              <span class="info-value">${escapeHtml(data.timezone)}</span>
+            </div>
+          ` : ''}
+        </div>
+        
+        ${renderAreas(data.areas || [])}
+        
+        <div style="text-align: center;">
+          <button class="refresh-btn" onclick="checkMaintenanceStatus()">
+            <span>🔄</span>
+            <span>Refresh Status</span>
+          </button>
+        </div>
+        
+        ${renderLastUpdated()}
+      `;
+    }
+  }
+
+  function renderAreas(areas) {
+    if (!areas || areas.length === 0) return '';
+    
+    return `
+      <div>
+        <h3 style="margin-bottom: 20px; color: #495057;">System Components</h3>
+        <div class="areas-list">
+          ${areas.map(area => `
+            <div class="area-card">
+              <div class="area-name">
+                <span>${getAreaIcon(area.name)}</span>
+                <span>${escapeHtml(area.name)}</span>
+              </div>
+              <div class="area-status ${area.status.toLowerCase()}">${escapeHtml(area.status)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  function getAreaIcon(areaName) {
+    const icons = {
+      'Dashboard': '📊',
+      'Player List': '👥',
+      'Shifts': '📅',
+      'Sessions': '🎮',
+      'Settings': '⚙️',
+      'Database': '💾',
+      'Discord Bot': '🤖',
+      'API': '🔌',
+      'Authentication': '🔐'
+    };
+    return icons[areaName] || '🔧';
+  }
+
+  function formatDateTime(dateTimeStr) {
+    try {
+      const date = new Date(dateTimeStr);
+      return date.toLocaleString('en-AU', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      });
+    } catch {
+      return dateTimeStr;
+    }
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function renderLastUpdated() {
+    if (!lastUpdateTime) return '';
+    return `
+      <div class="last-updated">
+        Last updated: ${lastUpdateTime.toLocaleTimeString('en-AU')}
+      </div>
+    `;
+  }
+
+  function renderError() {
+    const content = document.getElementById('mainContent');
+    content.innerHTML = `
+      <div style="text-align: center; padding: 40px 20px;">
+        <h2 style="color: #dc3545; margin-bottom: 15px;">⚠️ Unable to Check Status</h2>
+        <p style="color: #6c757d; margin-bottom: 20px;">Could not connect to the maintenance status service.</p>
+        <button class="refresh-btn" onclick="checkMaintenanceStatus()">
+          <span>🔄</span>
+          <span>Try Again</span>
+        </button>
+      </div>
+    `;
+  }
+
+  // Check status on load
+  checkMaintenanceStatus();
+  
+  // Auto-refresh every 30 seconds
+  setInterval(checkMaintenanceStatus, 30000);
+</script>
+</body>
+</html>
