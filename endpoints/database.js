@@ -707,15 +707,8 @@ async function getLastWeekHistory() {
 // Verification Requests
 // -------------------------
 
-async function updatePlayerInfo(roblox_id, updates) {
-  const { data, error } = await supabase
-    .from("players")
-    .update(updates)
-    .eq("roblox_id", roblox_id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+function generatePassword() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 async function addVerificationRequest(discordId, code, expiresAt) {
@@ -742,34 +735,17 @@ async function getVerificationRequest(code) {
 }
 
 async function claimVerificationCode(code, robloxUsername) {
-  // Fetch request
-  const { data: request, error: reqErr } = await supabase
-    .from('verification_requests')
-    .select('*')
-    .eq('code', code)
-    .is('claimed_by_username', null)
-    .gte('expires_at', new Date().toISOString())
-    .limit(1)
-    .single()
-    .catch(e => ({ data: null, error: e }));
-
-  if (reqErr && !isNoRowsError(reqErr)) throw reqErr;
+  const request = await getVerificationRequest(code);
   if (!request) return { success: false, error: 'No matching request' };
 
-  // Generate a temp password
   const tempPassword = generatePassword();
   const password_hash = await bcrypt.hash(tempPassword, 10);
 
-  // Update both hashed and plain text password
   await supabase
     .from('players')
-    .update({
-      password_hash,
-      password: tempPassword // again: consider removing plain text storage
-    })
+    .update({ password_hash })
     .eq('username', robloxUsername);
 
-  // Mark request claimed
   await supabase
     .from('verification_requests')
     .update({
@@ -781,50 +757,6 @@ async function claimVerificationCode(code, robloxUsername) {
     .eq('id', request.id);
 
   return { success: true, tempPassword };
-}
-
-async function deleteVerificationRequest(code) {
-  const { error } = await supabase
-    .from('verification_requests')
-    .delete()
-    .eq('code', code);
-  if (error) throw error;
-  return { success: true };
-}
-
-async function getPendingNotifications() {
-  const { data, error } = await supabase
-    .from('verification_requests')
-    .select('*')
-    .not('one_time_token', 'is', null)
-    .limit(50);
-  if (error) throw error;
-  return data || [];
-}
-
-async function markRequestNotified(id) {
-  const { data, error } = await supabase
-    .from('verification_requests')
-    .update({ notified: true })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
-
-async function getVerificationRequestByDiscordId(discordId) {
-  const { data, error } = await supabase
-    .from('verification_requests')
-    .select('*')
-    .eq('discord_id', discordId)
-    .is('claimed_by_username', null)
-    .gte('expires_at', new Date().toISOString())
-    .order('expires_at', { ascending: false })
-    .limit(1)
-    .single();
-  if (error && !isNoRowsError(error)) throw error;
-  return data || null;
 }
 
 // -------------------------
