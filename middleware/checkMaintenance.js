@@ -3,11 +3,9 @@ const { createClient } = require("@supabase/supabase-js");
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
-
 /**
  * Middleware to check if site is in maintenance mode
- * Redirects non-executive users to maintenance page
+ * Redirects ALL users to maintenance page (no bypass)
  * Must be used AFTER requireLogin middleware
  */
 async function checkMaintenance(req, res, next) {
@@ -30,21 +28,15 @@ async function checkMaintenance(req, res, next) {
       return next();
     }
     
-    // Maintenance IS active - check user rank
+    // Maintenance IS active
     const player = req.session?.player;
-    
-    // Allow executives to bypass maintenance
-    if (player && EXECUTIVE_RANKS.includes(player.group_rank)) {
-      console.log(`✅ Executive ${player.username} bypassing maintenance`);
-      return next();
-    }
     
     // Don't redirect if already on maintenance page
     if (req.path === '/maintenance' || req.path.includes('/maintenance')) {
       return next();
     }
     
-    // Redirect non-executives to maintenance page
+    // Redirect ALL users to maintenance page (no bypass)
     console.log(`🔧 Redirecting ${player?.username || 'user'} to maintenance page`);
     return res.redirect('/dashboard/maintenance');
     
