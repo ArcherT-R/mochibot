@@ -31,6 +31,15 @@ const CORPORATE_RANKS = [
   'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
 ];
 
+const DIRECTOR_PLUS = [
+  'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+  'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+  'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+  'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+];
+
+const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+
 // Helper function
 async function attachLiveSessionData(players) {
   return await Promise.all(players.map(async (player) => {
@@ -57,7 +66,7 @@ router.get("/maintenance", requireLogin, async (req, res) => {
       return res.redirect('/dashboard');
     }
     
-    // Serve the maintenance HTML file
+    // Serve maintenance HTML file
     res.sendFile('maintenance.html', { root: './web/public' });
   } catch (error) {
     console.error('Error loading maintenance page:', error);
@@ -77,9 +86,92 @@ router.get("/", requireLogin, checkMaintenance, async (req, res) => {
     const topPlayers = await attachLiveSessionData(topPlayersRaw);
 
     const player = req.session?.player || null;
-    res.render("dashboard", { players: allPlayers, topPlayers, player });
+    res.render("home", { players: allPlayers, topPlayers, player });
   } catch (err) {
     console.error("Error loading dashboard:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// ========================================
+// Player List Page (WITH checkMaintenance)
+// ========================================
+router.get("/playerlist", requireLogin, checkMaintenance, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    
+    // Check if user has access to player list
+    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
+      return res.status(403).render("playerlist", { 
+        player,
+        accessDenied: true,
+        message: "You don't have permission to view the player list. This requires Mochi Director+ rank."
+      });
+    }
+    
+    const allPlayers = await getAllPlayers();
+    res.render("playerlist", { players: allPlayers, player });
+  } catch (err) {
+    console.error("Error loading player list:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// ========================================
+// Shifts Page (WITH checkMaintenance)
+// ========================================
+router.get("/shifts", requireLogin, checkMaintenance, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    res.render("shifts", { player });
+  } catch (err) {
+    console.error("Error loading shifts page:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// ========================================
+// Settings Page (WITH checkMaintenance)
+// ========================================
+router.get("/settings", requireLogin, checkMaintenance, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    
+    // Check if user has access to settings
+    if (!EXECUTIVE_RANKS.includes(player.group_rank)) {
+      return res.status(403).render("settings", { 
+        player,
+        accessDenied: true,
+        message: "You don't have permission to view settings. This requires Vice Chairman+ rank."
+      });
+    }
+    
+    res.render("settings", { player });
+  } catch (err) {
+    console.error("Error loading settings page:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// ========================================
+// My Account Page (WITH checkMaintenance)
+// ========================================
+router.get("/account", requireLogin, checkMaintenance, async (req, res) => {
+  try {
+    const player = req.session?.player;
+    
+    // Check if user has access to account details
+    if (!DIRECTOR_PLUS.includes(player.group_rank)) {
+      return res.status(403).render("myaccount", { 
+        player,
+        accessDenied: true,
+        message: "You don't have permission to view account details. This requires Mochi Director+ rank."
+      });
+    }
+    
+    res.render("myaccount", { player });
+  } catch (err) {
+    console.error("Error loading account page:", err);
     res.status(500).send("Internal Server Error");
   }
 });
