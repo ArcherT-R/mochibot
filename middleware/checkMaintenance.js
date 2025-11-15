@@ -10,6 +10,11 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
  */
 async function checkMaintenance(req, res, next) {
   try {
+    // IMPORTANT: Don't check maintenance for the maintenance page itself!
+    if (req.path === '/maintenance' || req.path.includes('/maintenance')) {
+      return next();
+    }
+    
     // Get maintenance status
     const { data, error } = await supabase
       .from('maintenance_status')
@@ -28,15 +33,8 @@ async function checkMaintenance(req, res, next) {
       return next();
     }
     
-    // Maintenance IS active
+    // Maintenance IS active - redirect ALL users to maintenance page
     const player = req.session?.player;
-    
-    // Don't redirect if already on maintenance page
-    if (req.path === '/maintenance' || req.path.includes('/maintenance')) {
-      return next();
-    }
-    
-    // Redirect ALL users to maintenance page (no bypass)
     console.log(`🔧 Redirecting ${player?.username || 'user'} to maintenance page`);
     return res.redirect('/dashboard/maintenance');
     
