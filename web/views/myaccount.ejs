@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mochi Bar Staff Dashboard - My Account</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.ibb.co/S4NjLxNL/Gemini-Generated-Image-hbcyjkhbcyjkhbcy-removebg-preview.png">
+<style>
+  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
+  header {
+    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
+    background-size: 300% 100%;
+    animation: gradientFlow 6s ease infinite;
+    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15);
+  }
+  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+  .nav-tabs {
+    background:white; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
+  }
+  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
+  .tab-button.active { background:#42b4ff; color:white; }
+  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
+  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
+  .search-wrapper input:focus { border-color:#42b4ff; }
+  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:#f0f8ff; }
+  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
+  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
+  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
+  .account-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .account-title { font-size:24px; font-weight:700; color:#333; display:flex; align-items:center; gap:10px; }
+  .account-actions { display:flex; gap:10px; }
+  .account-field { margin-bottom:15px; }
+  .account-label { font-weight:600; color:#333; margin-bottom:5px; }
+  .account-value { color:#555; }
+  .profile-link { color:#42b4ff; text-decoration:none; font-weight:600; }
+  .profile-link:hover { text-decoration:underline; }
+  .btn { padding:10px 20px; background:#42b4ff; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s; }
+  .btn:hover { background:#1a85e6; transform:translateY(-2px); }
+  .btn.small { padding:6px 12px; font-size:14px; }
+  .no-access-message {
+    background: #fff3cd;
+    border-left: 4px solid #ff9801;
+    padding: 15px;
+    border-radius:8px;
+    margin-bottom:20px;
+    text-align: center;
+    color: #333;
+  }
+  .no-access-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom:10px;
+  }
+  .no-access-text {
+    font-size: 14px;
+    color: #666;
+  }
+  
+  @media(max-width:600px){
+    header { font-size:36px; padding:20px; }
+    h2 { text-align:center; }
+    .nav-tabs { flex-direction:column; gap:10px; }
+    .nav-buttons { width:100%; justify-content:center; flex-wrap:wrap; }
+    .search-wrapper { width:100%; max-width:100%; }
+    .tab-button { padding:10px 16px; font-size:14px; }
+    .account-header { flex-direction:column; gap:15px; }
+    .account-actions { width:100%; justify-content:center; }
+  }
+</style>
+</head>
+<body>
+<header>Mochi Bar Staff Dashboard</header>
+<nav class="nav-tabs">
+  <div class="nav-buttons">
+    <a href="/" class="tab-button"><span class="tab-icon">👋</span>Home</a>
+    <a href="/playerlist" class="tab-button"><span class="tab-icon">⭐️</span>Player List</a>
+    <a href="/shifts" class="tab-button"><span class="tab-icon">🗓️</span>Shifts</a>
+    <button class="tab-button active" data-tab="myaccount"><span class="tab-icon">💫</span>My Account</button>
+    <a href="/settings" class="tab-button"><span class="tab-icon">🔗</span>Settings</a>
+  </div>
+  <div class="search-wrapper">
+    <input type="text" id="playerSearch" placeholder="Search Roblox username...">
+    <div id="suggestions" class="suggestions"></div>
+  </div>
+</nav>
+<div class="container">
+  <div id="myaccount" class="tab-content active">
+    <section class="content-section">
+      <div class="account-header">
+        <div class="account-title">
+          <span>👤</span>
+          <span>My Account</span>
+          <a href="#" class="profile-link" id="viewProfileLink">View Profile</a>
+        </div>
+        <div class="account-actions">
+          <button id="logoutBtn" class="btn">Logout</button>
+        </div>
+      </div>
+      
+      <div id="accountContent"></div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('playerSearch');
+  const suggestionsBox = document.getElementById('suggestions');
+  const accountContent = document.getElementById('accountContent');
+  const viewProfileLink = document.getElementById('viewProfileLink');
+  const logoutBtn = document.getElementById('logoutBtn');
+  
+  let currentUser = null;
+  let userGroupRank = '';
+
+  const LEADERSHIP_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
+  ];
+  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+  const DIRECTOR_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+  ];
+  const SUPERVISION_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Manager',
+    'Assistant Mochi Director', 'Supervisor', 'Mochi Leader'
+  ];
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch('/dashboard/current-user');
+      if (!response.ok) throw new Error('Failed to fetch user');
+      currentUser = await response.json();
+      userGroupRank = currentUser.group_rank || '';
+      
+      // Set the profile link
+      viewProfileLink.href = `/dashboard/player/${currentUser.username}`;
+      
+      renderMyAccount();
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+      userGroupRank = '';
+    }
+  }
+
+  loadCurrentUser();
+
+  input.addEventListener('input', async () => {
+    const q = input.value.trim();
+    if (!q) { suggestionsBox.innerHTML = ''; return; }
+    try {
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      suggestionsBox.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>`).join('');
+    } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+  });
+  
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
+  });
+
+  function maskPassword(pwd) {
+    if (!pwd) return '';
+    return '•'.repeat(pwd.length);
+  }
+
+  // Function to render My Account tab
+  function renderMyAccount() {
+    if (!currentUser) {
+      accountContent.innerHTML = '<p>No user data available.</p>';
+      return;
+    }
+    
+    // Check if user has access to view account details
+    const hasAccess = DIRECTOR_PLUS.includes(userGroupRank);
+    
+    if (!hasAccess) {
+      accountContent.innerHTML = `
+        <div class="no-access-message">
+          <div class="no-access-title">Access Denied</div>
+          <div class="no-access-text">You don't have permission to view account details.</div>
+        </div>
+      `;
+      return;
+    }
+    
+    // Use password from the password field
+    const playerPassword = currentUser.password || '';
+    const hasPassword = playerPassword && playerPassword.length > 0;
+    
+    accountContent.innerHTML = `
+      <div class="account-field">
+        <div class="account-label">Username</div>
+        <div class="account-value">${currentUser.username}</div>
+      </div>
+      <div class="account-field">
+        <div class="account-label">Password</div>
+        <div class="account-value">
+          ${hasPassword ? `
+            <span id="passwordField" style="font-family:monospace;">${maskPassword(playerPassword)}</span>
+            <button id="revealPasswordBtn" class="btn small" style="user-select:none; margin-left:10px;">Hold to Reveal</button>
+          ` : 'Not set'}
+        </div>
+      </div>
+    `;
+    
+    if (!hasPassword) return;
+    
+    const passwordField = document.getElementById('passwordField');
+    const revealBtn = document.getElementById('revealPasswordBtn');
+    if (!passwordField || !revealBtn) return;
+    
+    const showPassword = () => {
+      passwordField.textContent = playerPassword;
+      revealBtn.style.background = '#1a85e6';
+    };
+    
+    const hidePassword = () => {
+      passwordField.textContent = maskPassword(playerPassword);
+      revealBtn.style.background = '#42b4ff';
+    };
+    
+    revealBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      showPassword();
+    });
+    
+    revealBtn.addEventListener('mouseup', hidePassword);
+    revealBtn.addEventListener('mouseleave', hidePassword);
+    revealBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      showPassword();
+    });
+    
+    revealBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      hidePassword();
+    });
+    
+    revealBtn.addEventListener('touchcancel', hidePassword);
+  }
+
+  // Add logout button event listener
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/dashboard/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        window.location.href = '/loginpage/login';
+      } else {
+        alert('Logout failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('An error occurred during logout.');
+    }
+  });
+});
+</script>
+</body>
+</html>
