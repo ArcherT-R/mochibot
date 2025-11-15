@@ -9,13 +9,17 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
  * Must be used AFTER requireLogin middleware
  */
 async function checkMaintenance(req, res, next) {
+  // FIRST: Check if we're already on maintenance-related paths
+  // This MUST be first to prevent redirect loops
+  if (req.path === '/maintenance' || 
+      req.path.startsWith('/maintenance') || 
+      req.originalUrl.includes('/maintenance')) {
+    console.log('✅ On maintenance page, allowing access');
+    return next();
+  }
+
   try {
-    // IMPORTANT: Don't check maintenance for the maintenance page itself!
-    if (req.path === '/maintenance' || req.path.includes('/maintenance')) {
-      return next();
-    }
-    
-    // Get maintenance status
+    // Get maintenance status from database
     const { data, error } = await supabase
       .from('maintenance_status')
       .select('is_active')
@@ -24,22 +28,23 @@ async function checkMaintenance(req, res, next) {
     
     // If error or no data, fail open (allow access)
     if (error || !data) {
-      console.log('No maintenance status found, allowing access');
+      console.log('⚠️ No maintenance status found, allowing access');
       return next();
     }
     
     // If maintenance is NOT active, continue normally
     if (!data.is_active) {
+      console.log('✅ Maintenance is OFF, allowing access');
       return next();
     }
     
-    // Maintenance IS active - redirect ALL users to maintenance page
+    // Maintenance IS active - redirect to maintenance page
     const player = req.session?.player;
-    console.log(`🔧 Redirecting ${player?.username || 'user'} to maintenance page`);
+    console.log(`🔧 Maintenance is ON - Redirecting ${player?.username || 'user'} to /dashboard/maintenance`);
     return res.redirect('/dashboard/maintenance');
     
   } catch (error) {
-    console.error('Maintenance check error:', error);
+    console.error('❌ Maintenance check error:', error);
     next(); // Fail open - allow access on error
   }
 }
