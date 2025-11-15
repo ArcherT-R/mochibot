@@ -75,6 +75,69 @@ router.get("/maintenance", requireLogin, async (req, res) => {
 });
 
 // ========================================
+// Notification routes
+// ========================================
+router.get("/notifications/:robloxId", requireLogin, async (req, res) => {
+  try {
+    const { robloxId } = req.params;
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('roblox_id', robloxId)
+      .eq('read', false)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      return res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+    
+    res.json({ notifications: data || [] });
+  } catch (err) {
+    console.error('Error in notifications endpoint:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.patch("/notifications/:robloxId/:notificationId?", requireLogin, async (req, res) => {
+  try {
+    const { robloxId, notificationId } = req.params;
+    const { read, read_all } = req.body;
+    
+    let query;
+    if (read_all) {
+      // Mark all notifications as read
+      query = supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('roblox_id', robloxId)
+        .eq('read', false);
+    } else if (notificationId) {
+      // Mark specific notification as read
+      query = supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('roblox_id', robloxId);
+    } else {
+      return res.status(400).json({ error: 'Invalid request' });
+    }
+    
+    const { error } = await query;
+    
+    if (error) {
+      console.error('Error updating notifications:', error);
+      return res.status(500).json({ error: 'Failed to update notifications' });
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error in notifications update endpoint:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ========================================
 // Main dashboard (WITH checkMaintenance)
 // ========================================
 router.get("/", requireLogin, checkMaintenance, async (req, res) => {
