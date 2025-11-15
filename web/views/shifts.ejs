@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mochi Bar Staff Dashboard - Shifts</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.ibb.co/S4NjLxNL/Gemini-Generated-Image-hbcyjkhbcyjkhbcy-removebg-preview.png">
+<style>
+  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
+  header {
+    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
+    background-size: 300% 100%;
+    animation: gradientFlow 6s ease infinite;
+    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15);
+  }
+  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+  .nav-tabs {
+    background:white; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
+  }
+  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
+  .tab-button.active { background:#42b4ff; color:white; }
+  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
+  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
+  .search-wrapper input:focus { border-color:#42b4ff; }
+  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:#f0f8ff; }
+  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
+  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
+  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
+  .shifts-list { display:flex; flex-direction:column; gap:16px; }
+  .shift-card { background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); padding:18px 20px; border-radius:10px; border-left:4px solid #42b4ff; box-shadow:0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:all 0.3s; }
+  .shift-card:hover { transform:translateX(5px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+  .shift-header { display:flex; justify-content:space-between; align-items:center; }
+  .shift-left { display:flex; align-items:center; gap:12px; flex:1; }
+  .shift-icon { font-size:28px; }
+  .shift-info { display:flex; flex-direction:column; gap:4px; }
+  .shift-datetime { font-weight:700; font-size:18px; color:#1a85e6; }
+  .shift-host-preview { font-size:14px; color:#555; }
+  .shift-arrow { font-size:20px; color:#42b4ff; }
+  .attendee-category { margin-bottom:20px; }
+  .attendee-category-title { font-size:14px; font-weight:700; color:#1a85e6; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; }
+  .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); animation:fadeIn 0.3s; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .modal-content { background-color:white; margin:5% auto; padding:0; border-radius:12px; width:90%; max-width:600px; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation:slideIn 0.3s; max-height:85vh; overflow-y:auto; }
+  @keyframes slideIn { from{transform:translateY(-50px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; padding:25px 30px; border-bottom:2px solid #42b4ff; background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); }
+  .modal-title { font-size:24px; font-weight:700; color:#1a85e6; }
+  .close { color:#aaa; font-size:32px; font-weight:bold; cursor:pointer; transition:color 0.2s; line-height:1; }
+  .close:hover { color:#333; }
+  .modal-body { padding:25px 30px; }
+  .shift-roles-section { margin-bottom:25px; }
+  .shift-roles-section h4 { font-size:16px; font-weight:700; color:#333; margin:0 0 12px 0; text-transform:uppercase; letter-spacing:0.5px; }
+  .role-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f9f9f9; border-radius:8px; border:1px solid #e0e6f0; margin-bottom:8px; }
+  .role-label { font-weight:600; color:#555; min-width:90px; }
+  .role-name { color:#333; }
+  .attendees-section h4 { font-size:16px; font-weight:700; color:#333; margin:0 0 12px 0; display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.5px; }
+  .attendee-count { background:#42b4ff; color:white; padding:2px 8px; border-radius:12px; font-size:12px; font-weight:700; }
+  .attendees-container { display:flex; flex-direction:column; gap:8px; }
+  .attendee-box { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:8px; background:#fff; border:1px solid #e0e6f0; transition:all 0.2s; }
+  .attendee-box:hover { background:#f9f9f9; border-color:#42b4ff; }
+  .attendee-box span { font-weight:500; color:#333; }
+  .attendee-box button { background:#ff4444; border:none; border-radius:6px; color:white; font-weight:700; padding:4px 10px; cursor:pointer; transition:background 0.2s; }
+  .attendee-box button:hover { background:#cc0000; }
+  .add-attendee-box { display:flex; justify-content:center; align-items:center; padding:12px; border-radius:8px; background:#e6f3ff; cursor:pointer; font-weight:600; color:#1a85e6; border:2px dashed #42b4ff; transition:all 0.2s; margin-top:8px; }
+  .add-attendee-box:hover { background:#d0e4ff; border-color:#1a85e6; }
+  .no-data { text-align:center; color:#888; padding:20px; font-style:italic; }
+  
+  /* Loading spinner styles */
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(66, 180, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #42b4ff;
+    animation: spin 1s ease-in-out infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    border-radius: 12px;
+  }
+  
+  .loading-container {
+    position: relative;
+  }
+  
+  @media(max-width:600px){
+    header { font-size:36px; padding:20px; }
+    h2 { text-align:center; }
+    .nav-tabs { flex-direction:column; gap:10px; }
+    .nav-buttons { width:100%; justify-content:center; flex-wrap:wrap; }
+    .search-wrapper { width:100%; max-width:100%; }
+    .tab-button { padding:10px 16px; font-size:14px; }
+    .shift-card { padding:15px; }
+    .shift-header { flex-direction:row; align-items:center; gap:10px; }
+    .shift-left { flex-wrap:nowrap; }
+    .shift-info { flex:1; }
+    .shift-datetime { font-size:16px; }
+    .shift-host-preview { font-size:13px; }
+    .modal-content { margin:5% auto; width:95%; }
+    .modal-header, .modal-body { padding:20px; }
+  }
+</style>
+</head>
+<body>
+<header>Mochi Bar Staff Dashboard</header>
+<nav class="nav-tabs">
+  <div class="nav-buttons">
+    <a href="/" class="tab-button"><span class="tab-icon">👋</span>Home</a>
+    <a href="/playerlist" class="tab-button"><span class="tab-icon">⭐️</span>Player List</a>
+    <button class="tab-button active" data-tab="shifts"><span class="tab-icon">🗓️</span>Shifts</button>
+    <a href="/account" class="tab-button"><span class="tab-icon">💫</span>My Account</a>
+    <a href="/settings" class="tab-button"><span class="tab-icon">🔗</span>Settings</a>
+  </div>
+  <div class="search-wrapper">
+    <input type="text" id="playerSearch" placeholder="Search Roblox username...">
+    <div id="suggestions" class="suggestions"></div>
+  </div>
+</nav>
+<div class="container">
+  <div id="shifts" class="tab-content active">
+    <section class="content-section"><h2>🗓️ Weekly Shifts</h2><div id="shiftsList" class="shifts-list"></div></section>
+  </div>
+</div>
+
+<div id="shiftModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title" id="modalShiftTitle"></span>
+      <span class="close" onclick="closeShiftModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="shift-roles-section"><h4>Shift Roles</h4><div id="modalRoles"></div></div>
+      <div class="attendees-section">
+        <h4>Attendees <span class="attendee-count" id="modalAttendeeCount">0</span></h4>
+        <div class="attendees-container" id="modalAttendees"></div>
+        <div class="add-attendee-box" id="modalAddAttendee">+ Add attendee</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('playerSearch');
+  const suggestionsBox = document.getElementById('suggestions');
+  const shiftsList = document.getElementById('shiftsList');
+  const shiftModal = document.getElementById('shiftModal');
+  
+  let currentShiftId = null;
+  let currentUser = null;
+  let userGroupRank = '';
+
+  const LEADERSHIP_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
+  ];
+  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+  const DIRECTOR_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+  ];
+  const SUPERVISION_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Manager',
+    'Assistant Mochi Director', 'Supervisor', 'Mochi Leader'
+  ];
+
+  // Function to show loading indicator
+  function showLoading(element) {
+    if (!element) return;
+    
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
+    
+    // Make the parent container relative if it's not already
+    if (element.style.position !== 'relative' && element.style.position !== 'absolute') {
+      element.style.position = 'relative';
+    }
+    
+    element.appendChild(loadingOverlay);
+    return loadingOverlay;
+  }
+  
+  // Function to hide loading indicator
+  function hideLoading(loadingOverlay) {
+    if (loadingOverlay && loadingOverlay.parentNode) {
+      loadingOverlay.parentNode.removeChild(loadingOverlay);
+    }
+  }
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch('/dashboard/current-user');
+      if (!response.ok) throw new Error('Failed to fetch user');
+      currentUser = await response.json();
+      userGroupRank = currentUser.group_rank || '';
+      
+      loadShifts();
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+      userGroupRank = '';
+    }
+  }
+
+  loadCurrentUser();
+
+  input.addEventListener('input', async () => {
+    const q = input.value.trim();
+    if (!q) { suggestionsBox.innerHTML = ''; return; }
+    try {
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      suggestionsBox.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>`).join('');
+    } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+  });
+  
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
+  });
+
+  function formatShiftTime(ts){
+    const d = new Date(ts);
+    const now = new Date();
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    let dateStr = d.toDateString() === now.toDateString() ? 'Today'
+                : d.toDateString() === tomorrow.toDateString() ? 'Tomorrow'
+                : d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+    const timeStr = d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',hour12:true});
+    return {date: dateStr, time: timeStr};
+  }
+
+  async function openShiftModal(shift) {
+    // Show loading indicator
+    const modalBody = document.querySelector('.modal-body');
+    const loadingOverlay = showLoading(modalBody);
+    
+    currentShiftId = shift.id;
+    const shiftTime = shift.shift_time || shift.time;
+    const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+    const {date, time} = formatShiftTime(new Date(timestamp));
+    
+    document.getElementById('modalShiftTitle').textContent = `${date} at ${time}`;
+    
+    let rolesHTML = `<div class="role-item"><span class="role-label">📋 Host:</span><span class="role-name">${shift.host || 'TBD'}</span></div>`;
+    if(shift.cohost) rolesHTML += `<div class="role-item"><span class="role-label">🤝 Co-Host:</span><span class="role-name">${shift.cohost}</span></div>`;
+    if(shift.overseer) rolesHTML += `<div class="role-item"><span class="role-label">👁️ Overseer:</span><span class="role-name">${shift.overseer}</span></div>`;
+    document.getElementById('modalRoles').innerHTML = rolesHTML;
+    
+    await renderModalAttendees();
+    
+    // Hide loading indicator
+    hideLoading(loadingOverlay);
+    
+    shiftModal.style.display = 'block';
+  }
+
+  async function renderModalAttendees() {
+    if (!currentShiftId) return;
+    
+    const container = document.getElementById('modalAttendees');
+    const addBox = document.getElementById('modalAddAttendee');
+    
+    // Show loading indicator
+    const loadingOverlay = showLoading(container);
+    
+    try {
+      const res = await fetch(`/shifts/attendees?shiftId=${currentShiftId}`);
+      const attendees = res.ok ? await res.json() : [];
+      
+      const shiftRes = await fetch('/shifts');
+      const shifts = shiftRes.ok ? await shiftRes.json() : [];
+      const currentShift = shifts.find(s => s.id === currentShiftId);
+      
+      // Check if current user is in leadership ranks
+      const isLeadership = LEADERSHIP_RANKS.includes(userGroupRank);
+      
+      // Check if current user is the host, cohost, or overseer of this shift
+      const isShiftLeader = currentShift && currentUser && (
+        currentShift.host === currentUser.username ||
+        currentShift.cohost === currentUser.username ||
+        currentShift.overseer === currentUser.username
+      );
+      
+      // Only allow editing if user is in leadership OR is a shift leader
+      const canEdit = isLeadership || isShiftLeader;
+      
+      document.getElementById('modalAttendeeCount').textContent = attendees.length;
+      
+      const labelsPromises = attendees.map(async a => {
+        try {
+          const labelRes = await fetch(`/settings/labels/${a.roblox_id}`);
+          const labels = labelRes.ok ? await labelRes.json() : [];
+          return { ...a, labels };
+        } catch {
+          return { ...a, labels: [] };
+        }
+      });
+      
+      const attendeesWithLabels = await Promise.all(labelsPromises);
+      
+      const management = attendeesWithLabels.filter(a => a.labels.includes('Management'));
+      const publicRelations = attendeesWithLabels.filter(a => a.labels.includes('Public Relations'));
+      const operations = attendeesWithLabels.filter(a => a.labels.includes('Operations'));
+      const humanResources = attendeesWithLabels.filter(a => a.labels.includes('Human Resources'));
+      const supervision = attendeesWithLabels.filter(a => a.labels.includes('Supervision'));
+      const others = attendeesWithLabels.filter(a => a.labels.length === 0);
+      
+      container.innerHTML = '';
+      
+      if (management.length > 0) {
+        const managementDiv = document.createElement('div');
+        managementDiv.className = 'attendee-category';
+        managementDiv.innerHTML = '<div class="attendee-category-title">Management</div>';
+        
+        management.forEach(a => {
+          const box = createAttendeeBox(a, canEdit);
+          managementDiv.appendChild(box);
+        });
+        
+        container.appendChild(managementDiv);
+      }
+      
+      if (publicRelations.length > 0) {
+        const prDiv = document.createElement('div');
+        prDiv.className = 'attendee-category';
+        prDiv.innerHTML = '<div class="attendee-category-title">Public Relations</div>';
+        
+        publicRelations.forEach(a => {
+          const box = createAttendeeBox(a, canEdit);
+          prDiv.appendChild(box);
+        });
+        
+        container.appendChild(prDiv);
+      }
+      
+      if (operations.length > 0) {
+        const opsDiv = document.createElement('div');
+        opsDiv.className = 'attendee-category';
+        opsDiv.innerHTML = '<div class="attendee-category-title">Operations</div>';
+        
+        operations.forEach(a => {
+          const box = createAttendeeBox(a, canEdit);
+          opsDiv.appendChild(box);
+        });
+        
+        container.appendChild(opsDiv);
+      }
+      
+      if (humanResources.length > 0) {
+        const hrDiv = document.createElement('div');
+        hrDiv.className = 'attendee-category';
+        hrDiv.innerHTML = '<div class="attendee-category-title">Human Resources</div>';
+        
+        humanResources.forEach(a => {
+          const box = createAttendeeBox(a, canEdit);
+          hrDiv.appendChild(box);
+        });
+        
+        container.appendChild(hrDiv);
+      }
+      
+      if (supervision.length > 0) {
+        const supervisionDiv = document.createElement('div');
+        supervisionDiv.className = 'attendee-category';
+        supervisionDiv.innerHTML = '<div class="attendee-category-title">Supervision</div>';
+        
+        supervision.forEach(a => {
+          const box = createAttendeeBox(a, canEdit);
+          supervisionDiv.appendChild(box);
+        });
+        
+        container.appendChild(supervisionDiv);
+      }
+      
+      if (others.length > 0) {
+        const othersDiv = document.createElement('div');
+        othersDiv.className = 'attendee-category';
+        othersDiv.innerHTML = '<div class="attendee-category-title">Other Attendees</div>';
+        
+        others.forEach(a => {
+          const box = createAttendeeBox(a, canEdit);
+          othersDiv.appendChild(box);
+        });
+        
+        container.appendChild(othersDiv);
+      }
+
+      if (canEdit) {
+        addBox.style.display = 'flex';
+        addBox.onclick = async e => {
+          e.stopPropagation();
+          if(addBox.querySelector('.add-attendee-search')) return;
+
+          // Fetch all players
+          const res = await fetch('/dashboard/
