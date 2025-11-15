@@ -424,6 +424,131 @@ document.addEventListener('DOMContentLoaded', () => {
         addBox.onclick = async e => {
           e.stopPropagation();
           if(addBox.querySelector('.add-attendee-search')) return;
+          // Create search box inside the Add Attendee area
+          const searchWrapper = document.createElement('div');
+          searchWrapper.className = "add-attendee-search";
+          searchWrapper.style.width = "100%";
+          searchWrapper.style.marginTop = "10px";
 
-          // Fetch all players
-          const res = await fetch('/dashboard/
+          searchWrapper.innerHTML = `
+            <input type="text" 
+                   placeholder="Search Roblox username..." 
+                   style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px;">
+            <div class="suggestions"></div>
+          `;
+          
+          addBox.appendChild(searchWrapper);
+
+          const searchInput = searchWrapper.querySelector("input");
+          const resultsBox = searchWrapper.querySelector(".suggestions");
+
+          // Live search
+          searchInput.addEventListener("input", async () => {
+            const query = searchInput.value.trim();
+            if (!query) { resultsBox.innerHTML = ""; return; }
+
+            const result = await fetch(`/dashboard/search?username=${encodeURIComponent(query)}`);
+            const players = result.ok ? await result.json() : [];
+
+            resultsBox.innerHTML = players.map(p => `
+              <div class="suggestion-item" data-user="${p.username}">
+                <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png">
+                <span>${p.username}</span>
+              </div>
+            `).join("");
+
+            // Click to add attendee
+            [...resultsBox.querySelectorAll(".suggestion-item")].forEach(item => {
+              item.addEventListener("click", async () => {
+                const username = item.dataset.user;
+
+                await fetch(`/shifts/add-attendee`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    shiftId: currentShiftId,
+                    username
+                  })
+                });
+
+                await renderModalAttendees(); // refresh modal
+              });
+            });
+          });
+        };
+      } else {
+        addBox.style.display = 'none';
+      }
+    } finally {
+      hideLoading(loadingOverlay);
+    }
+  }
+
+  // Create attendee element
+  function createAttendeeBox(a, canEdit) {
+    const box = document.createElement('div');
+    box.className = 'attendee-box';
+
+    box.innerHTML = `
+      <span>${a.username}</span>
+      ${canEdit ? `<button data-user="${a.username}">Remove</button>` : ''}
+    `;
+
+    if (canEdit) {
+      const btn = box.querySelector("button");
+      btn.onclick = async () => {
+        await fetch(`/shifts/remove-attendee`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shiftId: currentShiftId,
+            username: a.username
+          })
+        });
+
+        await renderModalAttendees();
+      };
+    }
+
+    return box;
+  }
+
+  function closeShiftModal() {
+    shiftModal.style.display = 'none';
+  }
+
+  // Load shifts on load
+  async function loadShifts() {
+    const res = await fetch('/shifts');
+    const shifts = res.ok ? await res.json() : [];
+
+    shiftsList.innerHTML = "";
+
+    shifts.forEach(shift => {
+      const time = shift.shift_time || shift.time;
+      const ts = time.toString().length === 10 ? time * 1000 : time;
+      const { date, time: timeStr } = formatShiftTime(new Date(ts));
+
+      const card = document.createElement('div');
+      card.className = 'shift-card';
+      card.innerHTML = `
+        <div class="shift-header">
+          <div class="shift-left">
+            <div class="shift-icon">🗓️</div>
+            <div class="shift-info">
+              <div class="shift-datetime">${date} — ${timeStr}</div>
+              <div class="shift-host-preview">Host: ${shift.host || 'TBD'}</div>
+            </div>
+          </div>
+          <div class="shift-arrow">›</div>
+        </div>
+      `;
+      card.onclick = () => openShiftModal(shift);
+      shiftsList.appendChild(card);
+    });
+  }
+});
+</script>
+</body>
+</html>
+
