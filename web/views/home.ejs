@@ -98,6 +98,92 @@
     margin-left: 10px;
   }
   
+  /* Notification styles */
+  .notification-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .notification-icon {
+    font-size: 24px;
+    cursor: pointer;
+    position: relative;
+    color: #555;
+    transition: color 0.3s;
+  }
+  .notification-icon:hover {
+    color: #42b4ff;
+  }
+  .notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ff4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .notification-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 350px;
+    max-height: 400px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    overflow-y: auto;
+    display: none;
+  }
+  .notification-dropdown.show {
+    display: block;
+  }
+  .notification-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .notification-item:hover {
+    background: #f0f8ff;
+  }
+  .notification-item:last-child {
+    border-bottom: none;
+  }
+  .notification-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+  }
+  .notification-message {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  .notification-action {
+    font-size: 13px;
+    color: #42b4ff;
+    font-weight: 500;
+  }
+  .notification-time {
+    font-size: 12px;
+    color: #888;
+    text-align: right;
+  }
+  .notification-empty {
+    padding: 20px;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+  }
+  
   @media(max-width:600px){
     header { font-size:36px; padding:20px; }
     h2 { text-align:center; }
@@ -111,6 +197,10 @@
     .home-grid { grid-template-columns:1fr; }
     .user-requirement-progress { flex-direction:column; align-items:flex-start; gap:5px; }
     .progress-bar { width:100%; }
+    .notification-dropdown {
+      width: 300px;
+      right: -10px;
+    }
   }
 </style>
 </head>
@@ -127,6 +217,15 @@
   <div class="search-wrapper">
     <input type="text" id="playerSearch" placeholder="Search Roblox username...">
     <div id="suggestions" class="suggestions"></div>
+  </div>
+  <div class="notification-container">
+    <div class="notification-icon" id="notificationIcon">
+      🔔
+      <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
+    </div>
+    <div class="notification-dropdown" id="notificationDropdown">
+      <div class="notification-empty">No notifications</div>
+    </div>
   </div>
 </nav>
 <div class="container">
@@ -200,6 +299,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/notification.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('playerSearch');
@@ -310,6 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Now render the requirements box directly (without setTimeout)
       renderRequirementsBox();
+      
+      // Initialize notifications after user is loaded
+      if (window.NotificationManager) {
+        window.NotificationManager.init(currentUser.roblox_id);
+      }
     } catch (err) {
       console.error('Failed to load current user:', err);
       userGroupRank = '';
@@ -355,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     const latest = announcements[0];
-    const date = new Date(latest.date);
+    const date = new Date(latest.date || latest.created_at);
     
     latestAnnouncement.innerHTML = `
       <div class="announcement-title">${latest.title}</div>
@@ -1006,8 +1111,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to render My Account tab
   function renderMyAccount() {
-    // This would be implemented if needed for the home page
+    // This would be implemented if needed for home page
   }
+
+  // Notification dropdown functionality
+  const notificationIcon = document.getElementById('notificationIcon');
+  const notificationBadge = document.getElementById('notificationBadge');
+  const notificationDropdown = document.getElementById('notificationDropdown');
+
+  notificationIcon.addEventListener('click', function() {
+    notificationDropdown.classList.toggle('show');
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!notificationIcon.contains(event.target) && !notificationDropdown.contains(event.target)) {
+      notificationDropdown.classList.remove('show');
+    }
+  });
 });
 </script>
 </body>
