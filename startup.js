@@ -38,7 +38,7 @@ async function pollAndNotify() {
       try {
         const user = await client.users.fetch(discordId);
         if (user) {
-          // Create a blue embed for the verification notification
+          // Create a blue embed for verification notification
           const embed = {
             title: '✅ Verification Complete',
             description: `Roblox user **${username}** has claimed your verification code.`,
@@ -228,6 +228,10 @@ setInterval(pollAndNotify, 5000); // every 5s (tune as needed)
     console.log('║     🌐 Mochi Bar Dashboard Server         ║');
     console.log('╚════════════════════════════════════════════╝\n');
     console.log(`📊 Dashboard:        http://localhost:${PORT}/dashboard`);
+    console.log(`📊 Player List:      http://localhost:${PORT}/dashboard/playerlist`);
+    console.log(`📊 Shifts:           http://localhost:${PORT}/dashboard/shifts`);
+    console.log(`📊 Settings:         http://localhost:${PORT}/dashboard/settings`);
+    console.log(`📊 My Account:       http://localhost:${PORT}/dashboard/account`);
     console.log(`🎮 Activity API:     http://localhost:${PORT}/activity`);
     console.log(`📅 Shifts API:       http://localhost:${PORT}/shifts`);
     console.log(`💚 Health Check:     http://localhost:${PORT}/health`);
