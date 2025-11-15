@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mochi Bar Staff Dashboard - Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="https://i.ibb.co/S4NjLxNL/Gemini-Generated-Image-hbcyjkhbcyjkhbcy-removebg-preview.png">
+<style>
+  body { font-family: 'Roboto', sans-serif; margin:0; background:#f7f9fc; color:#000; }
+  header {
+    background: linear-gradient(90deg, #42b4ff, #1a85e6, #42b4ff, #1a85e6);
+    background-size: 300% 100%;
+    animation: gradientFlow 6s ease infinite;
+    color:white; font-weight:700; font-size:48px; padding:25px 40px; text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.15);
+  }
+  @keyframes gradientFlow { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+  .nav-tabs {
+    background:white; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; padding:15px 20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-bottom:2px solid #e0e6f0; flex-wrap:wrap;
+  }
+  .nav-buttons { display:flex; gap:10px; flex-wrap:wrap; }
+  .tab-button { display:flex; align-items:center; gap:8px; padding:12px 24px; background:transparent; border:none; border-radius:8px; cursor:pointer; font-size:16px; font-weight:600; color:#555; transition:all 0.3s; }
+  .tab-button:hover { background:#f0f8ff; color:#42b4ff; }
+  .tab-button.active { background:#42b4ff; color:white; }
+  .search-wrapper { position:relative; max-width:300px; flex-grow:1; }
+  .search-wrapper input { width:100%; padding:10px 15px; font-size:15px; border:1px solid #ccc; border-radius:8px; outline:none; box-sizing:border-box; transition:border 0.2s; }
+  .search-wrapper input:focus { border-color:#42b4ff; }
+  .suggestions { position:absolute; top:100%; left:0; width:100%; background:white; border:1px solid #ccc; max-height:250px; overflow-y:auto; z-index:10; border-radius:0 0 8px 8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:#f0f8ff; }
+  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+  .container { max-width:1200px; margin:40px auto; padding:0 20px; display:flex; flex-direction:column; gap:40px; }
+  h2 { font-size:26px; font-weight:700; margin-bottom:20px; color:#333; }
+  .content-section { background:#fff; padding:20px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.05); border:1px solid #ddd; }
+  .settings-btn { display:flex; align-items:center; gap:12px; padding:15px 20px; background:white; border:2px solid #42b4ff; border-radius:10px; cursor:pointer; font-size:16px; font-weight:600; color:#1a85e6; transition:all 0.3s; text-align:left; }
+  .settings-btn:hover { background:#42b4ff; color:white; transform:translateY(-2px); box-shadow:0 4px 12px rgba(66,180,255,0.3); }
+  .settings-btn span:first-child { font-size:24px; }
+  .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6); animation:fadeIn 0.3s; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .modal-content { background-color:white; margin:5% auto; padding:0; border-radius:12px; width:90%; max-width:600px; box-shadow:0 10px 40px rgba(0,0,0,0.3); animation:slideIn 0.3s; max-height:85vh; overflow-y:auto; }
+  @keyframes slideIn { from{transform:translateY(-50px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; padding:25px 30px; border-bottom:2px solid #42b4ff; background:linear-gradient(135deg,#f0f8ff 0%,#e6f3ff 100%); }
+  .modal-title { font-size:24px; font-weight:700; color:#1a85e6; }
+  .close { color:#aaa; font-size:32px; font-weight:bold; cursor:pointer; transition:color 0.2s; line-height:1; }
+  .close:hover { color:#333; }
+  .modal-body { padding:25px 30px; }
+  .attendee-box { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:8px; background:#fff; border:1px solid #e0e6f0; transition:all 0.2s; margin-bottom:10px; }
+  .attendee-box:hover { background:#f9f9f9; border-color:#42b4ff; }
+  .attendee-box span { font-weight:500; color:#333; }
+  .attendee-box button { background:#ff4444; border:none; border-radius:6px; color:white; font-weight:700; padding:4px 10px; cursor:pointer; transition:background 0.2s; }
+  .attendee-box button:hover { background:#cc0000; }
+  .suggestion-item { display:flex; align-items:center; padding:10px 12px; cursor:pointer; border-bottom:1px solid #eee; transition:background 0.2s; }
+  .suggestion-item:last-child { border-bottom:none; }
+  .suggestion-item:hover { background:#f0f8ff; }
+  .suggestion-item img { width:40px; height:40px; border-radius:50%; margin-right:10px; }
+  .no-data { text-align:center; color:#888; padding:20px; font-style:italic; }
+  .btn { padding:10px 20px; background:#42b4ff; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; transition:all 0.3s; }
+  .btn:hover { background:#1a85e6; transform:translateY(-2px); }
+  .btn.small { padding:6px 12px; font-size:14px; }
+  
+  @media(max-width:600px){
+    header { font-size:36px; padding:20px; }
+    h2 { text-align:center; }
+    .nav-tabs { flex-direction:column; gap:10px; }
+    .nav-buttons { width:100%; justify-content:center; flex-wrap:wrap; }
+    .search-wrapper { width:100%; max-width:100%; }
+    .tab-button { padding:10px 16px; font-size:14px; }
+    .modal-content { margin:5% auto; width:95%; }
+    .modal-header, .modal-body { padding:20px; }
+  }
+</style>
+</head>
+<body>
+<header>Mochi Bar Staff Dashboard</header>
+<nav class="nav-tabs">
+  <div class="nav-buttons">
+    <a href="/" class="tab-button"><span class="tab-icon">👋</span>Home</a>
+    <a href="/playerlist" class="tab-button"><span class="tab-icon">⭐️</span>Player List</a>
+    <a href="/shifts" class="tab-button"><span class="tab-icon">🗓️</span>Shifts</a>
+    <a href="/account" class="tab-button"><span class="tab-icon">💫</span>My Account</a>
+    <button class="tab-button active" data-tab="settings"><span class="tab-icon">🔗</span>Settings</button>
+  </div>
+  <div class="search-wrapper">
+    <input type="text" id="playerSearch" placeholder="Search Roblox username...">
+    <div id="suggestions" class="suggestions"></div>
+  </div>
+</nav>
+<div class="container">
+  <div id="settings" class="tab-content active">
+    <section class="content-section"><h2>⚙️ Settings</h2><div style="display:flex; flex-direction:column; gap:15px; max-width:400px;">
+      <button class="settings-btn" onclick="openAddPlayer()"><span>🧑‍💻</span><span>Add Player</span></button>
+      <button class="settings-btn" onclick="openLabelsManager()"><span>🏷️</span><span>Manage Player Labels</span></button>
+      <button class="settings-btn" onclick="openBirthdaysManager()"><span>🎂</span><span>Manage Birthdays</span></button>
+      <button class="settings-btn" onclick="openWeeklyResetStatus()"><span>📊</span><span>Check Weekly Reset Status</span></button>
+      <button class="settings-btn" onclick="openLastWeekHistory()"><span>🗓️</span><span>View Last Week's Data</span></button>
+      <button class="settings-btn" onclick="openManualRemoveShift()"><span>🗑️</span><span>Manual Remove Shift</span></button>
+      <button class="settings-btn" onclick="openLOAManager()"><span>🏖️</span><span>Leave of Absence</span></button>
+    </div></section>
+  </div>
+</div>
+
+<div id="shiftModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title" id="modalShiftTitle"></span>
+      <span class="close" onclick="closeShiftModal()">&times;</span>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('playerSearch');
+  const suggestionsBox = document.getElementById('suggestions');
+  const modalBody = document.getElementById('modalBody');
+  
+  let currentUser = null;
+  let userGroupRank = '';
+
+  const LEADERSHIP_RANKS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
+  ];
+  const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
+  const DIRECTOR_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director'
+  ];
+  const SUPERVISION_PLUS = [
+    'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer',
+    'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations',
+    'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern',
+    'Lead Mochi Director', 'Senior Mochi Director', 'Mochi Director', 'Mochi Manager',
+    'Assistant Mochi Director', 'Supervisor', 'Mochi Leader'
+  ];
+
+  async function loadCurrentUser() {
+    try {
+      const response = await fetch('/dashboard/current-user');
+      if (!response.ok) throw new Error('Failed to fetch user');
+      currentUser = await response.json();
+      userGroupRank = currentUser.group_rank || '';
+      
+      // Check if user has access to this page
+      if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+        document.querySelector('.container').innerHTML = `
+          <div class="content-section">
+            <h2>Access Denied</h2>
+            <p>You don't have permission to view settings. This requires Vice Chairman+ rank.</p>
+            <p><a href="/" class="btn">Return to Home</a></p>
+          </div>
+        `;
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+      userGroupRank = '';
+    }
+  }
+
+  loadCurrentUser();
+
+  input.addEventListener('input', async () => {
+    const q = input.value.trim();
+    if (!q) { suggestionsBox.innerHTML = ''; return; }
+    try {
+      const res = await fetch(`/dashboard/search?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      suggestionsBox.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="window.location='/dashboard/player/${p.username}'">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>`).join('');
+    } catch (err) { suggestionsBox.innerHTML = ''; console.error(err); }
+  });
+  
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) suggestionsBox.innerHTML = '';
+  });
+
+  window.openAddPlayer = async function() {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Adding players requires Vice Chairman+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    
+    modalTitle.textContent = 'Add New Player';
+    modalBody.innerHTML = `
+      <form id="addPlayerForm" style="display:flex;flex-direction:column;gap:15px;">
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Roblox ID *</label>
+          <input type="number" id="newRobloxId" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Username *</label>
+          <input type="text" id="newUsername" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Group Rank *</label>
+          <input type="text" id="newGroupRank" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Avatar URL *</label>
+          <input type="url" id="newAvatarUrl" required 
+                 style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;"
+                 placeholder="https://...">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;margin-bottom:5px;">Password (6-digit)</label>
+          <div style="display:flex;gap:10px;">
+            <input type="text" id="newPassword" readonly 
+                   style="flex:1;padding:10px;border:1px solid #ccc;border-radius:8px;background:#f9f9f9;">
+            <button type="button" onclick="generatePassword()" class="btn">Generate</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
+          <button type="button" onclick="closeShiftModal()" class="btn" style="background:#ccc;color:#333;">Cancel</button>
+          <button type="submit" class="btn">Add Player</button>
+        </div>
+      </form>
+    `;
+    
+    modal.style.display = 'block';
+    
+    document.getElementById('addPlayerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const robloxId = document.getElementById('newRobloxId').value;
+      const username = document.getElementById('newUsername').value;
+      const groupRank = document.getElementById('newGroupRank').value;
+      const avatarUrl = document.getElementById('newAvatarUrl').value;
+      const password = document.getElementById('newPassword').value;
+      
+      if (!password) {
+        alert('Please generate a password first');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/settings/add-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roblox_id: robloxId,
+            username: username,
+            group_rank: groupRank,
+            avatar_url: avatarUrl,
+            password: password
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          alert(`Player added successfully!\n\nUsername: ${username}\nPassword: ${password}\n\nMake sure to save this password!`);
+          closeShiftModal();
+        } else {
+          alert(`Failed to add player: ${result.error || 'Unknown error'}`);
+        }
+      } catch (err) {
+        console.error('Error adding player:', err);
+        alert('Error adding player. Please try again.');
+      }
+    });
+  };
+
+  window.generatePassword = async function() {
+    try {
+      const res = await fetch('/settings/generate-password');
+      const data = await res.json();
+      
+      if (data.password) {
+        document.getElementById('newPassword').value = data.password;
+      } else {
+        alert('Failed to generate password');
+      }
+    } catch (err) {
+      console.error('Error generating password:', err);
+      alert('Error generating password');
+    }
+  };
+
+  window.openLabelsManager = async function() {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Label management requires Vice Chairman+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    
+    modalTitle.textContent = 'Manage Player Labels';
+    modalBody.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <input type="text" id="labelSearch" placeholder="Search player..." 
+               style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;">
+        <div id="labelSearchResults" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+    `;
+    
+    modal.style.display = 'block';
+    
+    const searchInput = document.getElementById('labelSearch');
+    const searchResults = document.getElementById('labelSearchResults');
+    
+    searchInput.addEventListener('input', async () => {
+      const q = searchInput.value.trim();
+      if (!q) { searchResults.innerHTML = ''; return; }
+      
+      const res = await fetch(`/settings/search-players?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      
+      searchResults.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="managePlayerLabels(${p.roblox_id}, '${p.username}')">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>
+      `).join('');
+    });
+  };
+
+  window.managePlayerLabels = async function(robloxId, username) {
+    const res = await fetch(`/settings/labels/${robloxId}`);
+    const currentLabels = res.ok ? await res.json() : [];
+    
+    const allLabels = ['Management', 'Public Relations', 'Operations', 'Human Resources', 'Supervision'];
+    
+    modalBody.innerHTML = `
+      <h3 style="margin-bottom:15px;">Labels for ${username}</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${allLabels.map(label => {
+          const isActive = currentLabels.includes(label);
+          return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:${isActive ? '#e6f3ff' : '#f9f9f9'};border-radius:8px;border:2px solid ${isActive ? '#42b4ff' : '#eee'};">
+              <span style="font-weight:600;">${label}</span>
+              <button onclick="toggleLabel(${robloxId}, '${username}', '${label}', ${isActive})" 
+                      style="padding:6px 16px;background:${isActive ? '#ff4444' : '#42b4ff'};color:white;border-radius:6px;cursor:pointer;font-weight:600;">
+                ${isActive ? 'Remove' : 'Add'}
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <button onclick="openLabelsManager()" style="margin-top:20px;width:100%;padding:12px;background:#42b4ff;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+        ← Back to Search
+      </button>
+    `;
+  };
+
+  window.toggleLabel = async function(robloxId, username, label, isActive) {
+    try {
+      const method = isActive ? 'DELETE' : 'POST';
+      const res = await fetch('/settings/labels', {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roblox_id: robloxId, username: username, label: label })
+      });
+      
+      if (res.ok) {
+        managePlayerLabels(robloxId, username);
+      } else {
+        alert('Failed to update label');
+      }
+    } catch (err) {
+      alert('Error updating label');
+    }
+  };
+
+  window.openBirthdaysManager = async function() {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Birthday management requires Vice Chairman+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    
+    modalTitle.textContent = 'Manage Birthdays';
+    modalBody.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <input type="text" id="bdaySearch" placeholder="Search player..." 
+               style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;">
+        <div id="bdaySearchResults" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+      <div style="max-height:400px;overflow-y:auto;" id="birthdaysList">
+        <div class="no-data">Loading...</div>
+      </div>
+    `;
+    
+    modal.style.display = 'block';
+    
+    const res = await fetch('/settings/birthdays');
+    const birthdays = res.ok ? await res.json() : [];
+    
+    const list = document.getElementById('birthdaysList');
+    if (!birthdays.length) {
+      list.innerHTML = '<div class="no-data">No birthdays set</div>';
+    } else {
+      list.innerHTML = birthdays.map(b => `
+        <div class="attendee-box">
+          <div>
+            <strong>${b.username}</strong><br>
+            <span style="font-size:13px;color:#666;">${new Date(b.birthday).toLocaleDateString()}</span>
+          </div>
+          <button onclick="deleteBirthday(${b.roblox_id})">×</button>
+        </div>
+      `).join('');
+    }
+    
+    const searchInput = document.getElementById('bdaySearch');
+    const searchResults = document.getElementById('bdaySearchResults');
+    
+    searchInput.addEventListener('input', async () => {
+      const q = searchInput.value.trim();
+      if (!q) { searchResults.innerHTML = ''; return; }
+      
+      const res = await fetch(`/settings/search-players?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      
+      searchResults.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="setBirthdayFor(${p.roblox_id}, '${p.username}')">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>
+      `).join('');
+    });
+  };
+
+  window.setBirthdayFor = async function(robloxId, username) {
+    const birthday = prompt(`Set birthday for ${username} (MM/DD):`);
+    if (!birthday) return;
+    
+    const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])$/;
+    if (!dateRegex.test(birthday)) {
+      alert('Invalid date format. Use MM/DD (e.g., 03/15)');
+      return;
+    }
+    
+    // Convert MM/DD to a date string with year 2000 (arbitrary year for storage)
+    const [month, day] = birthday.split('/');
+    const birthdayWithYear = `2000-${month}-${day}`;
+    
+    try {
+      const res = await fetch('/settings/birthdays/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roblox_id: robloxId, username, birthday: birthdayWithYear })
+      });
+      
+      if (res.ok) {
+        alert('Birthday set successfully!');
+        openBirthdaysManager();
+      } else {
+        alert('Failed to set birthday');
+      }
+    } catch (err) {
+      alert('Error setting birthday');
+    }
+  };
+
+  window.deleteBirthday = async function(robloxId) {
+    if (!confirm('Delete this birthday?')) return;
+    
+    try {
+      const res = await fetch(`/settings/birthdays/${robloxId}`, { method: 'DELETE' });
+      if (res.ok) {
+        openBirthdaysManager();
+      }
+    } catch (err) {
+      alert('Error deleting birthday');
+    }
+  };
+
+  window.openWeeklyResetStatus = async function() {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Weekly reset requires Vice Chairman+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    
+    modalTitle.textContent = 'Weekly Reset Status';
+    modalBody.innerHTML = '<div class="no-data">Loading...</div>';
+    modal.style.display = 'block';
+    
+    try {
+      const res = await fetch('/settings/weekly-reset/status');
+      const data = await res.json();
+      
+      const nextReset = new Date(data.nextReset);
+      const lastReset = data.lastReset ? new Date(data.lastReset) : null;
+      
+      modalBody.innerHTML = `
+        <div style="line-height:2;">
+          <p><strong>Next Reset:</strong> ${nextReset.toLocaleString()}</p>
+          ${lastReset ? `<p><strong>Last Reset:</strong> ${lastReset.toLocaleString()}</p>
+          <p><strong>Players Affected:</strong> ${data.playersAffected}</p>` : ''}
+          <hr style="margin:20px 0;border:none;border-top:1px solid #e0e6f0;">
+          <button onclick="manualReset()" style="width:100%;padding:12px;background:#ff4444;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+            Manual Reset (Use with caution)
+          </button>
+        </div>
+      `;
+    } catch(err) {
+      console.error('Error loading reset status:', err);
+      modalBody.innerHTML = '<div class="no-data">Failed to load reset status</div>';
+    }
+  };
+
+  window.manualReset = async function() {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Manual reset requires Vice Chairman+');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to manually reset weekly data? This will clear all player weekly minutes and save current data to history.')) return;
+    
+    try {
+      const res = await fetch('/settings/weekly-reset/manual', { method: 'POST' });
+      const result = await res.json();
+      
+      if (result.success) {
+        alert(`Reset successful! ${result.playersAffected} players affected.`);
+        openWeeklyResetStatus();
+      } else {
+        alert('Reset failed');
+      }
+    } catch (err) {
+      alert('Error performing reset');
+    }
+  };
+
+  window.openLastWeekHistory = async function() {
+    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: History requires Vice Chairman+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    
+    modalTitle.textContent = 'Last Week\'s Data';
+    modalBody.innerHTML = '<div class="no-data">Loading...</div>';
+    modal.style.display = 'block';
+    
+    try {
+      const res = await fetch('/settings/weekly-reset/last-week');
+      const history = await res.json();
+      
+      if (!history.length) {
+        modalBody.innerHTML = '<div class="no-data">No historical data available</div>';
+        return;
+      }
+      
+      const weekStart = new Date(history[0].week_start).toLocaleDateString();
+      const weekEnd = new Date(history[0].week_end).toLocaleDateString();
+      
+      const sorted = history.sort((a, b) => b.total_minutes - a.total_minutes).slice(0, 10);
+      
+      modalBody.innerHTML = `
+        <div style="margin-bottom:15px;text-align:center;color:#666;">
+          Week: ${weekStart} - ${weekEnd}
+        </div>
+        <div style="max-height:500px;overflow-y:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f0f8ff;text-align:left;">
+                <th style="padding:8px;">Player</th>
+                <th style="padding:8px;">Minutes</th>
+                <th style="padding:8px;">Hosted</th>
+                <th style="padding:8px;">Attended</th>
+                <th style="padding:8px;">Roblox ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sorted.map(h => {
+                const hours = Math.floor(h.total_minutes / 60);
+                const mins = h.total_minutes % 60;
+                return `
+                  <tr style="cursor:pointer;" onclick="window.location='/dashboard/player/${h.username}'">
+                    <td>
+                      <div style="display:flex;align-items:center;gap:12px;">
+                        <img style="width:40px;height:40px;border-radius:50%;object-fit:cover;" 
+                             src="${h.avatar_url || 'https://placehold.co/40x40/e0e6f0/5f6c7b?text=U'}"
+                             onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+                        <div>
+                          <div style="font-weight:600;color:#333;">${h.username}</div>
+                          <div style="font-size:13px;color:#666;">${h.group_rank || 'Unknown'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>${hours}h ${mins}m</td>
+                    <td>${h.shifts_hosted}</td>
+                    <td>${h.shifts_attended}</td>
+                    <td>${h.roblox_id}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch(err) {
+      console.error('Error loading last week history:', err);
+      modalBody.innerHTML = '<div class="no-data">Failed to load historical data</div>';
+    }
+  };
+
+  window.openManualRemoveShift = async function() {
+    if (!LEADERSHIP_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: Manual shift removal requires Leadership+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    
+    modalTitle.textContent = 'Manual Remove Shift';
+    modalBody.innerHTML = '<div class="no-data">Loading shifts...</div>';
+    modal.style.display = 'block';
+    
+    try {
+      const res = await fetch('/shifts');
+      const shifts = await res.json();
+      
+      if (!shifts.length) {
+        modalBody.innerHTML = '<div class="no-data">No shifts to remove</div>';
+        return;
+      }
+      
+      modalBody.innerHTML = `
+        <div style="max-height:500px;overflow-y:auto;">
+          ${shifts.map(shift => {
+            const shiftTime = shift.shift_time || shift.time;
+            const timestamp = shiftTime.toString().length === 10 ? shiftTime * 1000 : shiftTime;
+            const date = new Date(timestamp);
+            const dateStr = date.toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+            const timeStr = date.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'});
+            
+            return `
+              <div class="attendee-box" style="margin-bottom:10px;">
+                <div>
+                  <strong>${dateStr} at ${timeStr}</strong><br>
+                  <span style="font-size:13px;color:#666;">Host: ${shift.host || 'TBD'}</span>
+                </div>
+                <button onclick="deleteShift(${shift.id})" style="background:#ff4444;">×</button>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } catch (err) {
+      console.error('Error loading shifts:', err);
+      modalBody.innerHTML = '<div class="no-data">Failed to load shifts</div>';
+    }
+  };
+
+  window.deleteShift = async function(shiftId) {
+    if (!confirm('Are you sure you want to delete this shift? This action cannot be undone.')) return;
+    
+    try {
+      const res = await fetch(`/settings/shifts/${shiftId}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Shift deleted successfully');
+        openManualRemoveShift();
+      } else {
+        alert('Failed to delete shift');
+      }
+    } catch (err) {
+      console.error('Error deleting shift:', err);
+      alert('Error deleting shift');
+    }
+  };
+
+  window.openLOAManager = async function() {
+    if (!LEADERSHIP_RANKS.includes(userGroupRank)) {
+      alert('Access Denied: LOA management requires Leadership+');
+      return;
+    }
+
+    const modal = document.getElementById('shiftModal');
+    const modalTitle = document.getElementById('modalShiftTitle');
+    
+    modalTitle.textContent = 'Leave of Absence Management';
+    modalBody.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <input type="text" id="loaSearch" placeholder="Search player..." 
+               style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;">
+        <div id="loaSearchResults" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+      <h3 style="margin-bottom:15px;">Current LOAs</h3>
+      <div style="max-height:400px;overflow-y:auto;" id="loaList">
+        <div class="no-data">Loading...</div>
+      </div>
+    `;
+    
+    modal.style.display = 'block';
+    
+    const res = await fetch('/settings/loa');
+    const loas = await res.json();
+    
+    const list = document.getElementById('loaList');
+    if (!loas.length) {
+      list.innerHTML = '<div class="no-data">No LOAs set</div>';
+    } else {
+      list.innerHTML = loas.map(loa => `
+        <div class="attendee-box">
+          <div>
+            <strong>${loa.username}</strong><br>
+            <span style="font-size:13px;color:#666;">${new Date(loa.start_date).toLocaleDateString()} - ${new Date(loa.end_date).toLocaleDateString()}</span>
+          </div>
+          <button onclick="removeLOA(${loa.roblox_id})">×</button>
+        </div>
+      `).join('');
+    }
+    
+    const searchInput = document.getElementById('loaSearch');
+    const searchResults = document.getElementById('loaSearchResults');
+    
+    searchInput.addEventListener('input', async () => {
+      const q = searchInput.value.trim();
+      if (!q) { searchResults.innerHTML = ''; return; }
+      
+      const res = await fetch(`/settings/search-players?username=${encodeURIComponent(q)}`);
+      const players = res.ok ? await res.json() : [];
+      
+      searchResults.innerHTML = players.map(p => `
+        <div class="suggestion-item" onclick="setLOAFor(${p.roblox_id}, '${p.username}')">
+          <img src="https://www.roblox.com/headshot-thumbnail/image?userId=${p.roblox_id}&width=40&height=40&format=png"
+               onerror="this.src='https://placehold.co/40x40/e0e6f0/5f6c7b?text=U';"/>
+          <span>${p.username}</span>
+        </div>
+      `).join('');
+    });
+  };
+
+  window.setLOAFor = async function(robloxId, username) {
+    const startDate = prompt(`Set LOA start date for ${username} (YYYY-MM-DD):`);
+    if (!startDate) return;
+    
+    const endDate = prompt(`Set LOA end date for ${username} (YYYY-MM-DD):`);
+    if (!endDate) return;
+    
+    try {
+      const res = await fetch('/settings/loa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roblox_id: robloxId, username, start_date: startDate, end_date: endDate })
+      });
+      
+      if (res.ok) {
+        alert('LOA set successfully!');
+        openLOAManager();
+      } else {
+        alert('Failed to set LOA');
+      }
+    } catch (err) {
+      alert('Error setting LOA');
+    }
+  };
+
+  window.removeLOA = async function(robloxId) {
+    if (!confirm('Remove this LOA?')) return;
+    
+    try {
+      const res = await fetch(`/settings/loa/${robloxId}`, { method: 'DELETE' });
+      if (res.ok) {
+        openLOAManager();
+      }
+    } catch (err) {
+      alert('Error removing LOA');
+    }
+  };
+
+  window.closeShiftModal = function() {
+    document.getElementById('shiftModal').style.display = 'none';
+  };
+
+  window.onclick = function(e) {
+    const modal = document.getElementById('shiftModal');
+    if (e.target === modal) {
+      closeShiftModal();
+    }
+  };
+});
+</script>
+</body>
+</html>
