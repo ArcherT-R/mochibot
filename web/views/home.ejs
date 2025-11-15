@@ -395,10 +395,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadCurrentUser() {
     try {
+      console.log('Loading current user...');
       const response = await fetch('/dashboard/current-user');
-      if (!response.ok) throw new Error('Failed to fetch user');
-      currentUser = await response.json();
+      
+      if (!response.ok) {
+        console.error('Failed to fetch user:', response.status, response.statusText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      currentUser = data;
       userGroupRank = currentUser.group_rank || '';
+      
+      console.log('Current user loaded:', currentUser);
+      console.log('User rank:', userGroupRank);
+      console.log('All leadership ranks:', LEADERSHIP_RANKS);
+      console.log('Is user in leadership?', LEADERSHIP_RANKS.includes(userGroupRank));
       
       updateTabAccess();
       renderMyAccount();
@@ -439,35 +451,53 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function loadAnnouncements() {
     try {
+      console.log('Loading announcements...');
       const response = await fetch('/dashboard/announcements');
-      announcements = await response.json();
       
+      if (!response.ok) {
+        console.error('Failed to fetch announcements:', response.status, response.statusText);
+        announcements = [];
+        return;
+      }
+      
+      const data = await response.json();
+      announcements = Array.isArray(data) ? data : [];
+      
+      console.log('Announcements loaded:', announcements);
       renderLatestAnnouncement();
       
-      // ADD THIS: Show the new announcement button for leadership
+      // Show the new announcement button for leadership
       if (LEADERSHIP_RANKS.includes(userGroupRank)) {
         newAnnouncementBtn.style.display = 'block';
       }
     } catch (err) {
       console.error('Failed to load announcements:', err);
+      announcements = [];
     }
   }
   
   function renderLatestAnnouncement() {
-    if (announcements.length === 0) {
+    if (!announcements || announcements.length === 0) {
       latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
       return;
     }
     
     const latest = announcements[0];
-    const date = new Date(latest.date || latest.created_at);
+    if (!latest) {
+      latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
+      return;
+    }
+    
+    // Handle different date field names
+    const date = latest.date || latest.created_at || latest.timestamp;
+    const announcementDate = date ? new Date(date) : new Date();
     
     latestAnnouncement.innerHTML = `
-      <div class="announcement-title">${latest.title}</div>
-      <div class="announcement-content">${latest.content}</div>
+      <div class="announcement-title">${latest.title || 'No Title'}</div>
+      <div class="announcement-content">${latest.content || 'No content available'}</div>
       <div class="announcement-meta">
-        <span>By: ${latest.author}</span>
-        <span>${date.toLocaleDateString()}</span>
+        <span>By: ${latest.author || 'Unknown'}</span>
+        <span>${announcementDate.toLocaleDateString()}</span>
       </div>
     `;
   }
@@ -478,11 +508,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     modalList.innerHTML = '';
     
-    if (announcements.length === 0) {
+    if (!announcements || announcements.length === 0) {
       modalList.innerHTML = '<p>No announcements available.</p>';
     } else {
       announcements.forEach((announcement, index) => {
-        const date = new Date(announcement.date || announcement.created_at);
+        const date = announcement.date || announcement.created_at || announcement.timestamp;
+        const announcementDate = date ? new Date(date) : new Date();
         const item = document.createElement('div');
         item.className = 'announcement-item';
         
@@ -490,11 +521,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const canDelete = LEADERSHIP_RANKS.includes(userGroupRank);
         
         item.innerHTML = `
-          <div class="announcement-title">${announcement.title}</div>
-          <div class="announcement-content" style="white-space: pre-wrap;">${announcement.content}</div>
+          <div class="announcement-title">${announcement.title || 'No Title'}</div>
+          <div class="announcement-content" style="white-space: pre-wrap;">${announcement.content || 'No content'}</div>
           <div class="announcement-meta">
-            <span>By: ${announcement.author}</span>
-            <span>${date.toLocaleDateString()}</span>
+            <span>By: ${announcement.author || 'Unknown'}</span>
+            <span>${announcementDate.toLocaleDateString()}</span>
           </div>
           ${canDelete ? `
             <div style="margin-top:10px;text-align:right;">
@@ -550,7 +581,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!title || !content) return;
     
     try {
-      // Save to Supabase via API
+      console.log('Submitting announcement:', { title, content, author: currentUser.username });
+      
       const response = await fetch('/dashboard/announcements', {
         method: 'POST',
         headers: {
@@ -564,10 +596,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save announcement');
+        console.error('Failed to save announcement:', response.status, response.statusText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const newAnnouncement = await response.json();
+      console.log('New announcement created:', newAnnouncement);
       
       // Add to the beginning of the array
       announcements.unshift(newAnnouncement);
@@ -587,19 +621,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add this new function to handle deletion by index
   window.deleteAnnouncementByIndex = function(index) {
     const announcement = announcements[index];
-    if (!announcement) return;
+    if (!announcement) {
+      console.error('Announcement not found at index:', index);
+      return;
+    }
     
     if (!confirm('Are you sure you want to delete this announcement?')) {
       return;
     }
     
     try {
+      console.log('Deleting announcement at index:', index);
+      
       // Try using ID first, then fall back to title and date
       const deleteData = announcement.id 
         ? { id: announcement.id }
         : { 
             title: announcement.title, 
-            date: announcement.date || announcement.created_at
+            date: announcement.date || announcement.created_at || announcement.timestamp
           };
       
       fetch('/dashboard/announcements', {
@@ -610,21 +649,22 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify(deleteData)
       })
       .then(response => {
-        if (response.ok) {
-          // Remove the announcement from the local array
-          announcements.splice(index, 1);
-          
-          // Refresh the modal
-          openAnnouncementsModal();
-          
-          // If this was the latest announcement, refresh the home view
-          if (announcements.length === 0) {
-            latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
-          } else {
-            renderLatestAnnouncement();
-          }
+        if (!response.ok) {
+          console.error('Failed to delete announcement:', response.status, response.statusText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Remove the announcement from the local array
+        announcements.splice(index, 1);
+        
+        // Refresh the modal
+        openAnnouncementsModal();
+        
+        // If this was the latest announcement, refresh the home view
+        if (announcements.length === 0) {
+          latestAnnouncement.innerHTML = '<p>No announcements available.</p>';
         } else {
-          alert('Failed to delete announcement. Please try again.');
+          renderLatestAnnouncement();
         }
       })
       .catch(error => {
@@ -632,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Error deleting announcement. Please try again.');
       });
     } catch (error) {
-      console.error('Error deleting announcement:', error);
+      console.error('Error in deleteAnnouncementByIndex:', error);
       alert('Error deleting announcement. Please try again.');
     }
   };
@@ -641,35 +681,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerlistTab = document.querySelector('[data-tab="playerlist"]');
     const settingsTab = document.querySelector('[data-tab="settings"]');
 
-    if (!LEADERSHIP_RANKS.includes(userGroupRank)) {
-      playerlistTab.style.opacity = '0.5';
-      playerlistTab.style.cursor = 'not-allowed';
-      playerlistTab.title = 'Requires Mochi Director+';
-      playerlistTab.dataset.disabled = 'true';
-    } else {
-      playerlistTab.style.opacity = '1';
-      playerlistTab.style.cursor = 'pointer';
-      playerlistTab.title = '';
-      playerlistTab.dataset.disabled = 'false';
-      
-      // Preload player list data when user has access
-      setTimeout(() => {
-        if (!allPlayersData.length) {
-          loadPlayerList();
-        }
-      }, 1000);
+    console.log('Updating tab access for rank:', userGroupRank);
+    console.log('Leadership ranks:', LEADERSHIP_RANKS);
+    console.log('Is leadership?', LEADERSHIP_RANKS.includes(userGroupRank));
+
+    if (playerlistTab) {
+      if (!LEADERSHIP_RANKS.includes(userGroupRank)) {
+        playerlistTab.style.opacity = '0.5';
+        playerlistTab.style.cursor = 'not-allowed';
+        playerlistTab.title = 'Requires Mochi Director+';
+        playerlistTab.dataset.disabled = 'true';
+      } else {
+        playerlistTab.style.opacity = '1';
+        playerlistTab.style.cursor = 'pointer';
+        playerlistTab.title = '';
+        playerlistTab.dataset.disabled = 'false';
+        
+        // Preload player list data when user has access
+        setTimeout(() => {
+          if (!allPlayersData.length) {
+            loadPlayerList();
+          }
+        }, 1000);
+      }
     }
 
-    if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
-      settingsTab.style.opacity = '0.5';
-      settingsTab.style.cursor = 'not-allowed';
-      settingsTab.title = 'Requires Vice Chairman+';
-      settingsTab.dataset.disabled = 'true';
-    } else {
-      settingsTab.style.opacity = '1';
-      settingsTab.style.cursor = 'pointer';
-      settingsTab.title = '';
-      settingsTab.dataset.disabled = 'false';
+    if (settingsTab) {
+      if (!EXECUTIVE_RANKS.includes(userGroupRank)) {
+        settingsTab.style.opacity = '0.5';
+        settingsTab.style.cursor = 'not-allowed';
+        settingsTab.title = 'Requires Vice Chairman+';
+        settingsTab.dataset.disabled = 'true';
+      } else {
+        settingsTab.style.opacity = '1';
+        settingsTab.style.cursor = 'pointer';
+        settingsTab.title = '';
+        settingsTab.dataset.disabled = 'false';
+      }
     }
   }
 
@@ -714,6 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function renderTopPlayers(){
     try{
+      console.log('Loading top players...');
       const res = await fetch('/dashboard/top-players');
       topPlayersData = res.ok ? await res.json() : topPlayersData;
       if(!topPlayersData.length){
@@ -733,7 +782,10 @@ document.addEventListener('DOMContentLoaded', () => {
           ${p.is_live ? '<span class="live-status">LIVE</span>' : ''}
           <div class="time">${formatMinutes(p.live_total_minutes)}</div>
         </div>`).join('');
-    } catch(err){ console.error(err); }
+    } catch(err){ 
+      console.error('Error loading top players:', err); 
+      topPlayersGrid.innerHTML = '<div class="no-data">Failed to load top players.</div>';
+    }
   }
   renderTopPlayers();
   setInterval(renderTopPlayers, 5000);
@@ -776,6 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function renderTopShiftLeaders(){
     try{
+      console.log('Loading shift leaders...');
       const shiftRes = await fetch('/shifts');
       const shifts = shiftRes.ok ? await shiftRes.json() : [];
       
@@ -816,7 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         attendees.forEach(attendee => {
           const closest = findClosestUsername(attendee.username, allUsernames).toLowerCase();
-          participationCount[closest] = (participationCount[closest] || 0) + 1;
+            participationCount[closest] = (participationCount[closest] || 0) + 1;
         });
       });
       
@@ -862,6 +915,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     try {
+      console.log('Rendering user requirements for labels:', currentUserLabels);
+      
       const userRes = await fetch('/dashboard/players');
       const allPlayers = userRes.ok ? await userRes.json() : [];
       const freshUserData = allPlayers.find(p => p.roblox_id === currentUser.roblox_id);
@@ -923,6 +978,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function renderRequirementsBox() {
     try {
+      console.log('Rendering requirements box for labels:', currentUserLabels);
       const requirementsBox = document.getElementById('requirementsBox');
       
       // Only render user requirements if current user has labels
@@ -1002,6 +1058,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function calculateShiftStats() {
     try {
+      console.log('Calculating shift stats...');
       const shiftRes = await fetch('/shifts');
       const shifts = shiftRes.ok ? await shiftRes.json() : [];
       
@@ -1041,6 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
+      console.log('Shift stats calculated:', stats);
       return stats;
     } catch(err) {
       console.error('Error calculating shift stats:', err);
@@ -1050,6 +1108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function renderUpcomingBirthdays() {
     try {
+      console.log('Loading upcoming birthdays...');
       const res = await fetch('/settings/birthdays');
       if (!res.ok) {
         document.getElementById('upcomingBirthdays').innerHTML = '<div class="no-data">Unable to load birthdays</div>';
