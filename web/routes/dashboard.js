@@ -76,6 +76,7 @@ router.get("/maintenance", requireLogin, async (req, res) => {
 
 // ========================================
 // Main dashboard (WITH checkMaintenance)
+// This renders the single page app that handles all tabs
 // ========================================
 router.get("/", requireLogin, checkMaintenance, async (req, res) => {
   try {
@@ -86,92 +87,11 @@ router.get("/", requireLogin, checkMaintenance, async (req, res) => {
     const topPlayers = await attachLiveSessionData(topPlayersRaw);
 
     const player = req.session?.player || null;
-    res.render("home", { players: allPlayers, topPlayers, player });
+    
+    // This should render your main dashboard.ejs which contains all tabs
+    res.render("dashboard", { players: allPlayers, topPlayers, player });
   } catch (err) {
     console.error("Error loading dashboard:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// ========================================
-// Player List Page (WITH checkMaintenance)
-// ========================================
-router.get("/playerlist", requireLogin, checkMaintenance, async (req, res) => {
-  try {
-    const player = req.session?.player;
-    
-    // Check if user has access to player list
-    if (!LEADERSHIP_RANKS.includes(player.group_rank)) {
-      return res.status(403).render("playerlist", { 
-        player,
-        accessDenied: true,
-        message: "You don't have permission to view the player list. This requires Mochi Director+ rank."
-      });
-    }
-    
-    const allPlayers = await getAllPlayers();
-    res.render("playerlist", { players: allPlayers, player });
-  } catch (err) {
-    console.error("Error loading player list:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// ========================================
-// Shifts Page (WITH checkMaintenance)
-// ========================================
-router.get("/shifts", requireLogin, checkMaintenance, async (req, res) => {
-  try {
-    const player = req.session?.player;
-    res.render("shifts", { player });
-  } catch (err) {
-    console.error("Error loading shifts page:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// ========================================
-// Settings Page (WITH checkMaintenance)
-// ========================================
-router.get("/settings", requireLogin, checkMaintenance, async (req, res) => {
-  try {
-    const player = req.session?.player;
-    
-    // Check if user has access to settings
-    if (!EXECUTIVE_RANKS.includes(player.group_rank)) {
-      return res.status(403).render("settings", { 
-        player,
-        accessDenied: true,
-        message: "You don't have permission to view settings. This requires Vice Chairman+ rank."
-      });
-    }
-    
-    res.render("settings", { player });
-  } catch (err) {
-    console.error("Error loading settings page:", err);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// ========================================
-// My Account Page (WITH checkMaintenance)
-// ========================================
-router.get("/account", requireLogin, checkMaintenance, async (req, res) => {
-  try {
-    const player = req.session?.player;
-    
-    // Check if user has access to account details
-    if (!DIRECTOR_PLUS.includes(player.group_rank)) {
-      return res.status(403).render("myaccount", { 
-        player,
-        accessDenied: true,
-        message: "You don't have permission to view account details. This requires Mochi Director+ rank."
-      });
-    }
-    
-    res.render("myaccount", { player });
-  } catch (err) {
-    console.error("Error loading account page:", err);
     res.status(500).send("Internal Server Error");
   }
 });
@@ -280,9 +200,8 @@ router.get('/current-user', requireLogin, async (req, res) => {
 });
 
 // ========================================
-// Protected Pages (WITH checkMaintenance)
+// Player Profile Page (WITH checkMaintenance)
 // ========================================
-
 router.get("/player/:username", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const username = req.params.username;
@@ -310,6 +229,10 @@ router.get("/player/:username", requireLogin, checkMaintenance, async (req, res)
     res.status(500).send("Internal Server Error");
   }
 });
+
+// ========================================
+// API Data Endpoints (no maintenance check)
+// ========================================
 
 router.get("/top-players", requireLogin, async (req, res) => {
   try {
