@@ -310,7 +310,7 @@
     const content = document.getElementById('mainContent');
     
     if (!data.maintenance_active) {
-      // System is operational - redirect to dashboard after 3 seconds
+      // System is operational - just show status, no redirect
       content.innerHTML = `
         <div style="text-align: center;">
           <div class="status-badge operational">
@@ -320,7 +320,7 @@
         </div>
         
         <div class="operational-message">
-          <h2>Maintenance Complete!</h2>
+          <h2>Everything is Running Smoothly!</h2>
           <p>All Mochi Bar systems are operational and running as expected.</p>
           <p style="margin-top: 20px;">
             <a href="/dashboard" class="back-to-dashboard">
@@ -328,26 +328,11 @@
               <span>Return to Dashboard</span>
             </a>
           </p>
-          <p style="margin-top: 10px; color: #6c757d; font-size: 14px;">
-            You will be automatically redirected in <span id="countdown">3</span> seconds...
-          </p>
         </div>
         
         ${renderAreas(data.areas || [])}
         ${renderLastUpdated()}
       `;
-      
-      // Countdown and redirect
-      let seconds = 3;
-      const countdownEl = document.getElementById('countdown');
-      const interval = setInterval(() => {
-        seconds--;
-        if (countdownEl) countdownEl.textContent = seconds;
-        if (seconds <= 0) {
-          clearInterval(interval);
-          window.location.href = '/dashboard';
-        }
-      }, 1000);
       
     } else {
       // System is under maintenance
