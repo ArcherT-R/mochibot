@@ -19,9 +19,7 @@ const {
   getPlayerByRobloxId
 } = require("../../endpoints/database");
 
-// ----------------------------
 // Leadership ranks
-// ----------------------------
 const LEADERSHIP_RANKS = [
   'Chairman', 'Vice Chairman', 'Chief Administrative Officer', 'Leadership Overseer', 
   'Chief of Operations', 'Chief of Human Resources', 'Chief Of Public Relations'
@@ -33,11 +31,7 @@ const CORPORATE_RANKS = [
   'Head Corporate', 'Senior Corporate', 'Junior Corporate', 'Corporate Intern'
 ];
 
-const EXECUTIVE_RANKS = ['Chairman', 'Vice Chairman'];
-
-// ----------------------------
-// Helper: Attach ongoing session data to players
-// ----------------------------
+// Helper function
 async function attachLiveSessionData(players) {
   return await Promise.all(players.map(async (player) => {
     const ongoing = await getOngoingSession(player.roblox_id);
@@ -46,31 +40,24 @@ async function attachLiveSessionData(players) {
   }));
 }
 
-// ----------------------------
-// Maintenance status page (accessible to logged-in users only)
-// ----------------------------
+// ========================================
+// IMPORTANT: MAINTENANCE ROUTE MUST BE FIRST!
+// NO checkMaintenance middleware here!
+// ========================================
 router.get("/maintenance", requireLogin, async (req, res) => {
   try {
-    // Check if maintenance is actually active
     const { data } = await supabase
       .from('maintenance_status')
-      .select('*')
+      .select('is_active')
       .eq('id', 1)
       .single();
     
-    const player = req.session?.player;
-    
-    // If not in maintenance AND user is logged in, redirect to dashboard
-    if (!data?.is_active) {
+    // If not in maintenance, redirect to dashboard
+    if (!data || !data.is_active) {
       return res.redirect('/dashboard');
     }
     
-    // If user is executive, allow them to bypass to dashboard
-    if (player && EXECUTIVE_RANKS.includes(player.group_rank)) {
-      return res.redirect('/dashboard');
-    }
-    
-    // Serve the maintenance page for non-executive users
+    // Serve the maintenance HTML file
     res.sendFile('maintenance.html', { root: './web/public' });
   } catch (error) {
     console.error('Error loading maintenance page:', error);
@@ -78,9 +65,9 @@ router.get("/maintenance", requireLogin, async (req, res) => {
   }
 });
 
-// ----------------------------
-// Main dashboard (protected + maintenance check)
-// ----------------------------
+// ========================================
+// Main dashboard (WITH checkMaintenance)
+// ========================================
 router.get("/", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const allPlayers = await getAllPlayers();
@@ -97,9 +84,9 @@ router.get("/", requireLogin, checkMaintenance, async (req, res) => {
   }
 });
 
-// ----------------------------
-// Log out route (always accessible, no maintenance check)
-// ----------------------------
+// ========================================
+// Logout (no maintenance check)
+// ========================================
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -111,10 +98,11 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// ----------------------------
-// Announcements endpoints
-// ----------------------------
-router.get("/announcements", requireLogin, checkMaintenance, async (req, res) => {
+// ========================================
+// API Endpoints (no maintenance check for data)
+// ========================================
+
+router.get("/announcements", requireLogin, async (req, res) => {
   try {
     const announcements = await getAnnouncements();
     res.json(announcements);
@@ -124,7 +112,7 @@ router.get("/announcements", requireLogin, checkMaintenance, async (req, res) =>
   }
 });
 
-router.post("/announcements", requireLogin, checkMaintenance, async (req, res) => {
+router.post("/announcements", requireLogin, async (req, res) => {
   try {
     const { title, content } = req.body;
     const player = req.session?.player;
@@ -145,7 +133,7 @@ router.post("/announcements", requireLogin, checkMaintenance, async (req, res) =
   }
 });
 
-router.delete("/announcements", requireLogin, checkMaintenance, async (req, res) => {
+router.delete("/announcements", requireLogin, async (req, res) => {
   try {
     const { id, title, date } = req.body;
     const player = req.session?.player;
@@ -158,27 +146,19 @@ router.delete("/announcements", requireLogin, checkMaintenance, async (req, res)
       return res.status(400).json({ error: "Either announcement ID or both title and date are required" });
     }
     
-    try {
-      if (id) {
-        await deleteAnnouncement(id);
-      } else {
-        await deleteAnnouncement(null, title, date);
-      }
-      
-      res.json({ success: true, message: "Announcement deleted successfully" });
-    } catch (deleteError) {
-      console.error("Database error deleting announcement:", deleteError);
-      res.status(500).json({ error: "Failed to delete announcement from database" });
+    if (id) {
+      await deleteAnnouncement(id);
+    } else {
+      await deleteAnnouncement(null, title, date);
     }
+    
+    res.json({ success: true, message: "Announcement deleted successfully" });
   } catch (err) {
     console.error("Error deleting announcement:", err);
     res.status(500).json({ error: "Failed to delete announcement" });
   }
 });
 
-// ----------------------------
-// Current user endpoint (no maintenance check - needed for API)
-// ----------------------------
 router.get('/current-user', requireLogin, async (req, res) => {
   try {
     const currentUser = req.session?.player;
@@ -207,9 +187,10 @@ router.get('/current-user', requireLogin, async (req, res) => {
   }
 });
 
-// ----------------------------
-// Player profile page
-// ----------------------------
+// ========================================
+// Protected Pages (WITH checkMaintenance)
+// ========================================
+
 router.get("/player/:username", requireLogin, checkMaintenance, async (req, res) => {
   try {
     const username = req.params.username;
@@ -238,9 +219,6 @@ router.get("/player/:username", requireLogin, checkMaintenance, async (req, res)
   }
 });
 
-// ----------------------------
-// Top players (API endpoint, no maintenance check for data)
-// ----------------------------
 router.get("/top-players", requireLogin, async (req, res) => {
   try {
     const players = await getAllPlayers();
@@ -261,9 +239,6 @@ router.get("/top-players", requireLogin, async (req, res) => {
   }
 });
 
-// ----------------------------
-// Full players list (API endpoint, no maintenance check for data)
-// ----------------------------
 router.get("/players", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
@@ -281,9 +256,6 @@ router.get("/players", requireLogin, async (req, res) => {
   }
 });
 
-// ----------------------------
-// Player search (API endpoint, no maintenance check for data)
-// ----------------------------
 router.get("/search", requireLogin, async (req, res) => {
   try {
     const player = req.session?.player;
