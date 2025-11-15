@@ -4,11 +4,6 @@ const bcrypt = require('bcryptjs');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Helper: treat PostgREST "no rows" responses consistently
-function isNoRowsError(err) {
-  return err && (err.code === "PGRST116" || err.message?.includes("No rows found"));
-}
-
 // -------------------------
 // Player Labels
 // -------------------------
@@ -59,21 +54,17 @@ async function getPlayerBirthday(roblox_id) {
     .select('birthday')
     .eq('roblox_id', roblox_id)
     .single();
-  if (error && !isNoRowsError(error)) throw error;
+  if (error && error.code !== "PGRST116") throw error;
   return data?.birthday || null;
 }
 
 async function setPlayerBirthday(roblox_id, username, birthday) {
   // Check if birthday already exists
-  const { data: existing, error: existingErr } = await supabase
+  const { data: existing } = await supabase
     .from('player_birthdays')
     .select('id')
     .eq('roblox_id', roblox_id)
-    .limit(1)
-    .single()
-    .catch(e => ({ data: null, error: e }));
-
-  if (existingErr && !isNoRowsError(existingErr)) throw existingErr;
+    .single();
 
   if (existing) {
     // Update existing birthday
@@ -104,7 +95,7 @@ async function getAnnouncements() {
     .from('announcements')
     .select('*')
     .order('created_at', { ascending: false });
-
+  
   if (error) throw error;
   return data || [];
 }
@@ -112,13 +103,14 @@ async function getAnnouncements() {
 async function addAnnouncement(title, content, author) {
   const { data, error } = await supabase
     .from('announcements')
-    .insert([{
-      title,
-      content,
-      author,
-      created_at: new Date().toISOString()
+    .insert([{ 
+      title, 
+      content, 
+      author, 
+      created_at: new Date().toISOString() 
     }])
     .select();
+  
   if (error) throw error;
   return data[0];
 }
@@ -137,22 +129,15 @@ async function deleteAnnouncement(id) {
 // -------------------------
 
 // Create player if not exists
-// Returns existing player if already present (doesn't throw).
 async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_rank, password }) {
-  // Try to get existing player
-  const { data: existing, error: selectErr } = await supabase
+  const { data: existing } = await supabase
     .from("players")
-    .select("*")
+    .select("id")
     .eq("roblox_id", roblox_id)
-    .limit(1)
-    .single()
-    .catch(e => ({ data: null, error: e }));
-
-  if (selectErr && !isNoRowsError(selectErr)) throw selectErr;
+    .single();
 
   if (existing) {
-    // Return existing player rather than throwing
-    return existing;
+    throw new Error("Player already exists with this Roblox ID");
   }
 
   const insertData = {
@@ -163,7 +148,7 @@ async function createPlayerIfNotExists({ roblox_id, username, avatar_url, group_
     weekly_minutes: 0
   };
 
-  // Add plain text password if provided (note: storing plain text is insecure; consider removing)
+  // Add plain text password if provided
   if (password) {
     insertData.password = password;
     // Hash the password for secure storage
@@ -187,8 +172,8 @@ async function getPlayerByUsername(username) {
     .select("*")
     .eq("username", username)
     .single();
-  if (error && !isNoRowsError(error)) throw error;
-  return data || null;
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
 }
 
 // Get player by Roblox ID
@@ -198,8 +183,8 @@ async function getPlayerByRobloxId(roblox_id) {
     .select("*")
     .eq("roblox_id", roblox_id)
     .single();
-  if (error && !isNoRowsError(error)) throw error;
-  return data || null;
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
 }
 
 // -------------------------
@@ -253,8 +238,8 @@ async function isPlayerOnLOA(roblox_id) {
     .lte('start_date', today)
     .gte('end_date', today)
     .single();
-  if (error && !isNoRowsError(error)) throw error;
-  return !!data;
+  if (error && error.code !== "PGRST116") throw error;
+  return data ? true : false;
 }
 
 async function deleteShift(shiftId) {
@@ -264,14 +249,14 @@ async function deleteShift(shiftId) {
     .delete()
     .eq('shift_id', shiftId);
   if (attendeesError) throw attendeesError;
-
+  
   // Delete the shift
   const { error: shiftError } = await supabase
     .from('shifts')
     .delete()
     .eq('id', shiftId);
   if (shiftError) throw shiftError;
-
+  
   return { success: true };
 }
 
@@ -295,11 +280,11 @@ async function verifyPlayerPassword(username, password) {
 // Update player password manually
 async function updatePlayerPassword(roblox_id, newPassword) {
   const password_hash = await bcrypt.hash(newPassword, 10);
-  const updateData = {
+  const updateData = { 
     password_hash,
-    password: newPassword // NOTE: storing plain text is insecure; recommend removing this field or encrypting differently
+    password: newPassword // Store plain text as well
   };
-
+  
   const { data, error } = await supabase
     .from("players")
     .update(updateData)
@@ -317,7 +302,7 @@ async function getPlayerPassword(roblox_id) {
     .select("password")
     .eq("roblox_id", roblox_id)
     .single();
-  if (error && !isNoRowsError(error)) throw error;
+  if (error && error.code !== "PGRST116") throw error;
   return data?.password || null;
 }
 
@@ -378,7 +363,7 @@ async function getPlayerSessions(roblox_id) {
     .from("player_activity")
     .select("*")
     .eq("roblox_id", roblox_id)
-    .order('session_start', { ascending: false });
+    .order("session_start", { ascending: false });
   if (error) throw error;
   return data;
 }
@@ -398,7 +383,7 @@ async function getPlayerShifts(roblox_id) {
     .from("player_shifts")
     .select("*")
     .eq("roblox_id", roblox_id)
-    .order('shift_date', { ascending: false });
+    .order("shift_date", { ascending: false });
   if (error) throw error;
 
   const attended = data.filter(s => s.type === "attended").length;
@@ -412,7 +397,8 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
   const { data, error } = await supabase
     .from("player_shifts")
     .insert([{ roblox_id, type, name, host }])
-    .select();
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }
@@ -424,15 +410,15 @@ async function addPlayerShift({ roblox_id, type, name, host = null }) {
 async function logPlayerLive(roblox_id, username, current_minutes, session_start_time = null) {
   if (!roblox_id || current_minutes == null) throw new Error("Missing data for live session");
 
-  const updateObject = {
-    roblox_id: roblox_id,
-    username: username,
+  const updateObject = { 
+    roblox_id: roblox_id, 
+    username: username, 
     current_minutes: Number(current_minutes)
   };
-
+  
   if (session_start_time) {
     const milliseconds = Number(session_start_time) * 1000;
-    updateObject.session_start_time = new Date(milliseconds).toISOString();
+    updateObject.session_start_time = new Date(milliseconds).toISOString(); 
   }
 
   const { data, error } = await supabase
@@ -458,19 +444,11 @@ async function deletePlayerLiveSession(roblox_id) {
 async function getOngoingSession(roblox_id) {
   const { data, error } = await supabase
     .from("player_live")
-    .select("roblox_id, username, current_minutes, session_start_time")
+    .select("roblox_id, username, current_minutes, session_start_time") 
     .eq("roblox_id", roblox_id)
     .single();
-  if (error && !isNoRowsError(error)) throw error;
-  return data || null;
-}
-
-async function getAllLiveSessions() {
-  const { data, error } = await supabase
-    .from("player_live")
-    .select("*");
-  if (error) throw error;
-  return data || [];
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
 }
 
 // -------------------------
@@ -490,7 +468,8 @@ async function addShift({ shift_time, host, cohost, overseer }) {
   const { data, error } = await supabase
     .from('shifts')
     .insert([{ shift_time, host, cohost, overseer }])
-    .select();
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }
@@ -501,7 +480,7 @@ async function getShiftByTime(shift_time) {
     .select('*')
     .eq('shift_time', shift_time)
     .single();
-  if (error && !isNoRowsError(error)) return null;
+  if (error && error.code !== "PGRST116") return null;
   return data;
 }
 
@@ -535,15 +514,26 @@ async function removeShiftAttendee(shiftId, robloxId) {
 }
 
 // -------------------------
-// Birthdays (duplicate helpers consolidated above)
+// Birthdays
 // -------------------------
 
 async function setBirthday(roblox_id, username, birthday) {
-  return setPlayerBirthday(roblox_id, username, birthday);
+  const { data, error } = await supabase
+    .from('player_birthdays')
+    .upsert([{ roblox_id, username, birthday }], { onConflict: 'roblox_id' })
+    .select();
+  if (error) throw error;
+  return data;
 }
 
 async function getBirthday(roblox_id) {
-  return getPlayerBirthday(roblox_id);
+  const { data, error } = await supabase
+    .from('player_birthdays')
+    .select('*')
+    .eq('roblox_id', roblox_id)
+    .single();
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
 }
 
 async function getAllBirthdays() {
@@ -573,7 +563,7 @@ async function saveWeeklyHistory() {
   const weekStart = new Date(now);
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-
+  
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
 
@@ -593,26 +583,26 @@ async function saveWeeklyHistory() {
 
   // Count shifts per player
   const shiftCounts = {};
-
+  
   for (const shift of shifts || []) {
     // Count hosts
     if (shift.host && shift.host !== 'TBD') {
       if (!shiftCounts[shift.host]) shiftCounts[shift.host] = { hosted: 0, attended: 0 };
       shiftCounts[shift.host].hosted++;
     }
-
+    
     // Count cohosts as hosted
     if (shift.cohost) {
       if (!shiftCounts[shift.cohost]) shiftCounts[shift.cohost] = { hosted: 0, attended: 0 };
       shiftCounts[shift.cohost].hosted++;
     }
-
+    
     // Count attendees
     const { data: attendees } = await supabase
       .from('shift_attendees')
       .select('username')
       .eq('shift_id', shift.id);
-
+    
     for (const attendee of attendees || []) {
       if (!shiftCounts[attendee.username]) shiftCounts[attendee.username] = { hosted: 0, attended: 0 };
       shiftCounts[attendee.username].attended++;
@@ -658,7 +648,7 @@ async function resetWeeklyData() {
 
   if (clearErr) throw clearErr;
 
-  // Log reset
+  // Log the reset
   const { error: logErr } = await supabase
     .from('weekly_reset_log')
     .insert([{
@@ -677,8 +667,8 @@ async function getLastResetDate() {
     .order('reset_date', { ascending: false })
     .limit(1)
     .single();
-  if (error && !isNoRowsError(error)) throw error;
-  return data || null;
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
 }
 
 async function getLastWeekHistory() {
@@ -687,9 +677,9 @@ async function getLastWeekHistory() {
     .select('*')
     .order('week_start', { ascending: false })
     .limit(100);
-
+  
   if (error) throw error;
-
+  
   // Group by week
   const weeks = {};
   for (const record of data || []) {
@@ -697,7 +687,7 @@ async function getLastWeekHistory() {
     if (!weeks[key]) weeks[key] = [];
     weeks[key].push(record);
   }
-
+  
   // Get the most recent week
   const latestWeek = Object.keys(weeks).sort().reverse()[0];
   return weeks[latestWeek] || [];
@@ -707,15 +697,23 @@ async function getLastWeekHistory() {
 // Verification Requests
 // -------------------------
 
-function generatePassword() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+async function updatePlayerInfo(roblox_id, updates) {
+  const { data, error } = await supabase
+    .from("players")
+    .update(updates)
+    .eq("roblox_id", roblox_id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 async function addVerificationRequest(discordId, code, expiresAt) {
   const { data, error } = await supabase
     .from('verification_requests')
     .insert([{ discord_id: discordId, code, expires_at: expiresAt.toISOString() }])
-    .select();
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }
@@ -728,24 +726,39 @@ async function getVerificationRequest(code) {
     .is('claimed_by_username', null)
     .gte('expires_at', new Date().toISOString())
     .limit(1)
-    .single()
-    .catch(e => ({ data: null, error: e }));
-  if (error && !isNoRowsError(error)) throw error;
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
   return data || null;
 }
 
 async function claimVerificationCode(code, robloxUsername) {
-  const request = await getVerificationRequest(code);
+  const request = await supabase
+    .from('verification_requests')
+    .select('*')
+    .eq('code', code)
+    .is('claimed_by_username', null)
+    .gte('expires_at', new Date().toISOString())
+    .limit(1)
+    .single()
+    .then(r => r.data)
+    .catch(() => null);
+
   if (!request) return { success: false, error: 'No matching request' };
 
+  // Generate a temp password
   const tempPassword = generatePassword();
   const password_hash = await bcrypt.hash(tempPassword, 10);
 
+  // Update both hashed and plain text password
   await supabase
     .from('players')
-    .update({ password_hash })
+    .update({ 
+      password_hash,
+      password: tempPassword 
+    })
     .eq('username', robloxUsername);
 
+  // Mark request claimed
   await supabase
     .from('verification_requests')
     .update({
@@ -759,6 +772,61 @@ async function claimVerificationCode(code, robloxUsername) {
   return { success: true, tempPassword };
 }
 
+async function deleteVerificationRequest(code) {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .delete()
+    .eq('code', code)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function getPendingNotifications() {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .select('*')
+    .not('one_time_token', 'is', null)
+    .is('notified', false)
+    .limit(50);
+  if (error) throw error;
+  return data || [];
+}
+
+async function markRequestNotified(id) {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .update({ notified: true })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function getVerificationRequestByDiscordId(discordId) {
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .select('*')
+    .eq('discord_id', discordId)
+    .is('claimed_by_username', null)
+    .gte('expires_at', new Date().toISOString())
+    .order('expires_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data || null;
+}
+
+async function getAllLiveSessions() {
+  const params = {
+    TableName: "player_live",
+  };
+  const result = await dynamodb.scan(params).promise();
+  return result.Items;
+}
+
 // -------------------------
 // Maintenance Status
 // -------------------------
@@ -769,9 +837,9 @@ async function getMaintenanceStatus() {
     .select('*')
     .eq('id', 1)
     .single();
-
-  if (error && !isNoRowsError(error)) throw error;
-  return data || null;
+  
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
 }
 
 async function setMaintenanceStatus({
@@ -796,7 +864,7 @@ async function setMaintenanceStatus({
     }], { onConflict: 'id' })
     .select()
     .single();
-
+  
   if (error) throw error;
   return data;
 }
@@ -842,13 +910,13 @@ async function isMaintenanceActive() {
 async function updateMaintenanceArea(area_name, new_status, updated_by = 'System') {
   const current = await getMaintenanceStatus();
   if (!current) throw new Error('No maintenance status record found');
-
+  
   const updatedAreas = (current.affected_areas || []).map(area =>
     area.name === area_name
       ? { ...area, status: new_status }
       : area
   );
-
+  
   return await setMaintenanceStatus({
     is_active: current.is_active,
     description: current.description,
