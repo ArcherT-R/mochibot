@@ -6,74 +6,104 @@ const router = express.Router();
 // CONFIGURATION
 // ----------------------------------------
 const GROUP_ID = '35807738';
-const ROBLOX_COOKIE = process.env.COOKIE; // Pulls from Render Environment Variables
 
 // ----------------------------------------
 // HELPER FUNCTIONS
 // ----------------------------------------
 
-async function getCsrfToken() {
+/**
+ * Roblox requires a CSRF token for any "write" action (PATCH/POST).
+ * We get this by sending a request that will fail with a 403, 
+ * then grabbing the token from the response headers.
+ */
+async function getCsrfToken(cookie) {
   try {
     await axios.post('https://auth.roblox.com/v2/logout', {}, {
-      headers: { Cookie: `.ROBLOSECURITY=${ROBLOX_COOKIE}` }
+      headers: { Cookie: `.ROBLOSECURITY=${cookie}` }
     });
     return null; 
   } catch (err) {
-    if (err.response && err.response.headers['x-csrf-token']) {
-      return err.response.headers['x-csrf-token'];
-    }
-    throw new Error('Could not fetch CSRF token. Check if COOKIE is valid.');
+    const token = err.response?.headers['x-csrf-token'];
+    if (token) return token;
+    throw new Error('Could not fetch CSRF token. The cookie might be expired or invalid.');
   }
 }
 
-async function getRoleSetIdFromRank(targetRank) {
+/**
+ * Group APIs often require the internal RoleSetId (a long number) 
+ * instead of the Rank Number (1-255). This function converts them.
+ */
+async function getRoleSetId(rankNumber) {
   try {
     const res = await axios.get(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`);
-    const foundRole = res.data.roles.find(r => r.rank === targetRank);
-    if (!foundRole) throw new Error(`Rank ${targetRank} not found in group.`);
-    return foundRole.id;
+    const role = res.data.roles.find(r => r.rank === Number(rankNumber));
+    if (!role) throw new Error(`Rank number ${rankNumber} does not exist in this group.`);
+    return role.id;
   } catch (err) {
-    throw new Error(`Failed to fetch roles: ${err.message}`);
+    throw new Error(`Failed to map rank to RoleSetId: ${err.message}`);
   }
 }
 
 // ----------------------------------------
-// THE FIX: Added 'async' before (req, res)
+// MAIN ROUTE
 // ----------------------------------------
+
 router.post('/promote', async (req, res) => {
   const { userId, rank } = req.body;
+  const cookie = process.env.COOKIE;
 
-  if (!ROBLOX_COOKIE) {
-    return res.status(500).json({ error: 'COOKIE is missing in Render Environment Variables' });
+  console.log(`[RANKING] Request received for User: ${userId}, Target Rank: ${rank}`);
+
+  // 1. Validate inputs and environment
+  if (!cookie) {
+    console.error('[RANKING] Critical Error: process.env.COOKIE is missing!');
+    return res.status(500).json({ error: 'Server configuration error (missing cookie)' });
+  }
+
+  if (!userId || !rank) {
+    return res.status(400).json({ error: 'Missing userId or rank in request body' });
   }
 
   try {
-    // 1. Get the RoleSet ID for the rank number
-    const roleSetId = await getRoleSetIdFromRank(Number(rank));
+    // 2. Fetch the internal RoleSetId
+    console.log('[RANKING] Step 1: Mapping rank number to internal ID...');
+    const roleSetId = await getRoleSetId(rank);
+    console.log(`[RANKING] Internal RoleSetID found: ${roleSetId}`);
 
-    // 2. Get the required CSRF token
-    const csrfToken = await getCsrfToken();
+    // 3. Get the X-CSRF-TOKEN
+    console.log('[RANKING] Step 2: Fetching CSRF Token...');
+    const csrfToken = await getCsrfToken(cookie);
+    console.log('[RANKING] CSRF Token acquired.');
 
-    // 3. Send the Rank Change Request
+    // 4. Perform the Rank Change
+    console.log('[RANKING] Step 3: Sending PATCH request to Roblox...');
     const response = await axios.patch(
       `https://groups.roblox.com/v1/groups/${GROUP_ID}/users/${userId}`,
       { roleId: roleSetId },
       {
         headers: {
-          'Cookie': `.ROBLOSECURITY=${ROBLOX_COOKIE}`,
+          'Cookie': `.ROBLOSECURITY=${cookie}`,
           'X-CSRF-TOKEN': csrfToken,
           'Content-Type': 'application/json'
         }
       }
     );
 
-    res.json({ success: true, message: `User ${userId} ranked to ${rank}` });
+    console.log(`✅ [RANKING] Success: User ${userId} ranked to ${rank}`);
+    return res.json({ 
+      success: true, 
+      message: `User ${userId} has been ranked to ${rank}` 
+    });
 
   } catch (error) {
-    console.error('❌ Ranking Error:', error.message);
-    res.status(500).json({ 
-      error: 'Ranking failed', 
-      details: error.response?.data?.errors?.[0]?.message || error.message 
+    // Detailed error logging for Render console
+    const robloxError = error.response?.data?.errors?.[0]?.message || error.message;
+    console.error(`❌ [RANKING ERROR]: ${robloxError}`);
+
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Ranking process failed', 
+      details: robloxError 
     });
   }
 });
