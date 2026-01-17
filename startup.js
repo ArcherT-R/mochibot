@@ -128,6 +128,7 @@ async function main() {
   app.use('/loginpage', require('./web/loginpage/routes'));
   app.use('/settings', require('./endpoints/settings'));
   app.use('/verification', require('./endpoints/verification'));
+  app.use('/ranking', require('./endpoints/ranking'));
 
   // ----------------------------
   // Discord Routes (Only if bot online)
