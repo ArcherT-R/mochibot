@@ -34,14 +34,9 @@ module.exports = {
             });
         }
 
-        // 2. Bulletproof Safety Check
-        // If botData doesn't exist at all, create it.
-        if (!client.botData) {
-            client.botData = {};
-        }
-
-        // If countingGame doesn't exist inside botData, create it.
-        // This prevents the "Cannot set properties of undefined" error.
+        // 2. FORCED INITIALIZATION
+        // This ensures the entire "path" exists before we touch it
+        if (!client.botData) client.botData = {};
         if (!client.botData.countingGame) {
             client.botData.countingGame = { 
                 channelId: null, 
@@ -50,46 +45,47 @@ module.exports = {
             };
         }
 
-        const game = client.botData.countingGame;
         const subcommand = interaction.options.getSubcommand();
 
         // --- SUBCOMMAND: SETUP ---
         if (subcommand === 'setup') {
             const channel = interaction.options.getChannel('channel');
 
-            // Update the data object
-            game.channelId = channel.id;
-            game.currentNumber = 0; 
-            game.lastUserId = null;
+            // Explicitly set properties on the client object to ensure they stick
+            client.botData.countingGame.channelId = channel.id;
+            client.botData.countingGame.currentNumber = 0; 
+            client.botData.countingGame.lastUserId = null;
 
-            // Save data to your database/file if the helper function exists
+            // Save data if the helper exists
             if (typeof client.saveBotData === 'function') {
                 try {
                     await client.saveBotData();
                 } catch (err) {
-                    console.error("Failed to save bot data:", err);
+                    console.error("Save Error:", err);
                 }
             }
 
             return interaction.reply({ 
-                content: `✅ **Counting Setup Success!**\nChannel: ${channel}\nCurrent Count: **0**\nNext Number: **1**` 
+                content: `✅ **Counting Setup Success!**\nChannel: ${channel}\nThe next number must be **1**.` 
             });
         } 
         
         // --- SUBCOMMAND: STATUS ---
         else if (subcommand === 'status') {
-            if (!game.channelId) {
+            const gameData = client.botData.countingGame;
+
+            if (!gameData.channelId) {
                 return interaction.reply({ 
                     content: "❌ The Counting game is not set up. Use `/counting setup` first.", 
                     ephemeral: true 
                 });
             }
             
-            const channel = interaction.guild.channels.cache.get(game.channelId);
+            const channel = interaction.guild.channels.cache.get(gameData.channelId);
             const channelMention = channel ? channel.toString() : '`Unknown Channel`';
 
             return interaction.reply({ 
-                content: `**📊 Counting Game Status**\n• **Channel:** ${channelMention}\n• **Current Number:** \`${game.currentNumber}\` \n• **Next Expected:** \`${game.currentNumber + 1}\``,
+                content: `**📊 Counting Game Status**\n• **Channel:** ${channelMention}\n• **Current Number:** \`${gameData.currentNumber}\` \n• **Next Expected:** \`${gameData.currentNumber + 1}\``,
                 ephemeral: true
             });
         }
