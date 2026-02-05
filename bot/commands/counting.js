@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, ChannelType } = require('discord.js');
 
-const ALLOWED_ROLE_ID = '1468537071168913500'; // Your specified role ID
+const ALLOWED_ROLE_ID = '1468537071168913500'; 
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -23,8 +23,8 @@ module.exports = {
                 .setDescription('Shows the current counting channel and number.')
         ),
 
+    // The function must be marked 'async' for 'await' to work inside it
     async execute(interaction) {
-        // --- FIX: Define client from the interaction object ---
         const client = interaction.client;
 
         // 1. Permission Check
@@ -35,6 +35,52 @@ module.exports = {
             });
         }
 
+        // 2. Ensure botData exists
+        if (!client.botData) {
+            client.botData = { countingGame: { channelId: null, currentNumber: 0 } };
+        }
+
+        const game = client.botData.countingGame;
+        const subcommand = interaction.options.getSubcommand();
+
+        // --- SUBCOMMAND: SETUP ---
+        if (subcommand === 'setup') {
+            const channel = interaction.options.getChannel('channel');
+
+            // Update variables
+            game.channelId = channel.id;
+            game.currentNumber = 0; 
+
+            // ✅ FIX: 'await' is used inside the async execute function
+            // Only call this if you actually created the function in client.js. 
+            // If not, delete this line to prevent a crash.
+            if (typeof client.saveBotData === 'function') {
+                await client.saveBotData(); 
+            }
+
+            return interaction.reply({
+                content: `✅ **Setup Complete!**\nThe counting channel has been set to ${channel}.\nThe count has been reset to **0**.`,
+                ephemeral: true
+            });
+        }
+
+        // --- SUBCOMMAND: STATUS ---
+        else if (subcommand === 'status') {
+            if (!game.channelId) {
+                return interaction.reply({
+                    content: '⚠️ The counting game has not been set up yet. Run `/counting setup` first.',
+                    ephemeral: true
+                });
+            }
+
+            return interaction.reply({
+                content: `**📊 Counting Game Status**\n• **Channel:** <#${game.channelId}>\n• **Next Expected Number:** ${game.currentNumber + 1}`,
+                ephemeral: true
+            });
+        }
+    }, 
+}; 
+// ❌ Do not put any code down here (outside the brackets)
         // 2. Safety Check: Ensure botData exists
         if (!client.botData) {
             // If you missed adding botData in your main file, we can initialize a temporary one here
