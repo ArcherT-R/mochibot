@@ -188,6 +188,9 @@ async function startBot() {
     }
   });
 
+// Add this at the top with other variables
+let processingMessages = new Set();
+
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
     
@@ -199,6 +202,16 @@ client.on('messageCreate', async message => {
     
     const game = client.botData.countingGame;
     if (!game.channelId || message.channel.id !== game.channelId) return;
+
+    // Prevent duplicate processing of the same message
+    if (processingMessages.has(message.id)) {
+      console.log('⚠ Skipping duplicate message processing:', message.id);
+      return;
+    }
+    processingMessages.add(message.id);
+    
+    // Clean up old message IDs after 5 seconds
+    setTimeout(() => processingMessages.delete(message.id), 5000);
 
     const expectedNumber = game.currentNumber + 1;
     const userNumber = parseInt(message.content.trim());
