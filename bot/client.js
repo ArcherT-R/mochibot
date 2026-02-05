@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, REST, Rou
 const fs = require('fs');
 const path = require('path');
 
-const ALLOWED_ROLE_ID = '1363595276576620595';
+const ALLOWED_ROLE_ID = '1468537071168913500';
 
 async function startBot() {
   const client = new Client({
