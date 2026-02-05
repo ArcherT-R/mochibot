@@ -23,7 +23,10 @@ module.exports = {
                 .setDescription('Shows the current counting channel and number.')
         ),
 
-    async execute(interaction, client) {
+    async execute(interaction) {
+        // --- FIX: Define client from the interaction object ---
+        const client = interaction.client;
+
         // 1. Permission Check
         if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
             return interaction.reply({ 
@@ -31,10 +34,52 @@ module.exports = {
                 ephemeral: true 
             });
         }
-        
-        const game = client.botData.countingGame;
 
-        if (interaction.options.getSubcommand() === 'setup') {
+        // 2. Safety Check: Ensure botData exists
+        if (!client.botData) {
+            // If you missed adding botData in your main file, we can initialize a temporary one here
+            // Note: This data will be lost on restart if not connected to a database
+            console.warn('Warning: client.botData was missing. Initializing temporary object.');
+            client.botData = { countingGame: { channelId: null, currentNumber: 0 } };
+        }
+
+        // Access the game data
+        const game = client.botData.countingGame;
+        const subcommand = interaction.options.getSubcommand();
+
+        // --- SUBCOMMAND: SETUP ---
+        if (subcommand === 'setup') {
+            const channel = interaction.options.getChannel('channel');
+
+            // Update the data in memory
+            game.channelId = channel.id;
+            game.currentNumber = 0; // Reset count to 0 (or 1, depending on your preference)
+
+            // TODO: If you are using a database (Mongo/SQLite), call your save function here.
+            // Example: await database.saveSettings(game);
+
+            return interaction.reply({
+                content: `✅ **Setup Complete!**\nThe counting channel has been set to ${channel}.\nThe count has been reset to **0**.`,
+                ephemeral: true
+            });
+        }
+
+        // --- SUBCOMMAND: STATUS ---
+        else if (subcommand === 'status') {
+            if (!game.channelId) {
+                return interaction.reply({
+                    content: '⚠️ The counting game has not been set up yet. Run `/counting setup` first.',
+                    ephemeral: true
+                });
+            }
+
+            return interaction.reply({
+                content: `**📊 Counting Game Status**\n• **Channel:** <#${game.channelId}>\n• **Next Expected Number:** ${game.currentNumber + 1}`,
+                ephemeral: true
+            });
+        }
+    },
+};        if (interaction.options.getSubcommand() === 'setup') {
             const channel = interaction.options.getChannel('channel');
 
             // Reset and save the new state
