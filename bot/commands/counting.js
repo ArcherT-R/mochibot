@@ -23,98 +23,67 @@ module.exports = {
         ),
     
     async execute(interaction) {
-        try {
-            const client = interaction.client;
+        const client = interaction.client;
+        
+        // 1. Permission Check
+        if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
+            return interaction.reply({ 
+                content: "You need the specific staff role to use this command.", 
+                ephemeral: true 
+            });
+        }
+        
+        // 2. Ensure countingGame exists (defensive programming)
+        if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
+            client.botData.countingGame = { 
+                channelId: null, 
+                currentNumber: 0, 
+                lastUserId: null 
+            };
+        }
+        
+        const subcommand = interaction.options.getSubcommand();
+        
+        // --- SUBCOMMAND: SETUP ---
+        if (subcommand === 'setup') {
+            const channel = interaction.options.getChannel('channel');
             
-            // DEBUGGING - See what we're working with
-            console.log('=== DEBUG START ===');
-            console.log('client exists:', !!client);
-            console.log('client.botData exists:', !!client.botData);
-            console.log('client.botData type:', typeof client.botData);
-            console.log('client.botData value:', client.botData);
+            client.botData.countingGame.channelId = channel.id;
+            client.botData.countingGame.currentNumber = 0; 
+            client.botData.countingGame.lastUserId = null;
             
-            // 1. Permission Check
-            if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
+            // Save data
+            if (typeof client.saveBotData === 'function') {
+                try {
+                    await client.saveBotData();
+                } catch (err) {
+                    console.error("Save Error:", err);
+                }
+            }
+            
+            return interaction.reply({ 
+                content: `✅ **Counting Setup Success!**\nChannel: ${channel}\nThe next number must be **1**.` 
+            });
+        } 
+        
+        // --- SUBCOMMAND: STATUS ---
+        else if (subcommand === 'status') {
+            const gameData = client.botData.countingGame;
+            
+            if (!gameData.channelId) {
                 return interaction.reply({ 
-                    content: "You need the specific staff role to use this command.", 
+                    content: "❌ The Counting game is not set up. Use `/counting setup` first.", 
                     ephemeral: true 
                 });
             }
             
-            // 2. FORCED INITIALIZATION with logging
-            console.log('Before initialization...');
+            const channel = interaction.guild.channels.cache.get(gameData.channelId);
+            const channelMention = channel ? channel.toString() : `Unknown Channel`;
             
-            if (!client.botData) {
-                console.log('client.botData was falsy, creating new object');
-                client.botData = {};
-            }
-            
-            console.log('After botData check, botData is:', client.botData);
-            console.log('botData.countingGame exists:', !!client.botData.countingGame);
-            
-            if (!client.botData.countingGame) {
-                console.log('Creating countingGame object');
-                client.botData.countingGame = { 
-                    channelId: null, 
-                    currentNumber: 0, 
-                    lastUserId: null 
-                };
-            }
-            
-            console.log('After countingGame check, countingGame is:', client.botData.countingGame);
-            console.log('=== DEBUG END ===');
-            
-            const subcommand = interaction.options.getSubcommand();
-            
-            // --- SUBCOMMAND: SETUP ---
-            if (subcommand === 'setup') {
-                const channel = interaction.options.getChannel('channel');
-                
-                console.log('About to set channelId on:', client.botData.countingGame);
-                
-                // LINE 56 - This is where it's failing
-                client.botData.countingGame.channelId = channel.id;
-                client.botData.countingGame.currentNumber = 0; 
-                client.botData.countingGame.lastUserId = null;
-                
-                // Save data if the helper exists
-                if (typeof client.saveBotData === 'function') {
-                    try {
-                        await client.saveBotData();
-                    } catch (err) {
-                        console.error("Save Error:", err);
-                    }
-                }
-                
-                return interaction.reply({ 
-                    content: `✅ **Counting Setup Success!**\nChannel: ${channel}\nThe next number must be **1**.` 
-                });
-            } 
-            
-            // --- SUBCOMMAND: STATUS ---
-            else if (subcommand === 'status') {
-                const gameData = client.botData.countingGame;
-                
-                if (!gameData.channelId) {
-                    return interaction.reply({ 
-                        content: "❌ The Counting game is not set up. Use `/counting setup` first.", 
-                        ephemeral: true 
-                    });
-                }
-                
-                const channel = interaction.guild.channels.cache.get(gameData.channelId);
-                const channelMention = channel ? channel.toString() : `Unknown Channel`;
-                
-                return interaction.reply({ 
-                    content: `**📊 Counting Game Status**\n• **Channel:** ${channelMention}\n• **Current Number:** \`${gameData.currentNumber}\`\n• **Next Expected:** \`${gameData.currentNumber + 1}\``,
-                    ephemeral: true
-                });
-            }
-            
-        } catch (error) {
-            console.error('Error in counting command:', error);
-            console.error('Error stack:', error.stack);
-            throw error; // Re-throw so the error handler in client.js can catch it
+            return interaction.reply({ 
+                content: `**📊 Counting Game Status**\n• **Channel:** ${channelMention}\n• **Current Number:** \`${gameData.currentNumber}\`\n• **Next Expected:** \`${gameData.currentNumber + 1}\``,
+                ephemeral: true
+            });
         }
     },
 };
