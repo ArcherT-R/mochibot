@@ -46,17 +46,15 @@ async function startBot() {
   client.saveBotData = async (createBackup = false) => {
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-      const messages = await channel.messages.fetch({ limit: 10 }); // Fetch more messages
+      const messages = await channel.messages.fetch({ limit: 10 });
       
       // Find the last message sent by THIS bot
       const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
       const content = JSON.stringify(client.botData, null, 2);
 
       if (lastBotMessage) {
-        // Edit the bot's own message
         await lastBotMessage.edit(content);
       } else {
-        // No bot message found, send a new one
         await channel.send(content);
       }
 
@@ -73,7 +71,7 @@ async function startBot() {
     // Load bot data from channel
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-      const messages = await channel.messages.fetch({ limit: 10 }); // Fetch more messages
+      const messages = await channel.messages.fetch({ limit: 10 });
       
       // Find the last message sent by THIS bot
       const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
@@ -188,10 +186,10 @@ async function startBot() {
     }
   });
 
-// Add this at the top with other variables
-let processingMessages = new Set();
+  // Track processed messages to prevent duplicates
+  const processingMessages = new Set();
 
-client.on('messageCreate', async message => {
+  client.on('messageCreate', async message => {
     if (message.author.bot) return;
     
     // Ensure botData structure exists
@@ -210,8 +208,8 @@ client.on('messageCreate', async message => {
     }
     processingMessages.add(message.id);
     
-    // Clean up old message IDs after 5 seconds
-    setTimeout(() => processingMessages.delete(message.id), 5000);
+    // Clean up old message IDs after 10 seconds
+    setTimeout(() => processingMessages.delete(message.id), 10000);
 
     const expectedNumber = game.currentNumber + 1;
     const userNumber = parseInt(message.content.trim());
