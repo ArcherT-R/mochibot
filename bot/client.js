@@ -46,13 +46,17 @@ async function startBot() {
   client.saveBotData = async (createBackup = false) => {
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-      const messages = await channel.messages.fetch({ limit: 1 });
-      const lastMessage = messages.first();
+      const messages = await channel.messages.fetch({ limit: 10 }); // Fetch more messages
+      
+      // Find the last message sent by THIS bot
+      const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
       const content = JSON.stringify(client.botData, null, 2);
 
-      if (lastMessage) {
-        await lastMessage.edit(content);
+      if (lastBotMessage) {
+        // Edit the bot's own message
+        await lastBotMessage.edit(content);
       } else {
+        // No bot message found, send a new one
         await channel.send(content);
       }
 
@@ -69,16 +73,19 @@ async function startBot() {
     // Load bot data from channel
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-      const messages = await channel.messages.fetch({ limit: 1 });
-      const lastMessage = messages.first();
+      const messages = await channel.messages.fetch({ limit: 10 }); // Fetch more messages
       
-      if (lastMessage && lastMessage.content) {
+      // Find the last message sent by THIS bot
+      const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
+      
+      if (lastBotMessage && lastBotMessage.content) {
         try {
-          const parsedData = JSON.parse(lastMessage.content);
+          const parsedData = JSON.parse(lastBotMessage.content);
           
           // Validate that parsedData is an object before using it
           if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
             client.botData = parsedData;
+            console.log('✅ Loaded bot data from message ID:', lastBotMessage.id);
           } else {
             console.warn('⚠ Invalid bot data structure (not an object), using defaults');
           }
@@ -86,6 +93,8 @@ async function startBot() {
           console.error('❌ Failed to parse bot data JSON:', parseErr);
           console.warn('⚠ Using default bot data structure');
         }
+      } else {
+        console.log('⚠ No bot message found in data channel, will create new one on first save');
       }
       
       // Ensure countingGame always exists with correct structure
@@ -100,7 +109,7 @@ async function startBot() {
         client.botData.linkedUsers = { discordToRoblox: {}, robloxToDiscord: {} };
       }
       
-      console.log('💾 Loaded bot data:', client.botData);
+      console.log('💾 Bot data structure ready:', client.botData);
     } catch (err) {
       console.error('❌ Failed to load bot data:', err);
       console.warn('⚠ Using default bot data structure');
