@@ -31,42 +31,35 @@ module.exports = {
             });
         }
         
-        // Get client from interaction
         const client = interaction.client;
-        
-        // Ensure botData exists
-        if (!client.botData) {
-            client.botData = {
-                linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
-                countingGame: { channelId: null, currentNumber: 0, lastUserId: null }
-            };
-        }
-        
-        // Ensure countingGame exists (defensive programming)
-        if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
-            client.botData.countingGame = { 
-                channelId: null, 
-                currentNumber: 0, 
-                lastUserId: null 
-            };
-        }
-        
         const subcommand = interaction.options.getSubcommand();
         
         // --- SUBCOMMAND: SETUP ---
         if (subcommand === 'setup') {
             const channel = interaction.options.getChannel('channel');
             
-            client.botData.countingGame.channelId = channel.id;
-            client.botData.countingGame.currentNumber = 0; 
-            client.botData.countingGame.lastUserId = null;
-            
-            // Reply FIRST, then save in background
+            // REPLY IMMEDIATELY
             await interaction.reply({ 
                 content: `✅ **Counting Setup Success!**\nChannel: ${channel}\nThe next number must be **1**.` 
             });
             
-            // Save data in background (don't await)
+            // Then do the data operations
+            if (!client.botData) {
+                client.botData = {
+                    linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
+                    countingGame: { channelId: null, currentNumber: 0, lastUserId: null }
+                };
+            }
+            
+            if (!client.botData.countingGame) {
+                client.botData.countingGame = { channelId: null, currentNumber: 0, lastUserId: null };
+            }
+            
+            client.botData.countingGame.channelId = channel.id;
+            client.botData.countingGame.currentNumber = 0; 
+            client.botData.countingGame.lastUserId = null;
+            
+            // Save in background
             if (typeof client.saveBotData === 'function') {
                 client.saveBotData().catch(err => {
                     console.error("Background save error:", err);
@@ -78,6 +71,14 @@ module.exports = {
         
         // --- SUBCOMMAND: STATUS ---
         else if (subcommand === 'status') {
+            // Ensure data exists
+            if (!client.botData || !client.botData.countingGame) {
+                return interaction.reply({ 
+                    content: "❌ The Counting game is not set up. Use `/counting setup` first.", 
+                    ephemeral: true 
+                });
+            }
+            
             const gameData = client.botData.countingGame;
             
             if (!gameData.channelId) {
