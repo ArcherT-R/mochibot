@@ -186,9 +186,8 @@ async function startBot() {
     }
   });
 
-  // Track processed messages to prevent duplicates
-  const processingMessages = new Set();
-  let isProcessingMessage = false;
+  // AGGRESSIVE deduplication - track last response sent
+  const lastResponseSent = { messageId: null, timestamp: 0 };
 
   client.on('messageCreate', async message => {
     if (message.author.bot) return;
@@ -202,88 +201,81 @@ async function startBot() {
     const game = client.botData.countingGame;
     if (!game.channelId || message.channel.id !== game.channelId) return;
 
-    // Prevent duplicate processing with double-check
-    const messageKey = `${message.id}-${message.author.id}`;
-    if (processingMessages.has(messageKey)) {
-      console.log('⚠ Skipping duplicate message:', messageKey);
+    const now = Date.now();
+    
+    // SUPER AGGRESSIVE: If we just responded to this exact message in the last 2 seconds, skip
+    if (lastResponseSent.messageId === message.id && (now - lastResponseSent.timestamp) < 2000) {
+      console.log('🚫 BLOCKED duplicate response for message:', message.id);
       return;
     }
-    
-    // Global lock to prevent race conditions
-    if (isProcessingMessage) {
-      console.log('⚠ Already processing a message, queuing...');
-      await new Promise(resolve => setTimeout(resolve, 100));
-      if (processingMessages.has(messageKey)) return;
-    }
-    
-    processingMessages.add(messageKey);
-    isProcessingMessage = true;
-    
-    // Clean up old message IDs after 10 seconds
-    setTimeout(() => {
-      processingMessages.delete(messageKey);
-    }, 10000);
 
-    try {
-      const expectedNumber = game.currentNumber + 1;
-      const userNumber = parseInt(message.content.trim());
+    console.log(`📨 Processing counting message ${message.id} from ${message.author.tag}: "${message.content}"`);
+
+    const expectedNumber = game.currentNumber + 1;
+    const userNumber = parseInt(message.content.trim());
+    
+    const handleFailure = async (reason) => {
+      // Mark that we're responding to this message
+      lastResponseSent.messageId = message.id;
+      lastResponseSent.timestamp = now;
       
-      const handleFailure = async (reason) => {
-        try {
-          await message.react('❌');
-        } catch (error) {
-          if (error.code !== 10008) {
-            console.error("Error reacting to counting fail:", error);
-          }
+      try {
+        await message.react('❌');
+      } catch (error) {
+        if (error.code !== 10008) {
+          console.error("Error reacting to counting fail:", error);
         }
-        
-        // Update game state BEFORE saving to prevent race conditions
-        const failedNumber = expectedNumber;
-        game.currentNumber = 0;
-        game.lastUserId = null;
-        
-        // Save in background
-        client.saveBotData().catch(err => {
-          console.error("Error saving after counting failure:", err);
-        });
-
-        // Send failure message
-        await message.channel.send({
-          content: `🛑 **FAIL!** ${message.author} ${reason}. The next number was **${failedNumber}**. ` + 
-                   `The count has been reset to **0**. The next number must be **1**.`,
-          allowedMentions: { users: [message.author.id] }
-        });
-      };
-
-      if (isNaN(userNumber) || userNumber !== expectedNumber) {
-        await handleFailure("ruined the count with an incorrect number or format");
-        return;
-      }
-
-      if (message.author.id === game.lastUserId) {
-        await handleFailure("tried to count twice in a row");
-        return;
       }
       
-      // Update game state
-      game.currentNumber = userNumber;
-      game.lastUserId = message.author.id;
+      // Update game state BEFORE saving to prevent race conditions
+      const failedNumber = expectedNumber;
+      game.currentNumber = 0;
+      game.lastUserId = null;
+      
+      console.log(`❌ Count failed at ${failedNumber}, reset to 0`);
       
       // Save in background
       client.saveBotData().catch(err => {
-        console.error("Error saving after successful count:", err);
+        console.error("Error saving after counting failure:", err);
       });
-      
-      try {
-        await message.react('✅');
-      } catch (error) {
-        if (error.code !== 10008) {
-          console.error("Error reacting to successful count:", error);
-        }
+
+      // Send failure message
+      await message.channel.send({
+        content: `🛑 **FAIL!** ${message.author} ${reason}. The next number was **${failedNumber}**. ` + 
+                 `The count has been reset to **0**. The next number must be **1**.`,
+        allowedMentions: { users: [message.author.id] }
+      });
+    };
+
+    if (isNaN(userNumber) || userNumber !== expectedNumber) {
+      return handleFailure("ruined the count with an incorrect number or format");
+    }
+
+    if (message.author.id === game.lastUserId) {
+      return handleFailure("tried to count twice in a row");
+    }
+    
+    // Mark that we're responding to this message
+    lastResponseSent.messageId = message.id;
+    lastResponseSent.timestamp = now;
+    
+    // Update game state
+    game.currentNumber = userNumber;
+    game.lastUserId = message.author.id;
+    
+    console.log(`✅ Count successful: ${userNumber}`);
+    
+    // Save in background
+    client.saveBotData().catch(err => {
+      console.error("Error saving after successful count:", err);
+    });
+    
+    try {
+      await message.react('✅');
+    } catch (error) {
+      if (error.code !== 10008) {
+        console.error("Error reacting to successful count:", error);
       }
-    } finally {
-      // Always release the lock
-      isProcessingMessage = false;
     }
   });
 
