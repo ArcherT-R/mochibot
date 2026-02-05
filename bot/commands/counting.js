@@ -1,6 +1,5 @@
 const { SlashCommandBuilder, ChannelType } = require('discord.js');
-
-const ALLOWED_ROLE_ID = '1468537071168913500'; // Your specified role ID
+const ALLOWED_ROLE_ID = '1468537071168913500'; 
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -22,8 +21,8 @@ module.exports = {
                 .setName('status')
                 .setDescription('Shows the current counting channel and number.')
         ),
-
-    async execute(interaction, client) {
+    
+    async execute(interaction) {
         // 1. Permission Check
         if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
             return interaction.reply({ 
@@ -32,34 +31,67 @@ module.exports = {
             });
         }
         
-        const game = client.botData.countingGame;
-
-        if (interaction.options.getSubcommand() === 'setup') {
+        // Get client from interaction
+        const client = interaction.client;
+        
+        // Ensure botData exists
+        if (!client.botData) {
+            client.botData = {
+                linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
+                countingGame: { channelId: null, currentNumber: 0, lastUserId: null }
+            };
+        }
+        
+        // Ensure countingGame exists (defensive programming)
+        if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
+            client.botData.countingGame = { 
+                channelId: null, 
+                currentNumber: 0, 
+                lastUserId: null 
+            };
+        }
+        
+        const subcommand = interaction.options.getSubcommand();
+        
+        // --- SUBCOMMAND: SETUP ---
+        if (subcommand === 'setup') {
             const channel = interaction.options.getChannel('channel');
-
-            // Reset and save the new state
-            game.channelId = channel.id;
-            game.currentNumber = 0; // Reset count
-            game.lastUserId = null;
-            await client.saveBotData();
-
+            
+            client.botData.countingGame.channelId = channel.id;
+            client.botData.countingGame.currentNumber = 0; 
+            client.botData.countingGame.lastUserId = null;
+            
+            // Reply FIRST, then save in background
             await interaction.reply({ 
-                content: `✅ Counting game successfully set up in ${channel} and reset to **0**. The next number must be **1**.` 
+                content: `✅ **Counting Setup Success!**\nChannel: ${channel}\nThe next number must be **1**.` 
             });
-
-        } else if (interaction.options.getSubcommand() === 'status') {
-            if (!game.channelId) {
+            
+            // Save data in background (don't await)
+            if (typeof client.saveBotData === 'function') {
+                client.saveBotData().catch(err => {
+                    console.error("Background save error:", err);
+                });
+            }
+            
+            return;
+        } 
+        
+        // --- SUBCOMMAND: STATUS ---
+        else if (subcommand === 'status') {
+            const gameData = client.botData.countingGame;
+            
+            if (!gameData.channelId) {
                 return interaction.reply({ 
-                    content: "The Counting game is not currently set up. Use `/counting setup` to start.", 
+                    content: "❌ The Counting game is not set up. Use `/counting setup` first.", 
                     ephemeral: true 
                 });
             }
             
-            const channel = interaction.guild.channels.cache.get(game.channelId);
-            const channelMention = channel ? channel.toString() : '#[channel-not-found]';
-
-            await interaction.reply({ 
-                content: `Counting is active in ${channelMention}. The current number is **${game.currentNumber}**. The next number expected is **${game.currentNumber + 1}**.`,
+            const channel = interaction.guild.channels.cache.get(gameData.channelId);
+            const channelMention = channel ? channel.toString() : `Unknown Channel`;
+            
+            return interaction.reply({ 
+                content: `**📊 Counting Game Status**\n• **Channel:** ${channelMention}\n• **Current Number:** \`${gameData.currentNumber}\`\n• **Next Expected:** \`${gameData.currentNumber + 1}\``,
                 ephemeral: true
             });
         }
