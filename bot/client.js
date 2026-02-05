@@ -37,47 +37,76 @@ async function startBot() {
     }
   }
 
+  // Initialize default bot data structure
   client.botData = { 
     linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
     countingGame: { channelId: null, currentNumber: 0, lastUserId: null } 
   };
 
   client.saveBotData = async (createBackup = false) => {
-try {
-  const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-  const messages = await channel.messages.fetch({ limit: 1 });
-  const lastMessage = messages.first();
-  
-  if (lastMessage && lastMessage.content) {
     try {
-      const parsedData = JSON.parse(lastMessage.content);
-      
-      // Validate that parsedData is an object before using it
-      if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
-        client.botData = parsedData;
-      } else {
-        console.warn('⚠ Invalid bot data structure, using defaults');
-      }
-    } catch (parseErr) {
-      console.error('❌ Failed to parse bot data JSON:', parseErr);
-    }
-  }
-  
-  // Ensure countingGame always exists with correct structure
-  if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
-    client.botData.countingGame = { channelId: null, currentNumber: 0, lastUserId: null };
-  }
-  
-  // Ensure linkedUsers always exists
-  if (!client.botData.linkedUsers) {
-    client.botData.linkedUsers = { discordToRoblox: {}, robloxToDiscord: {} };
-  }
-  
-  console.log('💾 Loaded bot data:', client.botData);
-} catch (err) {
-  console.error('❌ Failed to load bot data:', err);
-}
+      const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
+      const messages = await channel.messages.fetch({ limit: 1 });
+      const lastMessage = messages.first();
+      const content = JSON.stringify(client.botData, null, 2);
 
+      if (lastMessage) {
+        await lastMessage.edit(content);
+      } else {
+        await channel.send(content);
+      }
+
+      if (createBackup) await channel.send(`Backup:\n${content}`);
+      console.log('💾 Bot data saved.');
+    } catch (err) {
+      console.error('❌ Failed to save bot data:', err);
+    }
+  };
+
+  client.once('ready', async () => {
+    console.log(`🤖 Logged in as ${client.user.tag}`);
+
+    // Load bot data from channel
+    try {
+      const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
+      const messages = await channel.messages.fetch({ limit: 1 });
+      const lastMessage = messages.first();
+      
+      if (lastMessage && lastMessage.content) {
+        try {
+          const parsedData = JSON.parse(lastMessage.content);
+          
+          // Validate that parsedData is an object before using it
+          if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
+            client.botData = parsedData;
+          } else {
+            console.warn('⚠ Invalid bot data structure (not an object), using defaults');
+          }
+        } catch (parseErr) {
+          console.error('❌ Failed to parse bot data JSON:', parseErr);
+          console.warn('⚠ Using default bot data structure');
+        }
+      }
+      
+      // Ensure countingGame always exists with correct structure
+      if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
+        console.log('⚠ countingGame missing or invalid, initializing...');
+        client.botData.countingGame = { channelId: null, currentNumber: 0, lastUserId: null };
+      }
+      
+      // Ensure linkedUsers always exists
+      if (!client.botData.linkedUsers || typeof client.botData.linkedUsers !== 'object') {
+        console.log('⚠ linkedUsers missing or invalid, initializing...');
+        client.botData.linkedUsers = { discordToRoblox: {}, robloxToDiscord: {} };
+      }
+      
+      console.log('💾 Loaded bot data:', client.botData);
+    } catch (err) {
+      console.error('❌ Failed to load bot data:', err);
+      console.warn('⚠ Using default bot data structure');
+    }
+
+    // Register slash commands
     try {
       const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
       
@@ -152,6 +181,13 @@ try {
 
   client.on('messageCreate', async message => {
     if (message.author.bot) return;
+    
+    // Ensure botData structure exists
+    if (!client.botData || !client.botData.countingGame) {
+      console.warn('⚠ botData.countingGame not initialized in messageCreate');
+      return;
+    }
+    
     const game = client.botData.countingGame;
     if (!game.channelId || message.channel.id !== game.channelId) return;
 
