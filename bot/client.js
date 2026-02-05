@@ -188,7 +188,7 @@ async function startBot() {
     }
   });
 
-  client.on('messageCreate', async message => {
+client.on('messageCreate', async message => {
     if (message.author.bot) return;
     
     // Ensure botData structure exists
@@ -212,12 +212,19 @@ async function startBot() {
         }
       }
       
+      // Update game state BEFORE saving to prevent race conditions
+      const failedNumber = expectedNumber;
       game.currentNumber = 0;
       game.lastUserId = null;
-      await client.saveBotData();
+      
+      // Save in background
+      client.saveBotData().catch(err => {
+        console.error("Error saving after counting failure:", err);
+      });
 
+      // Send failure message
       await message.channel.send({
-        content: `🛑 **FAIL!** ${message.author} ${reason}. The next number was **${expectedNumber}**. ` + 
+        content: `🛑 **FAIL!** ${message.author} ${reason}. The next number was **${failedNumber}**. ` + 
                  `The count has been reset to **0**. The next number must be **1**.`,
         allowedMentions: { users: [message.author.id] }
       });
@@ -231,9 +238,14 @@ async function startBot() {
       return handleFailure("tried to count twice in a row");
     }
     
+    // Update game state
     game.currentNumber = userNumber;
     game.lastUserId = message.author.id;
-    await client.saveBotData();
+    
+    // Save in background
+    client.saveBotData().catch(err => {
+      console.error("Error saving after successful count:", err);
+    });
     
     try {
       await message.react('✅');
