@@ -70,24 +70,22 @@ module.exports = {
             });
         } 
         
-        // --- SUBCOMMAND: STATUS ---
-        else if (subcommand === 'status') {
-            const gameData = client.botData.countingGame;
-
-            if (!gameData.channelId) {
-                return interaction.reply({ 
-                    content: "❌ The Counting game is not set up. Use `/counting setup` first.", 
-                    ephemeral: true 
-                });
-            }
-            
-            const channel = interaction.guild.channels.cache.get(gameData.channelId);
-            const channelMention = channel ? channel.toString() : '`Unknown Channel`';
-
-            return interaction.reply({ 
-                content: `**📊 Counting Game Status**\n• **Channel:** ${channelMention}\n• **Current Number:** \`${gameData.currentNumber}\` \n• **Next Expected:** \`${gameData.currentNumber + 1}\``,
-                ephemeral: true
-            });
-        }
+// --- SUBCOMMAND: STATUS ---
+else if (subcommand === 'status') {
+    const gameData = client.botData.countingGame;
+    if (!gameData.channelId) {
+        return interaction.reply({ 
+            content: "❌ The Counting game is not set up. Use `/counting setup` first.", 
+            ephemeral: true 
+        });
+    }
+    
+    const channel = interaction.guild.channels.cache.get(gameData.channelId);
+    const channelMention = channel ? channel.toString() : `Unknown Channel`;  // Fixed!
+    return interaction.reply({ 
+        content: `**📊 Counting Game Status**\n• **Channel:** ${channelMention}\n• **Current Number:** \`${gameData.currentNumber}\`\n• **Next Expected:** \`${gameData.currentNumber + 1}\``,
+        ephemeral: true
+        });
+      }
     },
 };
