@@ -19,7 +19,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    const requiredRoleId = '1363595276576620595';
+    const requiredRoleId = '1468537071168913500';
     await interaction.deferReply({ flags: 64 }); // ephemeral
 
     if (!interaction.member.roles.cache.has(requiredRoleId)) {
