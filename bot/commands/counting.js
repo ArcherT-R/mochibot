@@ -52,18 +52,19 @@ module.exports = {
             client.botData.countingGame.currentNumber = 0; 
             client.botData.countingGame.lastUserId = null;
             
-            // Save data
-            if (typeof client.saveBotData === 'function') {
-                try {
-                    await client.saveBotData();
-                } catch (err) {
-                    console.error("Save Error:", err);
-                }
-            }
-            
-            return interaction.reply({ 
+            // Reply FIRST, then save in background
+            await interaction.reply({ 
                 content: `✅ **Counting Setup Success!**\nChannel: ${channel}\nThe next number must be **1**.` 
             });
+            
+            // Save data in background (don't await)
+            if (typeof client.saveBotData === 'function') {
+                client.saveBotData().catch(err => {
+                    console.error("Background save error:", err);
+                });
+            }
+            
+            return;
         } 
         
         // --- SUBCOMMAND: STATUS ---
