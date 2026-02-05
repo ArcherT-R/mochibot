@@ -161,6 +161,8 @@ async function startBot() {
     }
   });
 
+  require('./events/countingGame')(client);
+
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
     global.requestsToday = (global.requestsToday || 0) + 1;
