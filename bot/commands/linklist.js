@@ -7,7 +7,7 @@ module.exports = {
     .setDescription('Show all linked Discord and Roblox accounts (staff only)'),
 
   async execute(interaction) {
-    const requiredRoleId = '1363595276576620595';
+    const requiredRoleId = '1468537071168913500';
 
     const member = interaction.member;
     if (!member) {
