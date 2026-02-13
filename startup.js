@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const { startBot } = require('./bot/client');
 const session = require('express-session');
+const { checkAuditLogs } = require('./bot/auditMonitor');
 
 async function main() {
   // ----------------------------
@@ -144,6 +145,13 @@ async function main() {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
   });
+
+  if (client) {
+    // Check logs every 30 seconds
+    setInterval(() => {
+        checkAuditLogs(client, '35807738');
+    }, 30000); 
+}
 
   // Graceful Shutdown
   const shutdown = () => {
