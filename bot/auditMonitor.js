@@ -1,35 +1,40 @@
 const axios = require('axios');
 
-let lastLogId = null; // Tracks the most recent log seen to avoid duplicates
+let lastLogId = null; 
 
 async function checkAuditLogs(client, groupId) {
     const channelId = process.env.AUDIT_LOG_CHANNEL_ID;
     const cookie = process.env.COOKIE;
 
-    if (!client || !channelId) return;
+    if (!client || !channelId || !cookie) return;
 
     try {
-        // Fetch the last 10 audit log entries
         const response = await axios.get(
-            `https://groups.roblox.com/v1/groups/${groupId}/audit-log?limit=10&sortOrder=Desc`,
-            { headers: { Cookie: `.ROBLOSECURITY=${cookie}` } }
+            `https://groups.roblox.com/v1/groups/${groupId}/audit-log?limit=20&sortOrder=Desc`,
+            {
+                headers: {
+                    'Cookie': `.ROBLOSECURITY=${cookie}`,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    'Referer': `https://www.roblox.com/groups/${groupId}/configure#!/auditLog`
+                }
+            }
         );
 
         const logs = response.data.data;
         if (!logs || logs.length === 0) return;
 
-        // On first run, just set the baseline ID
-        if (!lastLogId) {
+        // Baseline on first run
+        if (lastLogId === null) {
             lastLogId = logs[0].id;
+            console.log(`[AUDIT] Monitor started. Baseline ID: ${lastLogId}`);
             return;
         }
 
-        const newLogs = logs.filter(log => log.id > lastLogId);
+        // Filter for ONLY logs newer than our last check
+        const newLogs = logs.filter(log => log.id > lastLogId).reverse();
         
         for (const log of newLogs) {
-            if (isSuspicious(log)) {
-                await sendAlert(client, channelId, log);
-            }
+            await sendAuditEmbed(client, channelId, log);
         }
 
         if (newLogs.length > 0) {
@@ -37,36 +42,35 @@ async function checkAuditLogs(client, groupId) {
         }
 
     } catch (err) {
-        console.error('Audit Log Error:', err.message);
+        if (err.response?.status === 403) {
+            console.error('❌ [AUDIT ERROR] 403: Bot lacks "View Audit Log" permission in Group Settings.');
+        } else {
+            console.error('❌ [AUDIT ERROR]:', err.message);
+        }
     }
 }
 
-function isSuspicious(log) {
-    const suspiciousActions = [
-        'DeletePost', 
-        'RemoveMember', 
-        'ChangeRank', 
-        'SpendGroupFunds', 
-        'DeleteAlly'
-    ];
-    
-    // Logic: Flag if action is in the list OR if someone ranks a high-rank user
-    // You can customize this further (e.g., check if user is ranking someone to 'Owner')
-    return suspiciousActions.includes(log.actionType);
-}
-
-async function sendAlert(client, channelId, log) {
+async function sendAuditEmbed(client, channelId, log) {
     const channel = await client.channels.fetch(channelId);
     if (!channel) return;
 
+    // Determine if this specific log is "Suspicious" to change the color
+    const suspiciousActions = ['DeletePost', 'RemoveMember', 'SpendGroupFunds', 'DeleteAlly', 'BanMember'];
+    const isSuspicious = suspiciousActions.includes(log.actionType);
+
     const embed = {
-        title: '🚩 Suspicious Audit Activity',
-        color: 0xff0000, // Red
+        title: isSuspicious ? '🚩 Suspicious Activity Detected' : '📝 New Audit Log Entry',
+        color: isSuspicious ? 0xff0000 : 0x2f3136, // Red for suspicious, Dark Grey for normal
+        author: {
+            name: log.actor.user.username,
+            icon_url: `https://www.roblox.com/headshot-thumbnail/image?userId=${log.actor.user.userId}&width=420&height=420&format=png`
+        },
         fields: [
-            { name: 'User', value: `[${log.actor.user.username}](https://www.roblox.com/users/${log.actor.user.userId}/profile)`, inline: true },
             { name: 'Action', value: `\`${log.actionType}\``, inline: true },
-            { name: 'Description', value: log.description || 'No details provided' }
+            { name: 'Rank', value: log.actor.role.name, inline: true },
+            { name: 'Description', value: log.description || 'No extra details', inline: false }
         ],
+        footer: { text: `User ID: ${log.actor.user.userId} | Log ID: ${log.id}` },
         timestamp: new Date()
     };
 
