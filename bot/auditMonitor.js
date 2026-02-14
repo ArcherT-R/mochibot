@@ -1,26 +1,19 @@
 const axios = require('axios');
 
-let lastLogId = null;
+let lastLogId = null; 
 
 async function checkAuditLogs(client, groupId) {
     const channelId = process.env.AUDIT_LOG_CHANNEL_ID;
     const cookie = process.env.COOKIE;
 
-    // Safety check for environment variables
-    if (!client || !channelId || !cookie) {
-        if (!channelId) console.warn('⚠️ AUDIT_LOG_CHANNEL_ID is missing in your .env file!');
-        return;
-    }
+    if (!client || !channelId || !cookie) return;
 
     try {
-        // We use params to ensure query strings are encoded properly (fixes 400 errors)
+        // Fetch logs using lowercase 'id' as per Roblox v1 API standards
         const response = await axios.get(
             `https://groups.roblox.com/v1/groups/${groupId}/audit-log`,
             {
-                params: {
-                    limit: 10,
-                    sortOrder: 'Desc'
-                },
+                params: { limit: 10, sortOrder: 'Desc' },
                 headers: {
                     'Cookie': `.ROBLOSECURITY=${cookie}`,
                     'User-Agent': 'Mozilla/5.0',
@@ -32,14 +25,16 @@ async function checkAuditLogs(client, groupId) {
         const logs = response.data.data;
         if (!logs || logs.length === 0) return;
 
-        // Set baseline on first successful run
+        // Correctly capture the ID (Roblox uses lowercase 'id')
+        const currentLatestId = logs[0].id;
+
         if (lastLogId === null) {
-            lastLogId = logs[0].id;
-            console.log(`✅ [AUDIT] Monitor active for Group ${groupId}. Starting from Log ID: ${lastLogId}`);
+            lastLogId = currentLatestId;
+            console.log(`✅ [AUDIT] Monitoring active for Group ${groupId}. Baseline ID: ${lastLogId}`);
             return;
         }
 
-        // Filter and reverse so we log them in chronological order
+        // Filter for logs newer than our last check
         const newLogs = logs.filter(log => log.id > lastLogId).reverse();
         
         for (const log of newLogs) {
@@ -51,10 +46,10 @@ async function checkAuditLogs(client, groupId) {
         }
 
     } catch (err) {
-        if (err.response) {
-            // Status 400: Parameters or URL are wrong
-            // Status 403: Bot account doesn't have "View Group Audit Log" permission
-            console.error(`❌ [AUDIT ERROR] ${err.response.status}:`, err.response.data.errors?.[0]?.message || 'Bad Request');
+        if (err.response?.status === 400) {
+            console.error('❌ [AUDIT ERROR] 400: Bad Request. Check if Group ID is correct.');
+        } else if (err.response?.status === 403) {
+            console.error('❌ [AUDIT ERROR] 403: Forbidden. Bot account needs "View Audit Log" permission.');
         } else {
             console.error('❌ [AUDIT ERROR]:', err.message);
         }
@@ -66,12 +61,11 @@ async function sendAuditEmbed(client, channelId, log) {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return;
 
-        // Suspicious filter: Highlights actions that could be harmful
         const suspiciousActions = ['DeletePost', 'RemoveMember', 'SpendGroupFunds', 'DeleteAlly', 'BanMember'];
         const isSuspicious = suspiciousActions.includes(log.actionType);
 
         const embed = {
-            title: isSuspicious ? '🚩 Suspicious Activity' : '📝 Audit Log',
+            title: isSuspicious ? '🚩 Suspicious Activity Detected' : '📝 New Audit Log Entry',
             color: isSuspicious ? 0xff0000 : 0x2b2d31,
             author: {
                 name: log.actor.user.username,
@@ -79,16 +73,16 @@ async function sendAuditEmbed(client, channelId, log) {
             },
             fields: [
                 { name: 'Action', value: `\`${log.actionType}\``, inline: true },
-                { name: 'Actor Rank', value: log.actor.role.name, inline: true },
-                { name: 'Details', value: log.description || '_None_', inline: false }
+                { name: 'Rank', value: log.actor.role.name, inline: true },
+                { name: 'Description', value: log.description || 'No details', inline: false }
             ],
-            footer: { text: `Log ID: ${log.id}` },
+            footer: { text: `User ID: ${log.actor.user.userId} | Log ID: ${log.id}` },
             timestamp: new Date()
         };
 
         await channel.send({ embeds: [embed] });
     } catch (err) {
-        console.warn('Could not send embed to Discord:', err.message);
+        console.warn('Embed failed:', err.message);
     }
 }
 
