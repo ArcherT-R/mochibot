@@ -3,6 +3,16 @@ const axios = require('axios');
 // Tracks the last processed log timestamp to prevent duplicates
 let lastLogTimestamp = null; 
 
+// 🛑 EDIT HERE: Add any action types you want to IGNORE to this list
+// This will stop the "Asset Created/Updated" spam
+const IGNORED_ACTIONS = [
+    'CreateAsset', 
+    'UpdateAsset', 
+    'ConfigureAsset',
+    'CreateGroupAsset',
+    'UpdateGroupAsset'
+];
+
 /**
  * Main function to check Roblox Audit Logs
  */
@@ -41,13 +51,25 @@ async function checkAuditLogs(client, groupId) {
         const newLogs = logs.filter(log => new Date(log.created).getTime() > lastLogTimestamp);
 
         if (newLogs.length > 0) {
-            console.log(`🆕 [AUDIT] Processing ${newLogs.length} new log(s).`);
             
             // Sort oldest to newest for chronological Discord posting
             newLogs.sort((a, b) => new Date(a.created) - new Date(b.created));
 
+            let processedCount = 0;
+
             for (const log of newLogs) {
+                // 🛑 SPAM FILTER CHECK
+                if (IGNORED_ACTIONS.includes(log.actionType)) {
+                    // console.log(`Skipped spam log: ${log.actionType}`); // Uncomment to debug
+                    continue; 
+                }
+
                 await sendAuditEmbed(client, channelId, log);
+                processedCount++;
+            }
+
+            if (processedCount > 0) {
+                console.log(`🆕 [AUDIT] Sent ${processedCount} new log(s).`);
             }
 
             // Update baseline to the latest log processed
@@ -89,7 +111,7 @@ async function sendAuditEmbed(client, channelId, log) {
             detailLine = `**${d.old_role_set_name || d.OldRoleSetName}** ➔ **${d.new_role_set_name || d.NewRoleSetName}**`;
         } 
         else if (action.includes('Asset') && typeof d === 'object') {
-            // Asset Update Sentence (The one you asked for!)
+            // Asset Update Sentence
             const asset = d.AssetName || d.asset_name || "an asset";
             const version = d.VersionNumber || d.version_number || "???";
             mainSentence = `**${actor}** created new version **${version}**`;
