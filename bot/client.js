@@ -1,6 +1,8 @@
 const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, REST, Routes, ChannelType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { Octokit } = require('octokit'); // Requires: npm install octokit
+const { GoogleGenerativeAI } = require('@google/generative-ai'); // Requires: npm install @google/generative-ai
 
 const ALLOWED_ROLE_ID = '1468537071168913500';
 
@@ -15,6 +17,11 @@ async function startBot() {
     partials: [Partials.Channel, Partials.GuildMember]
   });
 
+  // Initialize External APIs
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
   client.commands = new Collection();
   const commandsPath = path.join(__dirname, 'commands');
   if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
@@ -25,40 +32,31 @@ async function startBot() {
     try {
       delete require.cache[require.resolve(filePath)];
       const command = require(filePath);
-      
       if (command?.data && command.execute) {
         client.commands.set(command.data.name, command);
         console.log(`✅ Loaded command: ${command.data.name}`);
-      } else {
-        console.warn(`⚠ Skipped invalid command file: ${file}`);
       }
     } catch (err) {
       console.error(`❌ Error loading command ${file}:`, err);
     }
   }
 
-  // Initialize default bot data structure
+  // Initial Data Structure (Added codeChannelId)
   client.botData = { 
     linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
-    countingGame: { channelId: null, currentNumber: 0, lastUserId: null } 
+    countingGame: { channelId: null, currentNumber: 0, lastUserId: null },
+    codeChannelId: null 
   };
 
   client.saveBotData = async (createBackup = false) => {
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
       const messages = await channel.messages.fetch({ limit: 10 });
-      
-      // Find the last message sent by THIS bot
       const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
       const content = JSON.stringify(client.botData, null, 2);
 
-      if (lastBotMessage) {
-        await lastBotMessage.edit(content);
-      } else {
-        await channel.send(content);
-      }
-
-      if (createBackup) await channel.send(`Backup:\n${content}`);
+      if (lastBotMessage) await lastBotMessage.edit(content);
+      else await channel.send(content);
       console.log('💾 Bot data saved.');
     } catch (err) {
       console.error('❌ Failed to save bot data:', err);
@@ -67,97 +65,77 @@ async function startBot() {
 
   client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
-
-    // Load bot data from channel
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
       const messages = await channel.messages.fetch({ limit: 10 });
-      
-      // Find the last message sent by THIS bot
       const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
       
       if (lastBotMessage && lastBotMessage.content) {
-        try {
-          const parsedData = JSON.parse(lastBotMessage.content);
-          
-          // Validate that parsedData is an object before using it
-          if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
-            client.botData = parsedData;
-            console.log('✅ Loaded bot data from message ID:', lastBotMessage.id);
-          } else {
-            console.warn('⚠ Invalid bot data structure (not an object), using defaults');
-          }
-        } catch (parseErr) {
-          console.error('❌ Failed to parse bot data JSON:', parseErr);
-          console.warn('⚠ Using default bot data structure');
-        }
-      } else {
-        console.log('⚠ No bot message found in data channel, will create new one on first save');
+        const parsedData = JSON.parse(lastBotMessage.content);
+        client.botData = { ...client.botData, ...parsedData };
+        console.log('✅ Loaded bot data from cloud.');
       }
-      
-      // Ensure countingGame always exists with correct structure
-      if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
-        console.log('⚠ countingGame missing or invalid, initializing...');
-        client.botData.countingGame = { channelId: null, currentNumber: 0, lastUserId: null };
-      }
-      
-      // Ensure linkedUsers always exists
-      if (!client.botData.linkedUsers || typeof client.botData.linkedUsers !== 'object') {
-        console.log('⚠ linkedUsers missing or invalid, initializing...');
-        client.botData.linkedUsers = { discordToRoblox: {}, robloxToDiscord: {} };
-      }
-      
-      console.log('💾 Bot data structure ready:', client.botData);
     } catch (err) {
-      console.error('❌ Failed to load bot data:', err);
-      console.warn('⚠ Using default bot data structure');
+      console.warn('⚠ Using default data (Data channel fetch failed).');
     }
+  });
 
-    // Register slash commands
-    try {
-      const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+  // --- AI AND PROTOCOL LOGIC ---
+  client.on('messageCreate', async (message) => {
+    if (message.author.bot) return;
+    if (!client.botData.codeChannelId || message.channel.id !== client.botData.codeChannelId) return;
+
+    const isOwner = message.author.id === process.env.OWNER_ID;
+    const protocolRegex = /protocoladdcode\("(.+)"\)/;
+    const match = message.content.match(protocolRegex);
+
+    if (match) {
+      if (!isOwner) return message.reply("🚫 **Unauthorized:** Protocol access restricted to bot owner.");
       
-      // Separate commands by server
-      const mainServerCommands = [];
-      const corpServerCommands = [];
-      
-      const CORP_SERVER_ID = '1362322934794031104';
-      const MAIN_SERVER_ID = process.env.GUILD_ID;
-      
-      // Commands that should only be in corporate server
-      const corpOnlyCommands = ['blacklist-new', 'blacklist-purge'];
-      
-      client.commands.forEach(cmd => {
-        if (corpOnlyCommands.includes(cmd.data.name)) {
-          corpServerCommands.push(cmd.data.toJSON());
-        } else {
-          mainServerCommands.push(cmd.data.toJSON());
-        }
-      });
-      
-      // Register main server commands
-      if (mainServerCommands.length > 0 && MAIN_SERVER_ID) {
-        console.log(`📝 Registering ${mainServerCommands.length} commands to main server (${MAIN_SERVER_ID}):`, mainServerCommands.map(c => c.name).join(', '));
-        await rest.put(
-          Routes.applicationGuildCommands(client.user.id, MAIN_SERVER_ID),
-          { body: mainServerCommands }
-        );
-        console.log(`✅ Main server commands registered`);
+      const instruction = match[1];
+      const status = await message.reply("⚙️ **Protocol Active:** Generating and pushing to GitHub...");
+
+      try {
+        // 1. Get Code from Gemini
+        const aiPrompt = `Return ONLY the JavaScript code for: ${instruction}. No markdown blocks.`;
+        const result = await aiModel.generateContent(aiPrompt);
+        const code = result.response.text();
+
+        // 2. Handle GitHub Update
+        const path = 'updates.js'; // You can change this
+        let sha;
+        try {
+          const { data } = await octokit.rest.repos.getContent({
+            owner: process.env.GITHUB_OWNER,
+            repo: process.env.GITHUB_REPO,
+            path: path
+          });
+          sha = data.sha;
+        } catch (e) {}
+
+        await octokit.rest.repos.createOrUpdateFileContents({
+          owner: process.env.GITHUB_OWNER,
+          repo: process.env.GITHUB_REPO,
+          path: path,
+          message: `Protocol Edit: ${instruction.substring(0, 30)}`,
+          content: Buffer.from(code).toString('base64'),
+          sha: sha
+        });
+
+        await status.edit("✅ **Protocol Success:** GitHub file updated.");
+      } catch (err) {
+        await status.edit(`❌ **Protocol Failed:** ${err.message}`);
       }
-      
-      // Register corporate server commands
-      if (corpServerCommands.length > 0) {
-        console.log(`📝 Registering ${corpServerCommands.length} commands to corporate server (${CORP_SERVER_ID}):`, corpServerCommands.map(c => c.name).join(', '));
-        await rest.put(
-          Routes.applicationGuildCommands(client.user.id, CORP_SERVER_ID),
-          { body: corpServerCommands }
-        );
-        console.log(`✅ Corporate server commands registered`);
+    } else {
+      // Standard AI Response
+      await message.channel.sendTyping();
+      try {
+        const result = await aiModel.generateContent(message.content);
+        const response = result.response.text();
+        await message.reply(response.substring(0, 2000));
+      } catch (err) {
+        console.error(err);
       }
-      
-      console.log('✅ All commands registered successfully');
-    } catch (err) {
-      console.error('❌ Failed to register commands:', err);
     }
   });
 
@@ -165,45 +143,13 @@ async function startBot() {
 
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
-    global.requestsToday = (global.requestsToday || 0) + 1;
-
     const command = client.commands.get(interaction.commandName);
-    if (!command) {
-      console.warn(`⚠ Unknown command: ${interaction.commandName}`);
-      return;
-    }
-
+    if (!command) return;
     try {
-      console.log(`⚡ Executing command: ${interaction.commandName} by ${interaction.user.tag}`);
       await command.execute(interaction);
     } catch (err) {
-      console.error(`❌ Error executing ${interaction.commandName}:`, err);
-      const errorMessage = { content: '❌ Error executing command.', ephemeral: true };
-      
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorMessage).catch(() => {});
-      } else {
-        await interaction.reply(errorMessage).catch(() => {});
-      }
-    }
-  });
-
-  client.on('error', err => { console.error('❌ Client error:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
-  process.on('uncaughtException', err => { console.error('❌ Uncaught exception:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
-
-  client.on('guildMemberAdd', async member => {
-    try {
-      const dm = await member.createDM();
-      const embed = new EmbedBuilder()
-        .setTitle('👋 Welcome!')
-        .setDescription(`Hello ${member}, welcome to Mochi Bar's Discord server!\n\n` +
-                        `Be sure to /verify with Bloxlink in <#1365990340011753502>!\n\n` +
-                        `🎉 You are our **#${member.guild.memberCount}** member!`)
-        .setColor(0x00FFFF)
-        .setTimestamp();
-      await dm.send({ embeds: [embed] });
-    } catch (err) {
-      console.warn(`⚠ Failed to DM ${member.user.tag}:`, err);
+      console.error(err);
+      await interaction.reply({ content: '❌ Command Error.', ephemeral: true });
     }
   });
 
