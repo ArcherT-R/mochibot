@@ -1,52 +1,65 @@
-const express = require('express');
-const path = require('path');
-const { startBot } = require('./bot/client');
-const session = require('express-session');
-const { checkAuditLogs } = require('./bot/auditMonitor');
+const axios = require('axios');
 
-async function main() {
-  require('dotenv').config({ path: path.join(__dirname, '.env') });
+let lastLogId = null; 
 
-  let client = null;
-  const GROUP_ID = '35807738';
+async function checkAuditLogs(client, groupId) {
+    const channelId = process.env.AUDIT_LOG_CHANNEL_ID;
+    const cookie = process.env.COOKIE;
 
-  // --- Start Bot & Monitor ---
-  try {
-    client = await startBot();
-    console.log('✅ Discord bot successfully connected');
-    
-    if (client) {
-        // Poll every 30 seconds
-        setInterval(() => {
-            checkAuditLogs(client, GROUP_ID);
-        }, 30000);
+    // We don't need to "require" client because it's passed in the parameters above!
+    if (!client || !channelId || !cookie) return;
+
+    try {
+        const response = await axios.get(
+            `https://groups.roblox.com/v1/groups/${groupId}/audit-log`,
+            {
+                params: { limit: 10, sortOrder: 'Desc' },
+                headers: {
+                    'Cookie': `.ROBLOSECURITY=${cookie}`,
+                    'User-Agent': 'Mozilla/5.0'
+                }
+            }
+        );
+
+        const logs = response.data?.data;
+        if (!logs || logs.length === 0) return;
+
+        const currentLatestId = logs[0].id;
+
+        if (lastLogId === null) {
+            lastLogId = currentLatestId;
+            console.log(`✅ [AUDIT] Monitor active. Baseline: ${lastLogId}`);
+            return;
+        }
+
+        const newLogs = logs.filter(log => log.id > lastLogId).reverse();
+        for (const log of newLogs) {
+            await sendAuditEmbed(client, channelId, log);
+        }
+
+        if (newLogs.length > 0) lastLogId = currentLatestId;
+
+    } catch (err) {
+        console.error('❌ [AUDIT ERROR]:', err.message);
     }
-  } catch (err) {
-    console.error('⚠️ Discord bot failed to start:', err.message);
-  }
-
-  const app = express();
-  
-  // ... (All your existing Express middleware and routes go here) ...
-  
-  // Standard session setup
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'supersecretkey',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }
-  }));
-
-  // ... (Core Routes) ...
-  app.use('/ranking', require('./endpoints/ranking'));
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 Server running on port ${PORT}`);
-  });
 }
 
-main().catch(err => {
-  console.error('❌ Fatal startup error:', err);
-  process.exit(1);
-});
+async function sendAuditEmbed(client, channelId, log) {
+    try {
+        const channel = await client.channels.fetch(channelId);
+        if (!channel) return;
+
+        const embed = {
+            title: '📝 Group Audit Log',
+            color: 0x2b2d31,
+            description: `**Action:** ${log.actionType}\n**User:** ${log.actor.user.username}\n**Details:** ${log.description || 'None'}`,
+            timestamp: new Date()
+        };
+
+        await channel.send({ embeds: [embed] });
+    } catch (err) {
+        console.warn('Embed error:', err.message);
+    }
+}
+
+module.exports = { checkAuditLogs };
