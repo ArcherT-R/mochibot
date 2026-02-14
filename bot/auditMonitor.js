@@ -6,7 +6,6 @@ async function checkAuditLogs(client, groupId) {
     const channelId = process.env.AUDIT_LOG_CHANNEL_ID;
     const cookie = process.env.COOKIE;
 
-    // We don't need to "require" client because it's passed in the parameters above!
     if (!client || !channelId || !cookie) return;
 
     try {
@@ -21,26 +20,42 @@ async function checkAuditLogs(client, groupId) {
             }
         );
 
-        const logs = response.data?.data;
-        if (!logs || logs.length === 0) return;
+        // API FIX: Roblox wraps the logs inside a "data" property
+        const logs = response.data && response.data.data;
 
-        const currentLatestId = logs[0].id;
-
-        if (lastLogId === null) {
-            lastLogId = currentLatestId;
-            console.log(`✅ [AUDIT] Monitor active. Baseline: ${lastLogId}`);
+        if (!logs || !Array.isArray(logs) || logs.length === 0) {
+            console.warn(`⚠️ [AUDIT] No logs found. Check bot permissions in Group ${groupId}.`);
             return;
         }
 
+        // Capture the most recent ID (lowercase 'id' is standard for v1)
+        const currentLatestId = logs[0].id;
+
+        if (currentLatestId === undefined) {
+            console.error('❌ [AUDIT ERROR] id field is missing. Data keys:', Object.keys(logs[0]));
+            return;
+        }
+
+        // Set the baseline on first run
+        if (lastLogId === null) {
+            lastLogId = currentLatestId;
+            console.log(`✅ [AUDIT] Monitor active for Group ${groupId}. Baseline ID: ${lastLogId}`);
+            return;
+        }
+
+        // Filter for new logs only
         const newLogs = logs.filter(log => log.id > lastLogId).reverse();
+        
         for (const log of newLogs) {
             await sendAuditEmbed(client, channelId, log);
         }
 
-        if (newLogs.length > 0) lastLogId = currentLatestId;
+        if (newLogs.length > 0) {
+            lastLogId = currentLatestId;
+        }
 
     } catch (err) {
-        console.error('❌ [AUDIT ERROR]:', err.message);
+        console.error('❌ [AUDIT ERROR]:', err.response?.data?.errors?.[0]?.message || err.message);
     }
 }
 
@@ -49,16 +64,21 @@ async function sendAuditEmbed(client, channelId, log) {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return;
 
+        // Note: TargetDisplayName was added in early 2026 for clarity
+        const actorName = log.actor?.user?.username || "Unknown";
+        
         const embed = {
             title: '📝 Group Audit Log',
             color: 0x2b2d31,
-            description: `**Action:** ${log.actionType}\n**User:** ${log.actor.user.username}\n**Details:** ${log.description || 'None'}`,
+            author: { name: actorName },
+            description: `**Action:** \`${log.actionType}\`\n**Details:** ${log.description || 'No description'}`,
+            footer: { text: `Log ID: ${log.id}` },
             timestamp: new Date()
         };
 
         await channel.send({ embeds: [embed] });
     } catch (err) {
-        console.warn('Embed error:', err.message);
+        console.warn('Embed failure:', err.message);
     }
 }
 
