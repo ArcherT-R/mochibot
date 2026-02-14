@@ -1,8 +1,8 @@
 const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, REST, Routes, ChannelType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const { Octokit } = require('octokit'); // Requires: npm install octokit
-const { GoogleGenerativeAI } = require('@google/generative-ai'); // Requires: npm install @google/generative-ai
+const { Octokit } = require('octokit'); 
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const ALLOWED_ROLE_ID = '1468537071168913500';
 
@@ -17,7 +17,7 @@ async function startBot() {
     partials: [Partials.Channel, Partials.GuildMember]
   });
 
-  // Initialize External APIs
+  // --- INITIALIZE AI & GITHUB ---
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
@@ -41,7 +41,7 @@ async function startBot() {
     }
   }
 
-  // Initial Data Structure (Added codeChannelId)
+  // Initial Data Structure (Ensure codeChannelId exists)
   client.botData = { 
     linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
     countingGame: { channelId: null, currentNumber: 0, lastUserId: null },
@@ -72,17 +72,19 @@ async function startBot() {
       
       if (lastBotMessage && lastBotMessage.content) {
         const parsedData = JSON.parse(lastBotMessage.content);
+        // Merge loaded data with current data
         client.botData = { ...client.botData, ...parsedData };
-        console.log('✅ Loaded bot data from cloud.');
+        console.log('✅ Loaded bot data from message store');
       }
     } catch (err) {
-      console.warn('⚠ Using default data (Data channel fetch failed).');
+      console.warn('⚠ Using default data (Cloud fetch failed)');
     }
   });
 
   // --- AI AND PROTOCOL LOGIC ---
   client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+    // Only trigger if this is the designated code channel
     if (!client.botData.codeChannelId || message.channel.id !== client.botData.codeChannelId) return;
 
     const isOwner = message.author.id === process.env.OWNER_ID;
@@ -90,19 +92,20 @@ async function startBot() {
     const match = message.content.match(protocolRegex);
 
     if (match) {
-      if (!isOwner) return message.reply("🚫 **Unauthorized:** Protocol access restricted to bot owner.");
+      // 1. Protocol Mode
+      if (!isOwner) return message.reply("🚫 **Unauthorized:** Only the bot owner can use protocol commands.");
       
       const instruction = match[1];
       const status = await message.reply("⚙️ **Protocol Active:** Generating and pushing to GitHub...");
 
       try {
-        // 1. Get Code from Gemini
-        const aiPrompt = `Return ONLY the JavaScript code for: ${instruction}. No markdown blocks.`;
+        // AI Logic: Get code based on your text
+        const aiPrompt = `Return ONLY the JavaScript code for this instruction: ${instruction}. Do not use markdown code blocks (\`\`\`).`;
         const result = await aiModel.generateContent(aiPrompt);
         const code = result.response.text();
 
-        // 2. Handle GitHub Update
-        const path = 'updates.js'; // You can change this
+        // GitHub Logic: Update the file
+        const path = 'updates.js'; // You can change this to any file path
         let sha;
         try {
           const { data } = await octokit.rest.repos.getContent({
@@ -122,19 +125,19 @@ async function startBot() {
           sha: sha
         });
 
-        await status.edit("✅ **Protocol Success:** GitHub file updated.");
+        await status.edit("✅ **Protocol Success:** Code generated and GitHub file updated.");
       } catch (err) {
         await status.edit(`❌ **Protocol Failed:** ${err.message}`);
       }
     } else {
-      // Standard AI Response
+      // 2. Standard AI Mode
       await message.channel.sendTyping();
       try {
         const result = await aiModel.generateContent(message.content);
-        const response = result.response.text();
-        await message.reply(response.substring(0, 2000));
+        const responseText = result.response.text();
+        await message.reply(responseText.substring(0, 2000));
       } catch (err) {
-        console.error(err);
+        console.error("AI Error:", err);
       }
     }
   });
