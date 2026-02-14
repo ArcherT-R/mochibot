@@ -71,6 +71,7 @@ async function sendAuditEmbed(client, channelId, log) {
         const action = String(log.actionType);
         const actorName = log.actor?.user?.username || "System";
         const skyBlue = 0x87CEEB;
+        const zws = "\u200B"; // Invisible character to keep sizes consistent
 
         const dateObj = new Date(log.created);
         const footerDate = dateObj.toLocaleString('en-US', { 
@@ -83,13 +84,12 @@ async function sendAuditEmbed(client, channelId, log) {
             timestamp: dateObj
         };
 
-        // Ensure data is an object for easier reading
         let data = log.description;
         if (typeof data === 'string' && data.includes('{')) {
-            try { data = JSON.parse(data); } catch (e) { /* use as string */ }
+            try { data = JSON.parse(data); } catch (e) {}
         }
 
-        // --- 1. RANK CHANGE SPECIAL FORMAT ---
+        // --- 1. RANK CHANGE FORMAT (4 Lines) ---
         if (action.includes('Rank') && typeof data === 'object') {
             const target = data.target_name || data.TargetName || "Unknown";
             const oldR = data.old_role_set_name || data.OldRoleSetName || "Unknown";
@@ -99,12 +99,11 @@ async function sendAuditEmbed(client, channelId, log) {
             embed.description = [
                 `*Ranked:* **${target}**`,
                 `*Ranker:* **${actorName}**`,
-                `*Rank Change:* **${oldR}** > **${newR}**`,
+                `*Change:* **${oldR}** ➔ **${newR}**`,
                 `*Action:* \`${log.actionType}\``
             ].join('\n');
-
         } 
-        // --- 2. ASSET UPDATE SPECIAL FORMAT (For those Place Updates) ---
+        // --- 2. ASSET UPDATE FORMAT (4 Lines) ---
         else if (action.includes('Asset') && typeof data === 'object') {
             const assetName = data.AssetName || data.asset_name || "Unknown Asset";
             const version = data.VersionNumber || data.version_number || "N/A";
@@ -113,33 +112,25 @@ async function sendAuditEmbed(client, channelId, log) {
             embed.description = [
                 `*Developer:* **${actorName}**`,
                 `*Asset:* **${assetName}**`,
-                `*New Version:* \`${version}\``,
-                `*Action:* \`${log.actionType}\``
+                `${zws}`, // Padding line to keep 4 lines
+                `*Action:* \`${log.actionType}\` (v${version})`
             ].join('\n');
         }
-        // --- 3. GENERAL AUDIT LOG FORMAT ---
+        // --- 3. GENERAL LOG FORMAT (4 Lines) ---
         else {
-            let finalDescription = "_No details available_";
-            
+            let descText = "No additional details.";
             if (data) {
-                if (typeof data === 'object') {
-                    // Try to sentence-ify general user actions (Kicks, Bans, etc)
-                    const target = data.target_name || data.TargetName;
-                    if (target) {
-                        finalDescription = `**${actorName}** performed an action on **${target}**`;
-                    } else {
-                        finalDescription = JSON.stringify(data).replace(/[{}"]/g, '').replace(/,/g, ', ');
-                    }
-                } else {
-                    finalDescription = String(data);
-                }
+                descText = typeof data === 'object' 
+                    ? (data.target_name || data.TargetName || JSON.stringify(data).replace(/[{}"]/g, '').substring(0, 50))
+                    : String(data).substring(0, 50);
             }
 
             embed.title = '📋 **New Audit Log**';
             embed.description = [
                 `*Actioner:* **${actorName}**`,
-                `*Action:* \`${log.actionType}\``,
-                `*Description:* ${finalDescription}`
+                `*Details:* ${descText}`,
+                `${zws}`, // Padding line to keep 4 lines
+                `*Action:* \`${log.actionType}\``
             ].join('\n');
         }
 
