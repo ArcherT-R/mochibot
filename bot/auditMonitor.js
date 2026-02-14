@@ -1,21 +1,19 @@
 const axios = require('axios');
 
-let lastLogId = null; 
+let lastLogId = null;
 
-/**
- * Main function to poll Roblox Audit Logs
- */
 async function checkAuditLogs(client, groupId) {
     const channelId = process.env.AUDIT_LOG_CHANNEL_ID;
     const cookie = process.env.COOKIE;
 
+    // Safety check for environment variables
     if (!client || !channelId || !cookie) {
-        if (!channelId) console.warn('⚠️ AUDIT_LOG_CHANNEL_ID missing in .env');
+        if (!channelId) console.warn('⚠️ AUDIT_LOG_CHANNEL_ID is missing in your .env file!');
         return;
     }
 
     try {
-        // We use params object to ensure axios formats the URL query string correctly (prevents 400 errors)
+        // We use params to ensure query strings are encoded properly (fixes 400 errors)
         const response = await axios.get(
             `https://groups.roblox.com/v1/groups/${groupId}/audit-log`,
             {
@@ -34,14 +32,14 @@ async function checkAuditLogs(client, groupId) {
         const logs = response.data.data;
         if (!logs || logs.length === 0) return;
 
-        // Baseline: Ignore all previous logs when the server starts
+        // Set baseline on first successful run
         if (lastLogId === null) {
             lastLogId = logs[0].id;
-            console.log(`✅ [AUDIT] Monitoring started for Group ${groupId}. Baseline ID: ${lastLogId}`);
+            console.log(`✅ [AUDIT] Monitor active for Group ${groupId}. Starting from Log ID: ${lastLogId}`);
             return;
         }
 
-        // Get logs that happened AFTER our last check
+        // Filter and reverse so we log them in chronological order
         const newLogs = logs.filter(log => log.id > lastLogId).reverse();
         
         for (const log of newLogs) {
@@ -54,9 +52,9 @@ async function checkAuditLogs(client, groupId) {
 
     } catch (err) {
         if (err.response) {
-            // Status 400 = Bad GroupID or bad parameters
-            // Status 403 = No permissions/Bad Cookie
-            console.error(`❌ [AUDIT ERROR] ${err.response.status}:`, err.response.data.errors?.[0]?.message || 'Unknown Error');
+            // Status 400: Parameters or URL are wrong
+            // Status 403: Bot account doesn't have "View Group Audit Log" permission
+            console.error(`❌ [AUDIT ERROR] ${err.response.status}:`, err.response.data.errors?.[0]?.message || 'Bad Request');
         } else {
             console.error('❌ [AUDIT ERROR]:', err.message);
         }
@@ -68,12 +66,12 @@ async function sendAuditEmbed(client, channelId, log) {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return;
 
-        // Define what we consider "Suspicious"
+        // Suspicious filter: Highlights actions that could be harmful
         const suspiciousActions = ['DeletePost', 'RemoveMember', 'SpendGroupFunds', 'DeleteAlly', 'BanMember'];
         const isSuspicious = suspiciousActions.includes(log.actionType);
 
         const embed = {
-            title: isSuspicious ? '🚩 Suspicious Action Detected' : '📝 Group Audit Log',
+            title: isSuspicious ? '🚩 Suspicious Activity' : '📝 Audit Log',
             color: isSuspicious ? 0xff0000 : 0x2b2d31,
             author: {
                 name: log.actor.user.username,
@@ -82,15 +80,15 @@ async function sendAuditEmbed(client, channelId, log) {
             fields: [
                 { name: 'Action', value: `\`${log.actionType}\``, inline: true },
                 { name: 'Actor Rank', value: log.actor.role.name, inline: true },
-                { name: 'Description', value: log.description || '_No description provided_', inline: false }
+                { name: 'Details', value: log.description || '_None_', inline: false }
             ],
-            footer: { text: `Log ID: ${log.id} | Actor ID: ${log.actor.user.userId}` },
+            footer: { text: `Log ID: ${log.id}` },
             timestamp: new Date()
         };
 
         await channel.send({ embeds: [embed] });
     } catch (err) {
-        console.error('Failed to send Discord embed:', err.message);
+        console.warn('Could not send embed to Discord:', err.message);
     }
 }
 
