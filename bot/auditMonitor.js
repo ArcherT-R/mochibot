@@ -6,11 +6,11 @@ let lastLogTimestamp = null;
 // 🛑 EDIT HERE: Add any action types you want to IGNORE to this list
 // This will stop the "Asset Created/Updated" spam
 const IGNORED_ACTIONS = [
-    'CreateAsset', 
-    'UpdateAsset', 
-    'ConfigureAsset',
-    'CreateGroupAsset',
-    'UpdateGroupAsset'
+    'Create Asset', 
+    'Update Asset', 
+    'Configure Asset',
+    'Create Group Asset',
+    'Update Group Asset'
 ];
 
 /**
