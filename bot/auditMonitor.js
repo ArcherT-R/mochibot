@@ -69,75 +69,56 @@ async function sendAuditEmbed(client, channelId, log) {
         if (!channel) return;
 
         const action = String(log.actionType);
-        const actorName = log.actor?.user?.username || "System";
+        const actor = log.actor?.user?.username || "System";
         const skyBlue = 0x87CEEB;
-        const zws = "\u200B"; // Invisible character to keep sizes consistent
+        const zws = "\u200B"; // Invisible spacer for size consistency
 
-        const dateObj = new Date(log.created);
-        const footerDate = dateObj.toLocaleString('en-US', { 
-            weekday: 'long', hour: 'numeric', minute: 'numeric', hour12: true 
-        });
-
-        let embed = {
-            color: skyBlue,
-            footer: { text: `📅 ${footerDate} (UTC)` },
-            timestamp: dateObj
-        };
-
-        let data = log.description;
-        if (typeof data === 'string' && data.includes('{')) {
-            try { data = JSON.parse(data); } catch (e) {}
+        // --- THE SENTENCE BUILDER ---
+        let mainSentence = "";
+        let detailLine = "";
+        
+        // Ensure description is usable
+        let d = log.description;
+        if (typeof d === 'string' && d.includes('{')) {
+            try { d = JSON.parse(d); } catch (e) {}
         }
 
-        // --- 1. RANK CHANGE FORMAT (4 Lines) ---
-        if (action.includes('Rank') && typeof data === 'object') {
-            const target = data.target_name || data.TargetName || "Unknown";
-            const oldR = data.old_role_set_name || data.OldRoleSetName || "Unknown";
-            const newR = data.new_role_set_name || data.NewRoleSetName || "Unknown";
-
-            embed.title = '📋 **New Rank Change Log**';
-            embed.description = [
-                `*Ranked:* **${target}**`,
-                `*Ranker:* **${actorName}**`,
-                `*Change:* **${oldR}** ➔ **${newR}**`,
-                `*Action:* \`${log.actionType}\``
-            ].join('\n');
+        if (action.includes('Rank') && typeof d === 'object') {
+            // Rank Change Sentence
+            mainSentence = `**${actor}** changed **${d.target_name || d.TargetName}**'s rank`;
+            detailLine = `**${d.old_role_set_name || d.OldRoleSetName}** ➔ **${d.new_role_set_name || d.NewRoleSetName}**`;
         } 
-        // --- 2. ASSET UPDATE FORMAT (4 Lines) ---
-        else if (action.includes('Asset') && typeof data === 'object') {
-            const assetName = data.AssetName || data.asset_name || "Unknown Asset";
-            const version = data.VersionNumber || data.version_number || "N/A";
-
-            embed.title = '📋 **Group Asset Updated**';
-            embed.description = [
-                `*Developer:* **${actorName}**`,
-                `*Asset:* **${assetName}**`,
-                `${zws}`, // Padding line to keep 4 lines
-                `*Action:* \`${log.actionType}\` (v${version})`
-            ].join('\n');
-        }
-        // --- 3. GENERAL LOG FORMAT (4 Lines) ---
+        else if (action.includes('Asset') && typeof d === 'object') {
+            // Asset Update Sentence (The one you asked for!)
+            const asset = d.AssetName || d.asset_name || "an asset";
+            const version = d.VersionNumber || d.version_number || "???";
+            mainSentence = `**${actor}** created new version **${version}**`;
+            detailLine = `of asset **${asset}**`;
+        } 
         else {
-            let descText = "No additional details.";
-            if (data) {
-                descText = typeof data === 'object' 
-                    ? (data.target_name || data.TargetName || JSON.stringify(data).replace(/[{}"]/g, '').substring(0, 50))
-                    : String(data).substring(0, 50);
-            }
-
-            embed.title = '📋 **New Audit Log**';
-            embed.description = [
-                `*Actioner:* **${actorName}**`,
-                `*Details:* ${descText}`,
-                `${zws}`, // Padding line to keep 4 lines
-                `*Action:* \`${log.actionType}\``
-            ].join('\n');
+            // General Fallback
+            mainSentence = `**${actor}** performed: \`${action}\``;
+            detailLine = d ? (typeof d === 'object' ? (d.TargetName || "Action on group") : String(d)) : "No extra details.";
         }
+
+        // --- EMBED CONSTRUCTION ---
+        const embed = {
+            title: '📋 **Group Activity Log**',
+            color: skyBlue,
+            description: [
+                mainSentence,
+                detailLine,
+                zws, // Spacer line
+                `*Action:* \`${action}\`` // Bottom line
+            ].join('\n'),
+            footer: { text: `📅 ${new Date(log.created).toLocaleString('en-US', { weekday: 'long', hour: 'numeric', minute: 'numeric', hour12: true })}` },
+            timestamp: new Date(log.created)
+        };
 
         await channel.send({ embeds: [embed] });
 
     } catch (err) {
-        console.warn('⚠️ Embed failed:', err.message);
+        console.warn('⚠️ Sentence Embed Failed:', err.message);
     }
 }
 
