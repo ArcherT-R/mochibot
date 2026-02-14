@@ -152,7 +152,7 @@ if (client) {
     setInterval(() => {
         // Checking every 30 seconds
         checkAuditLogs(client, '35807738');
-    }, 30000); 
+    }, 20000); 
   }
 
   // Graceful Shutdown
