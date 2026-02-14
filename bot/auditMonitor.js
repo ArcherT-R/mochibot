@@ -68,7 +68,9 @@ async function sendAuditEmbed(client, channelId, log) {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return;
 
-        const isRankChange = log.actionType === 'ChangeRank';
+        // More flexible check for Rank Changes
+        const action = String(log.actionType);
+        const isRankChange = action.includes('Rank') || action.includes('ChangeRank');
         const actorName = log.actor?.user?.username || "System";
         const skyBlue = 0x87CEEB;
 
@@ -83,11 +85,17 @@ async function sendAuditEmbed(client, channelId, log) {
             timestamp: dateObj
         };
 
-        // --- 1. SPECIAL RANK CHANGE FORMAT ---
-        if (isRankChange && typeof log.description === 'object') {
-            const target = log.description.target_name || "Unknown";
-            const oldR = log.description.old_role_set_name || "Unknown";
-            const newR = log.description.new_role_set_name || "Unknown";
+        // --- THE FIX: Try to parse description if it's a string that looks like an object ---
+        let data = log.description;
+        if (typeof data === 'string' && data.includes('{')) {
+            try { data = JSON.parse(data); } catch (e) { /* not JSON, keep as string */ }
+        }
+
+        // --- 1. RANK CHANGE FORMAT ---
+        if (isRankChange && (typeof data === 'object' && data !== null)) {
+            const target = data.target_name || data.TargetName || "Unknown";
+            const oldR = data.old_role_set_name || data.OldRoleSetName || "Unknown";
+            const newR = data.new_role_set_name || data.NewRoleSetName || "Unknown";
 
             embed.title = '📋 **New Rank Change Log**';
             embed.description = [
@@ -98,26 +106,23 @@ async function sendAuditEmbed(client, channelId, log) {
             ].join('\n');
 
         } else {
-            // --- 2. GENERAL AUDIT LOG (Natural Sentence Format) ---
+            // --- 2. GENERAL AUDIT LOG FORMAT ---
             let finalDescription = "_No details available_";
             
-            if (log.description) {
-                if (typeof log.description === 'object') {
-                    // Turn "TargetName: User, NewRole: Staff" into a readable sentence
-                    const target = log.description.target_name || log.description.TargetName || "someone";
-                    const oldR = log.description.old_role_set_name || log.description.OldRoleSetName;
-                    const newR = log.description.new_role_set_name || log.description.NewRoleSetName;
+            if (data) {
+                if (typeof data === 'object') {
+                    // Turn it into a sentence if it's that specific user-change data
+                    const target = data.target_name || data.TargetName;
+                    const oldR = data.old_role_set_name || data.OldRoleSetName;
+                    const newR = data.new_role_set_name || data.NewRoleSetName;
 
-                    if (oldR && newR) {
+                    if (target && oldR && newR) {
                         finalDescription = `**${actorName}** changed **${target}**'s rank from **${oldR}** to **${newR}**`;
-                    } else if (target) {
-                        finalDescription = `**${actorName}** performed an action on **${target}**`;
                     } else {
-                        // Fallback: Clean up the object into plain text if it's a weird one
-                        finalDescription = JSON.stringify(log.description).replace(/[{}"]/g, '').replace(/,/g, ', ');
+                        finalDescription = JSON.stringify(data).replace(/[{}"]/g, '').replace(/,/g, ', ');
                     }
                 } else {
-                    finalDescription = String(log.description);
+                    finalDescription = String(data);
                 }
             }
 
@@ -132,8 +137,7 @@ async function sendAuditEmbed(client, channelId, log) {
         await channel.send({ embeds: [embed] });
 
     } catch (err) {
-        console.warn('⚠️ Discord Embed Failed:', err.message);
+        console.warn('⚠️ Embed failed:', err.message);
     }
 }
-
 module.exports = { checkAuditLogs };
