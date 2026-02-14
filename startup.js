@@ -146,10 +146,11 @@ async function main() {
     console.log(`\n🚀 Server running on port ${PORT}`);
   });
 
-  if (client) {
-    // Check logs every 30 seconds
+// Near the end of your main() function
+if (client) {
     setInterval(() => {
-        checkAuditLogs(client, '35807738');
+        // Pass the ID as a string to be safe
+        checkAuditLogs(client, '35807738'); 
     }, 30000); 
 }
 
