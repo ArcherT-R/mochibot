@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-// We track the latest timestamp instead of an ID
+// Persistent timestamp to track the last processed log
 let lastLogTimestamp = null; 
 
 async function checkAuditLogs(client, groupId) {
@@ -10,13 +10,15 @@ async function checkAuditLogs(client, groupId) {
     if (!client || !channelId || !cookie) return;
 
     try {
+        // Fetch the last 20 logs to ensure no gaps during bursts
         const response = await axios.get(
             `https://groups.roblox.com/v1/groups/${groupId}/audit-log`,
             {
-                params: { limit: 10, sortOrder: 'Desc' },
+                params: { limit: 20, sortOrder: 'Desc' },
                 headers: {
                     'Cookie': `.ROBLOSECURITY=${cookie}`,
-                    'User-Agent': 'Mozilla/5.0'
+                    'User-Agent': 'Mozilla/5.0',
+                    'Accept': 'application/json'
                 }
             }
         );
@@ -25,25 +27,38 @@ async function checkAuditLogs(client, groupId) {
 
         if (!logs || logs.length === 0) return;
 
-        // Use the 'created' field which your debug showed is present
-        const currentLatestTimestamp = new Date(logs[0].created).getTime();
+        // The timestamp of the absolute newest log in the list
+        const newestLogTime = new Date(logs[0].created).getTime();
 
-        // Baseline: Set the time of the most recent log on startup
+        // -------------------------------------------------------
+        // BASELINE: First run since server start
+        // -------------------------------------------------------
         if (lastLogTimestamp === null) {
-            lastLogTimestamp = currentLatestTimestamp;
-            console.log(`✅ [AUDIT] Monitor active. Starting from: ${logs[0].created}`);
+            lastLogTimestamp = newestLogTime;
+            console.log(`✅ [AUDIT] Monitor started. Baseline set to: ${logs[0].created}`);
             return;
         }
 
-        // Filter for logs that are strictly NEWER than our last recorded time
-        const newLogs = logs.filter(log => new Date(log.created).getTime() > lastLogTimestamp).reverse();
-        
-        for (const log of newLogs) {
-            await sendAuditEmbed(client, channelId, log);
-        }
+        // -------------------------------------------------------
+        // FILTER: Get only logs NEWER than our saved timestamp
+        // -------------------------------------------------------
+        const newLogs = logs.filter(log => {
+            const logTime = new Date(log.created).getTime();
+            return logTime > lastLogTimestamp;
+        });
 
         if (newLogs.length > 0) {
-            lastLogTimestamp = currentLatestTimestamp;
+            console.log(`🆕 [AUDIT] Found ${newLogs.length} new actions. Processing...`);
+
+            // Sort them Oldest -> Newest so they appear in Discord in order
+            newLogs.sort((a, b) => new Date(a.created) - new Date(b.created));
+
+            for (const log of newLogs) {
+                await sendAuditEmbed(client, channelId, log);
+            }
+
+            // Update our marker to the latest one we processed
+            lastLogTimestamp = newestLogTime;
         }
 
     } catch (err) {
@@ -56,25 +71,27 @@ async function sendAuditEmbed(client, channelId, log) {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return;
 
+        const actorName = log.actor?.user?.username || "System/Unknown";
+        
         const embed = {
-            title: '📝 New Group Activity',
+            title: '📝 Group Audit Log',
             color: 0x2b2d31,
             author: {
-                name: log.actor?.user?.username || 'Unknown User',
+                name: actorName,
                 icon_url: log.actor?.user?.userId ? `https://www.roblox.com/headshot-thumbnail/image?userId=${log.actor.user.userId}&width=420&height=420&format=png` : null
             },
             fields: [
                 { name: 'Action', value: `\`${log.actionType}\``, inline: true },
                 { name: 'Rank', value: log.actor?.role?.name || 'N/A', inline: true },
-                { name: 'Details', value: log.description || 'No description provided.', inline: false }
+                { name: 'Details', value: log.description || '_No description provided_', inline: false }
             ],
-            footer: { text: `Timestamp: ${log.created}` },
+            footer: { text: `Time (UTC): ${log.created}` },
             timestamp: new Date(log.created)
         };
 
         await channel.send({ embeds: [embed] });
     } catch (err) {
-        console.warn('Discord Embed Error:', err.message);
+        console.warn('⚠️ Embed failed:', err.message);
     }
 }
 
