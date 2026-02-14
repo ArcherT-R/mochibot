@@ -10,20 +10,22 @@ async function checkAuditLogs(client, groupId) {
     if (!client || !channelId || !cookie) return;
 
     try {
-        // Fetch the last 20 logs to ensure no gaps during bursts
-        const response = await axios.get(
-            `https://groups.roblox.com/v1/groups/${groupId}/audit-log`,
-            {
-                params: { limit: 20, sortOrder: 'Desc' },
-                headers: {
-                    'Cookie': `.ROBLOSECURITY=${cookie}`,
-                    'User-Agent': 'Mozilla/5.0',
-                    'Accept': 'application/json'
-                }
-            }
-        );
+        // We use a Template Literal to ensure the Group ID is injected correctly into the URL string
+        const url = `https://groups.roblox.com/v1/groups/${groupId}/audit-log`;
 
-        const logs = response.data && response.data.data;
+        const response = await axios.get(url, {
+            params: { 
+                limit: 10,       // Keep this low for stability
+                sortOrder: 'Desc' 
+            },
+            headers: {
+                'Cookie': `.ROBLOSECURITY=${cookie}`,
+                'User-Agent': 'Mozilla/5.0',
+                'Accept': 'application/json'
+            }
+        });
+
+        const logs = response.data?.data;
 
         if (!logs || logs.length === 0) return;
 
