@@ -68,9 +68,7 @@ async function sendAuditEmbed(client, channelId, log) {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return;
 
-        // More flexible check for Rank Changes
         const action = String(log.actionType);
-        const isRankChange = action.includes('Rank') || action.includes('ChangeRank');
         const actorName = log.actor?.user?.username || "System";
         const skyBlue = 0x87CEEB;
 
@@ -85,14 +83,14 @@ async function sendAuditEmbed(client, channelId, log) {
             timestamp: dateObj
         };
 
-        // --- THE FIX: Try to parse description if it's a string that looks like an object ---
+        // Ensure data is an object for easier reading
         let data = log.description;
         if (typeof data === 'string' && data.includes('{')) {
-            try { data = JSON.parse(data); } catch (e) { /* not JSON, keep as string */ }
+            try { data = JSON.parse(data); } catch (e) { /* use as string */ }
         }
 
-        // --- 1. RANK CHANGE FORMAT ---
-        if (isRankChange && (typeof data === 'object' && data !== null)) {
+        // --- 1. RANK CHANGE SPECIAL FORMAT ---
+        if (action.includes('Rank') && typeof data === 'object') {
             const target = data.target_name || data.TargetName || "Unknown";
             const oldR = data.old_role_set_name || data.OldRoleSetName || "Unknown";
             const newR = data.new_role_set_name || data.NewRoleSetName || "Unknown";
@@ -105,19 +103,30 @@ async function sendAuditEmbed(client, channelId, log) {
                 `*Action:* \`${log.actionType}\``
             ].join('\n');
 
-        } else {
-            // --- 2. GENERAL AUDIT LOG FORMAT ---
+        } 
+        // --- 2. ASSET UPDATE SPECIAL FORMAT (For those Place Updates) ---
+        else if (action.includes('Asset') && typeof data === 'object') {
+            const assetName = data.AssetName || data.asset_name || "Unknown Asset";
+            const version = data.VersionNumber || data.version_number || "N/A";
+
+            embed.title = '📋 **Group Asset Updated**';
+            embed.description = [
+                `*Developer:* **${actorName}**`,
+                `*Asset:* **${assetName}**`,
+                `*New Version:* \`${version}\``,
+                `*Action:* \`${log.actionType}\``
+            ].join('\n');
+        }
+        // --- 3. GENERAL AUDIT LOG FORMAT ---
+        else {
             let finalDescription = "_No details available_";
             
             if (data) {
                 if (typeof data === 'object') {
-                    // Turn it into a sentence if it's that specific user-change data
+                    // Try to sentence-ify general user actions (Kicks, Bans, etc)
                     const target = data.target_name || data.TargetName;
-                    const oldR = data.old_role_set_name || data.OldRoleSetName;
-                    const newR = data.new_role_set_name || data.NewRoleSetName;
-
-                    if (target && oldR && newR) {
-                        finalDescription = `**${actorName}** changed **${target}**'s rank from **${oldR}** to **${newR}**`;
+                    if (target) {
+                        finalDescription = `**${actorName}** performed an action on **${target}**`;
                     } else {
                         finalDescription = JSON.stringify(data).replace(/[{}"]/g, '').replace(/,/g, ', ');
                     }
@@ -140,4 +149,5 @@ async function sendAuditEmbed(client, channelId, log) {
         console.warn('⚠️ Embed failed:', err.message);
     }
 }
+
 module.exports = { checkAuditLogs };
