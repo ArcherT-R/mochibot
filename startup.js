@@ -146,13 +146,14 @@ async function main() {
     console.log(`\n🚀 Server running on port ${PORT}`);
   });
 
-// Near the end of your main() function
 if (client) {
+    console.log("🚀 Audit Log Monitor Initializing...");
+    
     setInterval(() => {
-        // Pass the ID as a string to be safe
-        checkAuditLogs(client, '35807738'); 
+        // Checking every 30 seconds
+        checkAuditLogs(client, '35807738');
     }, 30000); 
-}
+  }
 
   // Graceful Shutdown
   const shutdown = () => {
