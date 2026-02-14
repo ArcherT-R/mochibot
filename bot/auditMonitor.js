@@ -63,9 +63,6 @@ async function checkAuditLogs(client, groupId) {
     }
 }
 
-/**
- * Formats and sends the Discord Embed
- */
 async function sendAuditEmbed(client, channelId, log) {
     try {
         const channel = await client.channels.fetch(channelId);
@@ -75,13 +72,9 @@ async function sendAuditEmbed(client, channelId, log) {
         const actorName = log.actor?.user?.username || "System";
         const skyBlue = 0x87CEEB;
 
-        // Create the clean timestamp for the footer
         const dateObj = new Date(log.created);
         const footerDate = dateObj.toLocaleString('en-US', { 
-            weekday: 'long', 
-            hour: 'numeric', 
-            minute: 'numeric', 
-            hour12: true 
+            weekday: 'long', hour: 'numeric', minute: 'numeric', hour12: true 
         });
 
         let embed = {
@@ -90,8 +83,8 @@ async function sendAuditEmbed(client, channelId, log) {
             timestamp: dateObj
         };
 
+        // --- 1. SPECIAL RANK CHANGE FORMAT ---
         if (isRankChange && typeof log.description === 'object') {
-            // --- RANK CHANGE SPECIAL FORMAT ---
             const target = log.description.target_name || "Unknown";
             const oldR = log.description.old_role_set_name || "Unknown";
             const newR = log.description.new_role_set_name || "Unknown";
@@ -103,22 +96,36 @@ async function sendAuditEmbed(client, channelId, log) {
                 `*Rank Change:* **${oldR}** > **${newR}**`,
                 `*Action:* \`${log.actionType}\``
             ].join('\n');
+
         } else {
-            // --- GENERAL AUDIT LOG FORMAT ---
-            let descText = "_No details available_";
+            // --- 2. GENERAL AUDIT LOG (Natural Sentence Format) ---
+            let finalDescription = "_No details available_";
             
             if (log.description) {
-                // Flatten object to string if necessary to prevent Discord errors
-                descText = typeof log.description === 'object' 
-                    ? JSON.stringify(log.description).replace(/[{}"]/g, '').replace(/,/g, ', ') 
-                    : String(log.description);
+                if (typeof log.description === 'object') {
+                    // Turn "TargetName: User, NewRole: Staff" into a readable sentence
+                    const target = log.description.target_name || log.description.TargetName || "someone";
+                    const oldR = log.description.old_role_set_name || log.description.OldRoleSetName;
+                    const newR = log.description.new_role_set_name || log.description.NewRoleSetName;
+
+                    if (oldR && newR) {
+                        finalDescription = `**${actorName}** changed **${target}**'s rank from **${oldR}** to **${newR}**`;
+                    } else if (target) {
+                        finalDescription = `**${actorName}** performed an action on **${target}**`;
+                    } else {
+                        // Fallback: Clean up the object into plain text if it's a weird one
+                        finalDescription = JSON.stringify(log.description).replace(/[{}"]/g, '').replace(/,/g, ', ');
+                    }
+                } else {
+                    finalDescription = String(log.description);
+                }
             }
 
             embed.title = '📋 **New Audit Log**';
             embed.description = [
                 `*Actioner:* **${actorName}**`,
                 `*Action:* \`${log.actionType}\``,
-                `*Description:* ${descText}`
+                `*Description:* ${finalDescription}`
             ].join('\n');
         }
 
