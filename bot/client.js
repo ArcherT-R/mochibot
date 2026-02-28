@@ -9,11 +9,11 @@ const ALLOWED_ROLE_ID = '1468537071168913500';
 async function startBot() {
   const client = new Client({
     intents: [
-    GatewayIntentBits.Guilds,           // Required for basic connection
-    GatewayIntentBits.GuildMembers,    // Required to see members/roles
-    GatewayIntentBits.GuildMessages,   // Required to see messages
-    GatewayIntentBits.MessageContent,  // Required to read message text
-    GatewayIntentBits.GuildPresences
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildPresences, // <-- MAKE SURE THIS IS HERE
     ],
     partials: [Partials.Channel, Partials.GuildMember]
   });
