@@ -1,30 +1,82 @@
 const express = require('express');
 const path = require('path');
-const { startBot } = require('./bot/client');
 const session = require('express-session');
+const { startBot } = require('./bot/client');
 const { checkAuditLogs } = require('./bot/auditMonitor');
 
 async function main() {
   // ----------------------------
   // Load Secret File (.env)
   // ----------------------------
-  // This looks for the .env file you uploaded to Render Secrets
   require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-  // Safety check to see if the cookie is actually loaded
   if (process.env.COOKIE) {
     console.log('✅ Cookie loaded successfully (Starts with: ' + process.env.COOKIE.substring(0, 15) + '...)');
   } else {
     console.warn('⚠️  Warning: COOKIE not found in .env file. Ranking will fail.');
   }
 
-  let client = null;
+  // ----------------------------
+  // Initialize Express App FIRST
+  // (Render needs to detect the port quickly or it will fail)
+  // ----------------------------
+  const app = express();
 
   // ----------------------------
-  // Start Discord Bot (Optional)
+  // Middleware & Session
   // ----------------------------
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'supersecretkey',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 }
+  }));
+
+  app.set('views', path.join(__dirname, 'web/views'));
+  app.set('view engine', 'ejs');
+  app.use(express.static(path.join(__dirname, 'web/public')));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // ----------------------------
+  // Core Routes
+  // ----------------------------
+  app.use('/maintenance', require('./endpoints/maintenance'));
+  app.use('/activity', require('./endpoints/activity'));
+  app.use('/shifts', require('./endpoints/shifts'));
+  app.use('/dashboard', require('./web/routes/dashboard'));
+  app.use('/loginpage', require('./web/loginpage/routes'));
+  app.use('/settings', require('./endpoints/settings'));
+  app.use('/verification', require('./endpoints/verification'));
+  app.use('/ranking', require('./endpoints/ranking'));
+
+  app.get('/', (req, res) => res.redirect('/dashboard'));
+
+  // Health route (available immediately, even before bot connects)
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      discord: global.discordClient ? 'connected' : 'disconnected',
+      uptime: process.uptime()
+    });
+  });
+
+  // ----------------------------
+  // Start Server IMMEDIATELY
+  // (must happen before bot login so Render detects the port)
+  // ----------------------------
+  const PORT = process.env.PORT || 3000;
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 Server running on port ${PORT}`);
+  });
+
+  // ----------------------------
+  // Start Discord Bot (after server is already listening)
+  // ----------------------------
+  let client = null;
   try {
     client = await startBot();
+    global.discordClient = client;
     console.log('✅ Discord bot successfully connected');
   } catch (err) {
     console.error('⚠️  Discord bot failed to start:', err.message);
@@ -33,12 +85,29 @@ async function main() {
   }
 
   // ----------------------------
-  // Initialize Express App
+  // Discord-dependent Routes
+  // (registered after bot attempt, gracefully handled either way)
   // ----------------------------
-  const app = express();
+  if (client) {
+    app.use('/sessions', require('./endpoints/sessions')(client));
+    app.use('/sotw-role', require('./endpoints/sotw-role')(client));
+  } else {
+    app.use(['/sessions', '/sotw-role'], (_, res) =>
+      res.status(503).json({ error: 'Discord bot not available' })
+    );
+  }
 
   // ----------------------------
-  // Load DB for verification notifications
+  // 404 & Error Handlers
+  // ----------------------------
+  app.use((req, res) => res.status(404).json({ error: 'Endpoint not found' }));
+  app.use((err, req, res, next) => {
+    console.error('❌ Server Error:', err);
+    res.status(err.status || 500).json({ error: 'Internal Server Error' });
+  });
+
+  // ----------------------------
+  // DB Polling for Verification Notifications
   // ----------------------------
   const db = require('./endpoints/database');
 
@@ -46,10 +115,7 @@ async function main() {
     try {
       const pending = await db.getPendingNotifications();
       for (const row of pending) {
-        const discordId = row.discord_id;
-        const token = row.one_time_token;
-        const username = row.claimed_by_username;
-        const tokenExpires = row.token_expires_at;
+        const { discord_id: discordId, one_time_token: token, claimed_by_username: username, token_expires_at: tokenExpires } = row;
 
         try {
           if (client) {
@@ -84,78 +150,18 @@ async function main() {
   setInterval(pollAndNotify, 5000);
 
   // ----------------------------
-  // Middleware & Session
-  // ----------------------------
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'supersecretkey',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }
-  }));
-
-  app.set('views', path.join(__dirname, 'web/views'));
-  app.set('view engine', 'ejs');
-  app.use(express.static(path.join(__dirname, 'web/public')));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // ----------------------------
-  // Core Routes
-  // ----------------------------
-  app.use('/maintenance', require('./endpoints/maintenance'));
-  app.use('/activity', require('./endpoints/activity'));
-  app.use('/shifts', require('./endpoints/shifts'));
-  app.use('/dashboard', require('./web/routes/dashboard'));
-  app.use('/loginpage', require('./web/loginpage/routes'));
-  app.use('/settings', require('./endpoints/settings'));
-  app.use('/verification', require('./endpoints/verification'));
-  app.use('/ranking', require('./endpoints/ranking')); // Your ranking endpoint
-
-  // ----------------------------
-  // Discord Routes
+  // Audit Log Monitor
   // ----------------------------
   if (client) {
-    app.use('/sessions', require('./endpoints/sessions')(client));
-    app.use('/sotw-role', require('./endpoints/sotw-role')(client));
-  } else {
-    app.use(['/sessions', '/sotw-role'], (_, res) =>
-      res.status(503).json({ error: 'Discord bot not available' })
-    );
-  }
-
-  app.get('/', (req, res) => res.redirect('/dashboard'));
-
-  app.get('/health', (req, res) => {
-    res.json({
-      status: 'healthy',
-      discord: client ? 'connected' : 'disconnected',
-      uptime: process.uptime()
-    });
-  });
-
-  // Error Handling
-  app.use((req, res) => res.status(404).json({ error: 'Endpoint not found' }));
-  app.use((err, req, res, next) => {
-    console.error('❌ Server Error:', err);
-    res.status(err.status || 500).json({ error: 'Internal Server Error' });
-  });
-
-  // Start
-  const PORT = process.env.PORT || 3000;
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 Server running on port ${PORT}`);
-  });
-
-if (client) {
-    console.log("🚀 Audit Log Monitor Initializing...");
-    
+    console.log('🚀 Audit Log Monitor Initializing...');
     setInterval(() => {
-        // Checking every 30 seconds
-        checkAuditLogs(client, '35807738');
-    }, 20000); 
+      checkAuditLogs(client, '35807738');
+    }, 20000);
   }
 
+  // ----------------------------
   // Graceful Shutdown
+  // ----------------------------
   const shutdown = () => {
     console.log('🛑 Shutting down...');
     if (client) client.destroy();
