@@ -7,18 +7,28 @@ const { checkAuditLogs } = require('./bot/auditMonitor');
 async function main() {
   // ----------------------------
   // Load Secret File (.env)
+  // Tries Render's secret file path first, falls back to local .env
   // ----------------------------
-  require('dotenv').config({ path: path.join(__dirname, '.env') });
-
-  if (process.env.COOKIE) {
-    console.log('✅ Cookie loaded successfully (Starts with: ' + process.env.COOKIE.substring(0, 15) + '...)');
-  } else {
-    console.warn('⚠️  Warning: COOKIE not found in .env file. Ranking will fail.');
+  require('dotenv').config({ path: '/etc/secrets/.env' });
+  if (!process.env.DISCORD_TOKEN) {
+    require('dotenv').config({ path: path.join(__dirname, '.env') });
   }
+
+  // Debug env vars so you can see in Render logs exactly what loaded
+  console.log('─────────────────────────────────────');
+  console.log('🔍 Environment Check:');
+  console.log('   DISCORD_TOKEN :', process.env.DISCORD_TOKEN ? '✅ Loaded' : '❌ MISSING');
+  console.log('   GUILD_ID      :', process.env.GUILD_ID      ? '✅ Loaded' : '❌ MISSING');
+  console.log('   CLIENT_ID     :', process.env.CLIENT_ID     ? '✅ Loaded' : '❌ MISSING');
+  console.log('   SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ Loaded' : '⚠️  Using fallback');
+  console.log('   COOKIE        :', process.env.COOKIE
+    ? '✅ Loaded (Starts with: ' + process.env.COOKIE.substring(0, 15) + '...)'
+    : '⚠️  MISSING — Ranking will fail');
+  console.log('─────────────────────────────────────');
 
   // ----------------------------
   // Initialize Express App FIRST
-  // (Render needs to detect the port quickly or it will fail)
+  // (Render needs to detect the port quickly or it will time out)
   // ----------------------------
   const app = express();
 
@@ -52,7 +62,6 @@ async function main() {
 
   app.get('/', (req, res) => res.redirect('/dashboard'));
 
-  // Health route (available immediately, even before bot connects)
   app.get('/health', (req, res) => {
     res.json({
       status: 'healthy',
@@ -63,7 +72,7 @@ async function main() {
 
   // ----------------------------
   // Start Server IMMEDIATELY
-  // (must happen before bot login so Render detects the port)
+  // (must happen before bot login so Render detects the port in time)
   // ----------------------------
   const PORT = process.env.PORT || 3000;
   const server = app.listen(PORT, '0.0.0.0', () => {
@@ -71,11 +80,18 @@ async function main() {
   });
 
   // ----------------------------
-  // Start Discord Bot (after server is already listening)
+  // Start Discord Bot
+  // Wrapped in a 30s timeout so a hanging login never blocks the process
   // ----------------------------
   let client = null;
   try {
-    client = await startBot();
+    console.log('🤖 Starting Discord bot...');
+    client = await Promise.race([
+      startBot(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Bot login timed out after 30s')), 30000)
+      )
+    ]);
     global.discordClient = client;
     console.log('✅ Discord bot successfully connected');
   } catch (err) {
@@ -86,7 +102,6 @@ async function main() {
 
   // ----------------------------
   // Discord-dependent Routes
-  // (registered after bot attempt, gracefully handled either way)
   // ----------------------------
   if (client) {
     app.use('/sessions', require('./endpoints/sessions')(client));
@@ -115,7 +130,12 @@ async function main() {
     try {
       const pending = await db.getPendingNotifications();
       for (const row of pending) {
-        const { discord_id: discordId, one_time_token: token, claimed_by_username: username, token_expires_at: tokenExpires } = row;
+        const {
+          discord_id: discordId,
+          one_time_token: token,
+          claimed_by_username: username,
+          token_expires_at: tokenExpires
+        } = row;
 
         try {
           if (client) {
