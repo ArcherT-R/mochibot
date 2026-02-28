@@ -4,6 +4,7 @@ const {
 } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 const ALLOWED_ROLE_ID = '1468537071168913500';
 
@@ -16,7 +17,6 @@ async function startBot() {
       GatewayIntentBits.MessageContent
     ],
     partials: [Partials.Channel, Partials.GuildMember],
-    // These help with Render's network environment
     rest: {
       retries: 5,
       timeout: 30000
@@ -81,7 +81,6 @@ async function startBot() {
   client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
 
-    // Load bot data from channel
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
       const messages = await channel.messages.fetch({ limit: 10 });
@@ -159,17 +158,16 @@ async function startBot() {
   });
 
   // ----------------------------
-  // Gateway / Connection Events
-  // (helps diagnose Render WebSocket issues)
+  // Gateway / Shard Events
   // ----------------------------
   client.on('shardReady', (id) => console.log(`🔌 Shard ${id} ready`));
   client.on('shardDisconnect', (event, id) => console.warn(`⚠️ Shard ${id} disconnected:`, event.code, event.reason));
   client.on('shardReconnecting', (id) => console.log(`🔄 Shard ${id} reconnecting...`));
   client.on('shardResume', (id, replayed) => console.log(`✅ Shard ${id} resumed, replayed ${replayed} events`));
-  client.on('shardError', (err, id) => console.error(`❌ Shard ${id} error:`, err));
+  client.on('shardError', (err, id) => console.error(`❌ Shard ${id} error:`, err.message));
 
   // ----------------------------
-  // Events
+  // Other Events
   // ----------------------------
   require('./events/countingGame')(client);
 
@@ -222,6 +220,24 @@ async function startBot() {
     } catch (err) {
       console.warn(`⚠ Failed to DM ${member.user.tag}:`, err);
     }
+  });
+
+  // ----------------------------
+  // Network Diagnostic (remove after debugging)
+  // ----------------------------
+  console.log('🌐 Testing network connectivity to Discord...');
+  await new Promise((resolve) => {
+    https.get('https://discord.com/api/v10/gateway', (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        console.log('🌐 Discord API reachable! Status:', res.statusCode, '| Response:', data);
+        resolve();
+      });
+    }).on('error', (err) => {
+      console.error('❌ Cannot reach Discord API:', err.message, '| Code:', err.code);
+      resolve();
+    });
   });
 
   // ----------------------------
