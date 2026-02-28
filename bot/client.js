@@ -1,4 +1,7 @@
-const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, REST, Routes, ChannelType } = require('discord.js');
+const {
+  Client, GatewayIntentBits, Partials, Collection,
+  EmbedBuilder, REST, Routes
+} = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -12,9 +15,17 @@ async function startBot() {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent
     ],
-    partials: [Partials.Channel, Partials.GuildMember]
+    partials: [Partials.Channel, Partials.GuildMember],
+    // These help with Render's network environment
+    rest: {
+      retries: 5,
+      timeout: 30000
+    }
   });
 
+  // ----------------------------
+  // Load Commands
+  // ----------------------------
   client.commands = new Collection();
   const commandsPath = path.join(__dirname, 'commands');
   if (!fs.existsSync(commandsPath)) fs.mkdirSync(commandsPath);
@@ -25,7 +36,6 @@ async function startBot() {
     try {
       delete require.cache[require.resolve(filePath)];
       const command = require(filePath);
-      
       if (command?.data && command.execute) {
         client.commands.set(command.data.name, command);
         console.log(`✅ Loaded command: ${command.data.name}`);
@@ -37,18 +47,18 @@ async function startBot() {
     }
   }
 
-  // Initialize default bot data structure
-  client.botData = { 
+  // ----------------------------
+  // Bot Data
+  // ----------------------------
+  client.botData = {
     linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
-    countingGame: { channelId: null, currentNumber: 0, lastUserId: null } 
+    countingGame: { channelId: null, currentNumber: 0, lastUserId: null }
   };
 
   client.saveBotData = async (createBackup = false) => {
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
       const messages = await channel.messages.fetch({ limit: 10 });
-      
-      // Find the last message sent by THIS bot
       const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
       const content = JSON.stringify(client.botData, null, 2);
 
@@ -65,6 +75,9 @@ async function startBot() {
     }
   };
 
+  // ----------------------------
+  // Ready Event
+  // ----------------------------
   client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
 
@@ -72,61 +85,47 @@ async function startBot() {
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
       const messages = await channel.messages.fetch({ limit: 10 });
-      
-      // Find the last message sent by THIS bot
       const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
-      
+
       if (lastBotMessage && lastBotMessage.content) {
         try {
           const parsedData = JSON.parse(lastBotMessage.content);
-          
-          // Validate that parsedData is an object before using it
           if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
             client.botData = parsedData;
             console.log('✅ Loaded bot data from message ID:', lastBotMessage.id);
           } else {
-            console.warn('⚠ Invalid bot data structure (not an object), using defaults');
+            console.warn('⚠ Invalid bot data structure, using defaults');
           }
         } catch (parseErr) {
           console.error('❌ Failed to parse bot data JSON:', parseErr);
-          console.warn('⚠ Using default bot data structure');
         }
       } else {
-        console.log('⚠ No bot message found in data channel, will create new one on first save');
+        console.log('⚠ No bot message found in data channel, will create on first save');
       }
-      
-      // Ensure countingGame always exists with correct structure
+
       if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
-        console.log('⚠ countingGame missing or invalid, initializing...');
         client.botData.countingGame = { channelId: null, currentNumber: 0, lastUserId: null };
       }
-      
-      // Ensure linkedUsers always exists
       if (!client.botData.linkedUsers || typeof client.botData.linkedUsers !== 'object') {
-        console.log('⚠ linkedUsers missing or invalid, initializing...');
         client.botData.linkedUsers = { discordToRoblox: {}, robloxToDiscord: {} };
       }
-      
-      console.log('💾 Bot data structure ready:', client.botData);
+
+      console.log('💾 Bot data structure ready');
     } catch (err) {
       console.error('❌ Failed to load bot data:', err);
-      console.warn('⚠ Using default bot data structure');
     }
 
     // Register slash commands
     try {
       const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-      
-      // Separate commands by server
-      const mainServerCommands = [];
-      const corpServerCommands = [];
-      
+
       const CORP_SERVER_ID = '1362322934794031104';
       const MAIN_SERVER_ID = process.env.GUILD_ID;
-      
-      // Commands that should only be in corporate server
       const corpOnlyCommands = ['blacklist-new', 'blacklist-purge'];
-      
+
+      const mainServerCommands = [];
+      const corpServerCommands = [];
+
       client.commands.forEach(cmd => {
         if (corpOnlyCommands.includes(cmd.data.name)) {
           corpServerCommands.push(cmd.data.toJSON());
@@ -134,33 +133,44 @@ async function startBot() {
           mainServerCommands.push(cmd.data.toJSON());
         }
       });
-      
-      // Register main server commands
+
       if (mainServerCommands.length > 0 && MAIN_SERVER_ID) {
-        console.log(`📝 Registering ${mainServerCommands.length} commands to main server (${MAIN_SERVER_ID}):`, mainServerCommands.map(c => c.name).join(', '));
+        console.log(`📝 Registering ${mainServerCommands.length} commands to main server...`);
         await rest.put(
           Routes.applicationGuildCommands(client.user.id, MAIN_SERVER_ID),
           { body: mainServerCommands }
         );
-        console.log(`✅ Main server commands registered`);
+        console.log('✅ Main server commands registered');
       }
-      
-      // Register corporate server commands
+
       if (corpServerCommands.length > 0) {
-        console.log(`📝 Registering ${corpServerCommands.length} commands to corporate server (${CORP_SERVER_ID}):`, corpServerCommands.map(c => c.name).join(', '));
+        console.log(`📝 Registering ${corpServerCommands.length} commands to corp server...`);
         await rest.put(
           Routes.applicationGuildCommands(client.user.id, CORP_SERVER_ID),
           { body: corpServerCommands }
         );
-        console.log(`✅ Corporate server commands registered`);
+        console.log('✅ Corporate server commands registered');
       }
-      
+
       console.log('✅ All commands registered successfully');
     } catch (err) {
       console.error('❌ Failed to register commands:', err);
     }
   });
 
+  // ----------------------------
+  // Gateway / Connection Events
+  // (helps diagnose Render WebSocket issues)
+  // ----------------------------
+  client.on('shardReady', (id) => console.log(`🔌 Shard ${id} ready`));
+  client.on('shardDisconnect', (event, id) => console.warn(`⚠️ Shard ${id} disconnected:`, event.code, event.reason));
+  client.on('shardReconnecting', (id) => console.log(`🔄 Shard ${id} reconnecting...`));
+  client.on('shardResume', (id, replayed) => console.log(`✅ Shard ${id} resumed, replayed ${replayed} events`));
+  client.on('shardError', (err, id) => console.error(`❌ Shard ${id} error:`, err));
+
+  // ----------------------------
+  // Events
+  // ----------------------------
   require('./events/countingGame')(client);
 
   client.on('interactionCreate', async (interaction) => {
@@ -179,7 +189,6 @@ async function startBot() {
     } catch (err) {
       console.error(`❌ Error executing ${interaction.commandName}:`, err);
       const errorMessage = { content: '❌ Error executing command.', ephemeral: true };
-      
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp(errorMessage).catch(() => {});
       } else {
@@ -188,27 +197,39 @@ async function startBot() {
     }
   });
 
-  client.on('error', err => { console.error('❌ Client error:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
-  process.on('uncaughtException', err => { console.error('❌ Uncaught exception:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
+  client.on('error', err => {
+    console.error('❌ Client error:', err);
+    global.incidentsToday = (global.incidentsToday || 0) + 1;
+  });
+
+  process.on('uncaughtException', err => {
+    console.error('❌ Uncaught exception:', err);
+    global.incidentsToday = (global.incidentsToday || 0) + 1;
+  });
 
   client.on('guildMemberAdd', async member => {
     try {
-      const dm = await member.createDM();
       const embed = new EmbedBuilder()
         .setTitle('👋 Welcome!')
-        .setDescription(`Hello ${member}, welcome to Mochi Bar's Discord server!\n\n` +
-                        `Be sure to /verify with Bloxlink in <#1365990340011753502>!\n\n` +
-                        `🎉 You are our **#${member.guild.memberCount}** member!`)
+        .setDescription(
+          `Hello ${member}, welcome to Mochi Bar's Discord server!\n\n` +
+          `Be sure to /verify with Bloxlink in <#1365990340011753502>!\n\n` +
+          `🎉 You are our **#${member.guild.memberCount}** member!`
+        )
         .setColor(0x00FFFF)
         .setTimestamp();
-      await dm.send({ embeds: [embed] });
+      await member.send({ embeds: [embed] });
     } catch (err) {
       console.warn(`⚠ Failed to DM ${member.user.tag}:`, err);
     }
   });
 
-  console.log('🔑 Attempting login with token starting:', process.env.DISCORD_TOKEN?.substring(0, 10));
+  // ----------------------------
+  // Login
+  // ----------------------------
+  console.log('🔑 Attempting Discord login...');
   await client.login(process.env.DISCORD_TOKEN);
+  console.log('✅ Login accepted — waiting for gateway ready event...');
   return client;
 }
 
