@@ -1,8 +1,13 @@
-const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, REST, Routes, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
 const ALLOWED_ROLE_ID = '1468537071168913500';
+const CORP_SERVER_ID = '1362322934794031104';
+
+// Initialize global counters
+global.requestsToday = 0;
+global.incidentsToday = 0;
 
 async function startBot() {
   const client = new Client({
@@ -28,7 +33,6 @@ async function startBot() {
       
       if (command?.data && command.execute) {
         client.commands.set(command.data.name, command);
-        console.log(`✅ Loaded command: ${command.data.name}`);
       } else {
         console.warn(`⚠ Skipped invalid command file: ${file}`);
       }
@@ -37,7 +41,7 @@ async function startBot() {
     }
   }
 
-  // Initialize default bot data structure
+  // Initial Data Structure
   client.botData = { 
     linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} },
     countingGame: { channelId: null, currentNumber: 0, lastUserId: null } 
@@ -46,11 +50,16 @@ async function startBot() {
   client.saveBotData = async (createBackup = false) => {
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-      const messages = await channel.messages.fetch({ limit: 10 });
+      const messages = await channel.messages.fetch({ limit: 20 });
+      const lastBotMessage = messages.find(msg => msg.author.id === client.user.id && !msg.content.startsWith('Backup:'));
       
-      // Find the last message sent by THIS bot
-      const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
       const content = JSON.stringify(client.botData, null, 2);
+
+      // Warning: Discord character limit is 2000
+      if (content.length > 1950) {
+        console.error("❌ CRITICAL: botData is too large for a Discord message!");
+        return;
+      }
 
       if (lastBotMessage) {
         await lastBotMessage.edit(content);
@@ -68,147 +77,88 @@ async function startBot() {
   client.once('ready', async () => {
     console.log(`🤖 Logged in as ${client.user.tag}`);
 
-    // Load bot data from channel
+    // --- DATA LOADING ---
     try {
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-      const messages = await channel.messages.fetch({ limit: 10 });
+      const messages = await channel.messages.fetch({ limit: 20 });
+      const lastBotMessage = messages.find(msg => msg.author.id === client.user.id && !msg.content.startsWith('Backup:'));
       
-      // Find the last message sent by THIS bot
-      const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
-      
-      if (lastBotMessage && lastBotMessage.content) {
-        try {
-          const parsedData = JSON.parse(lastBotMessage.content);
-          
-          // Validate that parsedData is an object before using it
-          if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
-            client.botData = parsedData;
-            console.log('✅ Loaded bot data from message ID:', lastBotMessage.id);
-          } else {
-            console.warn('⚠ Invalid bot data structure (not an object), using defaults');
-          }
-        } catch (parseErr) {
-          console.error('❌ Failed to parse bot data JSON:', parseErr);
-          console.warn('⚠ Using default bot data structure');
-        }
-      } else {
-        console.log('⚠ No bot message found in data channel, will create new one on first save');
+      if (lastBotMessage?.content) {
+        const parsedData = JSON.parse(lastBotMessage.content);
+        client.botData = { ...client.botData, ...parsedData };
+        console.log('✅ Loaded bot data successfully.');
       }
-      
-      // Ensure countingGame always exists with correct structure
-      if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
-        console.log('⚠ countingGame missing or invalid, initializing...');
-        client.botData.countingGame = { channelId: null, currentNumber: 0, lastUserId: null };
-      }
-      
-      // Ensure linkedUsers always exists
-      if (!client.botData.linkedUsers || typeof client.botData.linkedUsers !== 'object') {
-        console.log('⚠ linkedUsers missing or invalid, initializing...');
-        client.botData.linkedUsers = { discordToRoblox: {}, robloxToDiscord: {} };
-      }
-      
-      console.log('💾 Bot data structure ready:', client.botData);
     } catch (err) {
-      console.error('❌ Failed to load bot data:', err);
-      console.warn('⚠ Using default bot data structure');
+      console.error('❌ Data load error (using defaults):', err.message);
     }
 
-    // Register slash commands
+    // --- COMMAND REGISTRATION ---
     try {
       const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
-      
-      // Separate commands by server
       const mainServerCommands = [];
       const corpServerCommands = [];
-      
-      const CORP_SERVER_ID = '1362322934794031104';
-      const MAIN_SERVER_ID = process.env.GUILD_ID;
-      
-      // Commands that should only be in corporate server
       const corpOnlyCommands = ['blacklist-new', 'blacklist-purge'];
-      
+
       client.commands.forEach(cmd => {
+        const cmdJSON = cmd.data.toJSON();
         if (corpOnlyCommands.includes(cmd.data.name)) {
-          corpServerCommands.push(cmd.data.toJSON());
+          corpServerCommands.push(cmdJSON);
         } else {
-          mainServerCommands.push(cmd.data.toJSON());
+          mainServerCommands.push(cmdJSON);
         }
       });
-      
-      // Register main server commands
-      if (mainServerCommands.length > 0 && MAIN_SERVER_ID) {
-        console.log(`📝 Registering ${mainServerCommands.length} commands to main server (${MAIN_SERVER_ID}):`, mainServerCommands.map(c => c.name).join(', '));
-        await rest.put(
-          Routes.applicationGuildCommands(client.user.id, MAIN_SERVER_ID),
-          { body: mainServerCommands }
-        );
-        console.log(`✅ Main server commands registered`);
+
+      if (process.env.GUILD_ID) {
+        await rest.put(Routes.applicationGuildCommands(client.user.id, process.env.GUILD_ID), { body: mainServerCommands });
       }
+      await rest.put(Routes.applicationGuildCommands(client.user.id, CORP_SERVER_ID), { body: corpServerCommands });
       
-      // Register corporate server commands
-      if (corpServerCommands.length > 0) {
-        console.log(`📝 Registering ${corpServerCommands.length} commands to corporate server (${CORP_SERVER_ID}):`, corpServerCommands.map(c => c.name).join(', '));
-        await rest.put(
-          Routes.applicationGuildCommands(client.user.id, CORP_SERVER_ID),
-          { body: corpServerCommands }
-        );
-        console.log(`✅ Corporate server commands registered`);
-      }
-      
-      console.log('✅ All commands registered successfully');
+      console.log('✅ Slash commands synced.');
     } catch (err) {
       console.error('❌ Failed to register commands:', err);
     }
   });
 
+  // Events
   require('./events/countingGame')(client);
 
   client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isCommand()) return;
-    global.requestsToday = (global.requestsToday || 0) + 1;
+    if (!interaction.isChatInputCommand()) return;
+    global.requestsToday++;
 
     const command = client.commands.get(interaction.commandName);
-    if (!command) {
-      console.warn(`⚠ Unknown command: ${interaction.commandName}`);
-      return;
-    }
+    if (!command) return;
 
     try {
-      console.log(`⚡ Executing command: ${interaction.commandName} by ${interaction.user.tag}`);
       await command.execute(interaction);
     } catch (err) {
-      console.error(`❌ Error executing ${interaction.commandName}:`, err);
-      const errorMessage = { content: '❌ Error executing command.', ephemeral: true };
-      
+      console.error(`❌ Execution error (${interaction.commandName}):`, err);
+      const msg = { content: '❌ An error occurred while running this command.', ephemeral: true };
       if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorMessage).catch(() => {});
+        await interaction.followUp(msg).catch(() => {});
       } else {
-        await interaction.reply(errorMessage).catch(() => {});
+        await interaction.reply(msg).catch(() => {});
       }
     }
   });
 
-  client.on('error', err => { console.error('❌ Client error:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
-  process.on('uncaughtException', err => { console.error('❌ Uncaught exception:', err); global.incidentsToday = (global.incidentsToday || 0) + 1; });
-
   client.on('guildMemberAdd', async member => {
     try {
-      const dm = await member.createDM();
       const embed = new EmbedBuilder()
         .setTitle('👋 Welcome!')
-        .setDescription(`Hello ${member}, welcome to Mochi Bar's Discord server!\n\n` +
-                        `Be sure to /verify with Bloxlink in <#1365990340011753502>!\n\n` +
-                        `🎉 You are our **#${member.guild.memberCount}** member!`)
+        .setDescription(`Hello ${member}, welcome to Mochi Bar!\n\nVerify in <#1365990340011753502>.\n\nYou are member **#${member.guild.memberCount}**!`)
         .setColor(0x00FFFF)
         .setTimestamp();
-      await dm.send({ embeds: [embed] });
-    } catch (err) {
-      console.warn(`⚠ Failed to DM ${member.user.tag}:`, err);
+      await member.send({ embeds: [embed] });
+    } catch {
+      console.warn(`Could not DM ${member.user.tag}.`);
     }
   });
 
+  client.on('error', err => { console.error('Client Error:', err); global.incidentsToday++; });
+  process.on('uncaughtException', err => { console.error('Uncaught Exception:', err); global.incidentsToday++; });
+
   await client.login(process.env.DISCORD_TOKEN);
-  return client;
 }
 
 module.exports = { startBot };
