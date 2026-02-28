@@ -8,6 +8,42 @@ const https = require('https');
 
 const ALLOWED_ROLE_ID = '1468537071168913500';
 
+// ----------------------------
+// Wait until Discord API is reachable (not rate limited)
+// Retries every 60 seconds, logs countdown
+// ----------------------------
+async function waitForDiscordAccess() {
+  const CHECK_INTERVAL = 60000; // 60 seconds
+  let attempt = 0;
+
+  while (true) {
+    attempt++;
+    const reachable = await new Promise((resolve) => {
+      https.get('https://discord.com/api/v10/gateway', (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode === 200) {
+            console.log(`✅ Discord API reachable! (attempt ${attempt})`);
+            resolve(true);
+          } else {
+            console.warn(`⏳ Still rate limited (attempt ${attempt}) — Status: ${res.statusCode}, Code: ${data.trim()}`);
+            console.warn(`   Retrying in 60 seconds...`);
+            resolve(false);
+          }
+        });
+      }).on('error', (err) => {
+        console.error(`❌ Network error reaching Discord (attempt ${attempt}): ${err.message}`);
+        console.warn(`   Retrying in 60 seconds...`);
+        resolve(false);
+      });
+    });
+
+    if (reachable) return;
+    await new Promise(resolve => setTimeout(resolve, CHECK_INTERVAL));
+  }
+}
+
 async function startBot() {
   const client = new Client({
     intents: [
@@ -223,26 +259,11 @@ async function startBot() {
   });
 
   // ----------------------------
-  // Network Diagnostic (remove after debugging)
+  // Wait for rate limit to clear, then login
   // ----------------------------
-  console.log('🌐 Testing network connectivity to Discord...');
-  await new Promise((resolve) => {
-    https.get('https://discord.com/api/v10/gateway', (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        console.log('🌐 Discord API reachable! Status:', res.statusCode, '| Response:', data);
-        resolve();
-      });
-    }).on('error', (err) => {
-      console.error('❌ Cannot reach Discord API:', err.message, '| Code:', err.code);
-      resolve();
-    });
-  });
+  console.log('🌐 Checking Discord API access before login...');
+  await waitForDiscordAccess();
 
-  // ----------------------------
-  // Login
-  // ----------------------------
   console.log('🔑 Attempting Discord login...');
   await client.login(process.env.DISCORD_TOKEN);
   console.log('✅ Login accepted — waiting for gateway ready event...');
