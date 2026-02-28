@@ -207,6 +207,7 @@ async function startBot() {
     }
   });
 
+  console.log('🔑 Attempting login with token starting:', process.env.DISCORD_TOKEN?.substring(0, 10));
   await client.login(process.env.DISCORD_TOKEN);
   return client;
 }
