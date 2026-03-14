@@ -36,6 +36,7 @@ function ensureGameData(game) {
     game.topPlayers     = game.topPlayers     ?? {};
     game.freePasses     = game.freePasses     ?? {};
     game.milestoneCount = game.milestoneCount ?? {};
+    game.lastFailNumber = game.lastFailNumber ?? null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,9 +74,10 @@ module.exports = (client) => {
 
             await message.react('❌').catch(() => {});
 
-            const failedNumber = expectedNumber;
-            game.currentNumber = 0;
-            game.lastUserId    = null;
+            const failedNumber   = expectedNumber;
+            game.lastFailNumber = failedNumber - 1; // restore point = last correct number
+            game.currentNumber  = 0;
+            game.lastUserId     = null;
 
             // Reset milestone progress for the user who failed
             game.milestoneCount[userId] = 0;
