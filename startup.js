@@ -76,14 +76,37 @@ async function main() {
     ]);
     global.discordClient = client;
 
-    // --- RATE LIMIT MONITORING (Addressing Clyde's advice) ---
-    client.on('rateLimit', (info) => {
-      console.warn(`⚠️ [DISCORD RATE LIMIT] 
-        Scope: ${info.global ? 'GLOBAL' : 'ROUTE'} 
-        Timeout: ${info.timeout}ms 
-        Path: ${info.path} 
-        Limit: ${info.limit}`);
-    });
+    // --- ADVANCED HEADER MONITORING (Implementing Discord Support's Advice) ---
+    if (client.rest) {
+      // 1. Intercept raw HTTP responses to read specific headers
+      client.rest.on('response', (request, response) => {
+        // Read the exact headers Discord Support asked you to look for
+        const scope = response.headers.get('x-ratelimit-scope');
+        const bucket = response.headers.get('x-ratelimit-bucket');
+        const remaining = response.headers.get('x-ratelimit-remaining');
+
+        // Trigger logs if a scope is provided OR if we are running low on remaining requests (< 3)
+        if (scope || (remaining && parseInt(remaining) < 3)) {
+          console.log(`\n📊 [API HEADER LOG] -> ${request.method} ${request.path}`);
+          if (scope) console.log(`   -> X-RateLimit-Scope: ${scope}`);
+          if (bucket) console.log(`   -> X-RateLimit-Bucket: ${bucket}`);
+          console.log(`   -> X-RateLimit-Remaining: ${remaining || 'Unknown'}`);
+        }
+      });
+
+      // 2. Listen for the actual rate limit triggers (Discord.js v14 standard)
+      client.rest.on('rateLimited', (info) => {
+        console.warn(`\n⚠️ [RATE LIMIT HIT / THROTTLED]`);
+        console.warn(`   Scope Check: ${info.global ? 'GLOBAL' : 'ROUTE (Check bucket above for shared/user status)'}`);
+        console.warn(`   Route: ${info.route}`);
+        console.warn(`   Time to wait: ${info.timeToReset}ms`);
+      });
+    } else {
+      // Fallback just in case you are using an older version of discord.js (v13)
+      client.on('rateLimit', (info) => {
+        console.warn(`\n⚠️ [RATE LIMIT] Scope: ${info.global ? 'GLOBAL' : 'ROUTE'} | Timeout: ${info.timeout}ms | Path: ${info.path}`);
+      });
+    }
 
     console.log('✅ Discord bot successfully connected');
   } catch (err) {
@@ -112,7 +135,6 @@ async function main() {
     try {
       const pending = await db.getPendingNotifications();
       for (const row of pending) {
-        // Step A: Check Cache First (Avoids X-RateLimit-Scope: user)
         let user = client.users.cache.get(row.discord_id);
         
         try {
@@ -137,12 +159,11 @@ async function main() {
             await user.send({ embeds: [embed] });
             await db.markRequestNotified(row.id);
 
-            // Step B: Sleep 500ms between DMs (Prevents X-RateLimit-Bucket exhaustion)
+            // Sleep 500ms between DMs (Prevents X-RateLimit-Bucket exhaustion)
             await new Promise(r => setTimeout(r, 500));
           }
         } catch (dmErr) {
           console.warn(`DM failed for ${row.discord_id}:`, dmErr.message);
-          // If we hit a 403 (DMs closed), mark as notified anyway to stop loop
           if (dmErr.code === 50007) await db.markRequestNotified(row.id);
         }
       }
@@ -151,7 +172,6 @@ async function main() {
     }
   }
 
-  // Polling every 10 seconds (Slightly slower to preserve Global Limit)
   setInterval(pollAndNotify, 10000);
 
   // ----------------------------
@@ -159,7 +179,6 @@ async function main() {
   // ----------------------------
   if (client) {
     console.log('🚀 Audit Log Monitor Initializing...');
-    // Extended to 45s (Audit logs are heavy and hit X-RateLimit-Scope: shared)
     setInterval(() => {
       checkAuditLogs(client, '35807738');
     }, 45000);
