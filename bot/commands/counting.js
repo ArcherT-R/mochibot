@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ChannelType, EmbedBuilder } = require('discord.js');
-const ALLOWED_ROLE_ID = '1468537071168913500';
+const ALLOWED_ROLE_ID = '1468486023183863869';
 
 module.exports = {
     data: new SlashCommandBuilder()
