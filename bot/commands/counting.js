@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, ChannelType, EmbedBuilder } = require('discord.js');
 
-const ALLOWED_ROLE_ID = '1468537071168913500';
-const FREE_PASS_MILESTONE = 100; // Every X correct counts = 1 free pass
+const STAFF_ROLE_ID = '1468486541172281395'; // Only needed for /counting setup
+const FREE_PASS_MILESTONE = 100;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  EMBED BUILDERS
@@ -53,17 +53,14 @@ function buildFreePassEarnedEmbed() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  HELPERS
+//  HELPER — ensure new fields exist on old saves
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Ensures all required fields exist on game data (safe migration for old saves).
- */
 function ensureGameData(game) {
     game.highestNumber  = game.highestNumber  ?? 0;
     game.topPlayers     = game.topPlayers     ?? {};
     game.freePasses     = game.freePasses     ?? {};
-    game.milestoneCount = game.milestoneCount ?? {}; // tracks progress toward next free pass per user
+    game.milestoneCount = game.milestoneCount ?? {};
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -84,32 +81,25 @@ function registerMessageHandler(client) {
 
         const now = Date.now();
 
-        // Prevent duplicate responses
         if (lastResponseSent.messageId === message.id && (now - lastResponseSent.timestamp) < 2000) {
             console.log('🚫 Blocked duplicate for:', message.id);
             return;
         }
 
         const expectedNumber = game.currentNumber + 1;
-        const userNumber = parseInt(message.content.trim());
-        const userId = message.author.id;
+        const userNumber     = parseInt(message.content.trim());
+        const userId         = message.author.id;
 
-        // ── FAILURE HANDLER ──────────────────────────────────────────────────
-        const handleFailure = async (reason) => {
+        const handleFailure = async () => {
             lastResponseSent.messageId = message.id;
             lastResponseSent.timestamp = now;
 
             await message.react('❌').catch(() => {});
 
             const failedNumber = expectedNumber;
-
-            // Reset game state
             game.currentNumber = 0;
-            game.lastUserId = null;
-            // Reset this user's milestone progress on fail
-            if (game.milestoneCount[userId]) {
-                game.milestoneCount[userId] = 0;
-            }
+            game.lastUserId    = null;
+            game.milestoneCount[userId] = 0;
 
             client.saveBotData().catch(err => console.error("Save error:", err));
 
@@ -119,42 +109,28 @@ function registerMessageHandler(client) {
             });
         };
 
-        // ── VALIDATION ───────────────────────────────────────────────────────
-        if (isNaN(userNumber) || userNumber !== expectedNumber) {
-            return handleFailure("incorrect number or format");
-        }
-        if (message.author.id === game.lastUserId) {
-            return handleFailure("tried to count twice in a row");
-        }
+        if (isNaN(userNumber) || userNumber !== expectedNumber) return handleFailure();
+        if (userId === game.lastUserId) return handleFailure();
 
         // ── CORRECT COUNT ────────────────────────────────────────────────────
         lastResponseSent.messageId = message.id;
         lastResponseSent.timestamp = now;
 
         game.currentNumber = userNumber;
-        game.lastUserId = userId;
+        game.lastUserId    = userId;
 
-        // Update highest number
-        if (userNumber > (game.highestNumber ?? 0)) {
-            game.highestNumber = userNumber;
-        }
+        if (userNumber > game.highestNumber) game.highestNumber = userNumber;
 
-        // Update top players (count of correct numbers per user)
-        game.topPlayers[userId] = (game.topPlayers[userId] ?? 0) + 1;
-
-        // Track milestone progress for free passes
+        game.topPlayers[userId]     = (game.topPlayers[userId]     ?? 0) + 1;
         game.milestoneCount[userId] = (game.milestoneCount[userId] ?? 0) + 1;
-        const earnedPass = game.milestoneCount[userId] > 0 && game.milestoneCount[userId] % FREE_PASS_MILESTONE === 0;
 
-        if (earnedPass) {
-            game.freePasses[userId] = (game.freePasses[userId] ?? 0) + 1;
-        }
+        const earnedPass = game.milestoneCount[userId] % FREE_PASS_MILESTONE === 0;
+        if (earnedPass) game.freePasses[userId] = (game.freePasses[userId] ?? 0) + 1;
 
         client.saveBotData().catch(err => console.error("Save error:", err));
 
         await message.react('✅').catch(() => {});
 
-        // Send free pass earned embed if milestone hit
         if (earnedPass) {
             await message.channel.send({
                 embeds: [buildFreePassEarnedEmbed()],
@@ -189,31 +165,28 @@ module.exports = {
                 .setDescription('Shows the current counting game stats.')
         ),
 
-    // Call this once from your main bot file: require('./countingHandler').register(client)
     register: registerMessageHandler,
 
     async execute(interaction) {
         try {
-            // Permission check
-            if (!interaction.member.roles.cache.has(ALLOWED_ROLE_ID)) {
-                return interaction.reply({
-                    content: "You need the specific staff role to use this command.",
-                    ephemeral: true
-                });
-            }
-
             const client = interaction.client;
             const subcommand = interaction.options.getSubcommand();
 
-            // ── SETUP ─────────────────────────────────────────────────────────
+            // ── SETUP — staff only ────────────────────────────────────────────
             if (subcommand === 'setup') {
+                if (!interaction.member.roles.cache.has(STAFF_ROLE_ID)) {
+                    return interaction.reply({
+                        content: "❌ You need the staff role to use this command.",
+                        ephemeral: true
+                    });
+                }
+
                 const channel = interaction.options.getChannel('channel');
 
                 if (!client.botData) {
                     client.botData = { linkedUsers: { discordToRoblox: {}, robloxToDiscord: {} } };
                 }
 
-                // Preserve existing highestNumber, topPlayers, freePasses, milestoneCount on reset
                 const existing = client.botData.countingGame ?? {};
                 client.botData.countingGame = {
                     channelId:      channel.id,
@@ -236,11 +209,11 @@ module.exports = {
                 return;
             }
 
-            // ── STATUS ────────────────────────────────────────────────────────
+            // ── STATUS — open to everyone ─────────────────────────────────────
             if (subcommand === 'status') {
                 if (!client.botData?.countingGame?.channelId) {
                     return interaction.reply({
-                        content: "❌ The Counting game is not set up. Use `/counting setup` first.",
+                        content: "❌ The Counting game is not set up yet.",
                         ephemeral: true
                     });
                 }
