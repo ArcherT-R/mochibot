@@ -820,11 +820,11 @@ async function getVerificationRequestByDiscordId(discordId) {
 }
 
 async function getAllLiveSessions() {
-  const params = {
-    TableName: "player_live",
-  };
-  const result = await dynamodb.scan(params).promise();
-  return result.Items;
+  const { data, error } = await supabase
+    .from("player_live")
+    .select("*");
+  if (error) throw error;
+  return data || [];
 }
 
 // -------------------------
