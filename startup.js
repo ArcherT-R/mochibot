@@ -3,11 +3,10 @@ const path = require('path');
 const session = require('express-session');
 const { startBot } = require('./bot/client');
 const { checkAuditLogs } = require('./bot/auditMonitor');
+const db = require('./endpoints/database'); // Moved up for availability
 
 async function main() {
-  // ----------------------------
   // 1. Environment & Secrets
-  // ----------------------------
   require('dotenv').config({ path: '/etc/secrets/.env' });
   if (!process.env.DISCORD_TOKEN) {
     require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -18,12 +17,24 @@ async function main() {
   console.log('   DISCORD_TOKEN :', process.env.DISCORD_TOKEN ? '✅ Loaded' : '❌ MISSING');
   console.log('   GUILD_ID      :', process.env.GUILD_ID      ? '✅ Loaded' : '❌ MISSING');
   console.log('   CLIENT_ID     :', process.env.CLIENT_ID     ? '✅ Loaded' : '❌ MISSING');
-  console.log('   COOKIE        :', process.env.COOKIE ? '✅ Loaded' : '⚠️  MISSING');
   console.log('─────────────────────────────────────');
 
   // ----------------------------
-  // 2. Express Setup
+  // 2. Database Health Check (CRITICAL)
   // ----------------------------
+  // This prevents the bot from trying to start if Supabase is "sleeping"
+  try {
+    console.log('📡 Checking Supabase connection...');
+    // Assuming your db module has a simple health check or query
+    await db.raw('SELECT 1').catch(() => { throw new Error("DB not responding"); });
+    console.log('✅ Database is Awake');
+  } catch (err) {
+    console.error('❌ Supabase is INACTIVE. Please wake it up in the dashboard!');
+    // We exit here so Render doesn't just loop a broken app
+    process.exit(1);
+  }
+
+  // 3. Express Setup
   const app = express();
   app.use(session({
     secret: process.env.SESSION_SECRET || 'supersecretkey',
@@ -52,96 +63,68 @@ async function main() {
   app.get('/health', (req, res) => {
     res.json({
       status: 'healthy',
-      discord: global.discordClient ? 'connected' : 'disconnected',
+      discord: global.discordClient?.isReady() ? 'connected' : 'connecting',
       uptime: process.uptime()
     });
   });
 
   const PORT = process.env.PORT || 3000;
   const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 Server running on port ${PORT}`);
+    console.log(`\n🚀 Web Server running on port ${PORT}`);
   });
 
   // ----------------------------
-  // 3. Rate-Limit Aware Bot Setup
+  // 4. Safe Bot Setup
   // ----------------------------
   let client = null;
   try {
-    console.log('🤖 Starting Discord bot...');
-    client = await Promise.race([
-      startBot(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Bot login timed out after 30s')), 30000)
-      )
-    ]);
+    console.log('🤖 Attempting Discord login...');
+    
+    // REMOVED Promise.race. Discord.js handles its own retries/backoff.
+    // Crashing at 30s was creating the "Attempt 3000" loop.
+    client = await startBot(); 
     global.discordClient = client;
 
-    // --- ADVANCED HEADER MONITORING (Implementing Discord Support's Advice) ---
+    // Rate Limit Monitoring
     if (client.rest) {
-      // 1. Intercept raw HTTP responses to read specific headers
       client.rest.on('response', (request, response) => {
-        // Read the exact headers Discord Support asked you to look for
-        const scope = response.headers.get('x-ratelimit-scope');
-        const bucket = response.headers.get('x-ratelimit-bucket');
         const remaining = response.headers.get('x-ratelimit-remaining');
-
-        // Trigger logs if a scope is provided OR if we are running low on remaining requests (< 3)
-        if (scope || (remaining && parseInt(remaining) < 3)) {
-          console.log(`\n📊 [API HEADER LOG] -> ${request.method} ${request.path}`);
-          if (scope) console.log(`   -> X-RateLimit-Scope: ${scope}`);
-          if (bucket) console.log(`   -> X-RateLimit-Bucket: ${bucket}`);
-          console.log(`   -> X-RateLimit-Remaining: ${remaining || 'Unknown'}`);
+        if (remaining && parseInt(remaining) < 3) {
+          console.warn(`📊 [Low RateLimit] ${request.method} ${request.path} | Remaining: ${remaining}`);
         }
       });
 
-      // 2. Listen for the actual rate limit triggers (Discord.js v14 standard)
       client.rest.on('rateLimited', (info) => {
-        console.warn(`\n⚠️ [RATE LIMIT HIT / THROTTLED]`);
-        console.warn(`   Scope Check: ${info.global ? 'GLOBAL' : 'ROUTE (Check bucket above for shared/user status)'}`);
-        console.warn(`   Route: ${info.route}`);
-        console.warn(`   Time to wait: ${info.timeToReset}ms`);
-      });
-    } else {
-      // Fallback just in case you are using an older version of discord.js (v13)
-      client.on('rateLimit', (info) => {
-        console.warn(`\n⚠️ [RATE LIMIT] Scope: ${info.global ? 'GLOBAL' : 'ROUTE'} | Timeout: ${info.timeout}ms | Path: ${info.path}`);
+        console.warn(`⚠️ [RATE LIMITED] Reset in ${info.timeToReset}ms`);
       });
     }
 
     console.log('✅ Discord bot successfully connected');
-  } catch (err) {
-    console.error('⚠️  Discord bot failed to start:', err.message);
-  }
 
-  // ----------------------------
-  // 4. Dynamic Route Injection
-  // ----------------------------
-  if (client) {
+    // ----------------------------
+    // 5. Post-Login Background Tasks
+    // ----------------------------
+    // ONLY start these if the client successfully logged in
     app.use('/sessions', require('./endpoints/sessions')(client));
     app.use('/sotw-role', require('./endpoints/sotw-role')(client));
-  } else {
-    app.use(['/sessions', '/sotw-role'], (_, res) =>
-      res.status(503).json({ error: 'Discord bot not available' })
-    );
+
+    console.log('🚀 Starting Background Monitors...');
+    setInterval(pollAndNotify, 15000); // Relaxed to 15s to save API credits
+    setInterval(() => checkAuditLogs(client, '35807738'), 60000); // 60s for stability
+
+  } catch (err) {
+    console.error('❌ Discord bot failed to start:', err.message);
+    process.exit(1); 
   }
 
-  // ----------------------------
-  // 5. Optimized Polling (DMs)
-  // ----------------------------
-  const db = require('./endpoints/database');
-
+  // Polling Logic (Moved inside main for access to client)
   async function pollAndNotify() {
-    if (!client) return;
+    if (!client || !client.isReady()) return;
     try {
       const pending = await db.getPendingNotifications();
       for (const row of pending) {
-        let user = client.users.cache.get(row.discord_id);
-        
         try {
-          if (!user) {
-            user = await client.users.fetch(row.discord_id);
-          }
-
+          const user = await client.users.fetch(row.discord_id);
           if (user) {
             const embed = {
               title: '✅ Verification Complete',
@@ -149,18 +132,14 @@ async function main() {
               color: 0x3498db,
               fields: [
                 { name: '🔑 One-Time Password', value: `\`${row.one_time_token}\``, inline: false },
-                { name: '⏰ Expires', value: `${new Date(row.token_expires_at).toLocaleString()}`, inline: true },
-                { name: '🌐 Login Link', value: '[Mochi Bar Dashboard](https://cuse-k2yi.onrender.com/loginpage/login)', inline: true }
+                { name: '🌐 Login Link', value: '[Dashboard](https://cuse-k2yi.onrender.com/loginpage/login)', inline: true }
               ],
-              footer: { text: 'Save this password immediately!' },
               timestamp: new Date().toISOString()
             };
 
             await user.send({ embeds: [embed] });
             await db.markRequestNotified(row.id);
-
-            // Sleep 500ms between DMs (Prevents X-RateLimit-Bucket exhaustion)
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 1000)); // 1s delay between DMs
           }
         } catch (dmErr) {
           console.warn(`DM failed for ${row.discord_id}:`, dmErr.message);
@@ -172,27 +151,7 @@ async function main() {
     }
   }
 
-  setInterval(pollAndNotify, 10000);
-
-  // ----------------------------
-  // 6. Optimized Audit Monitor
-  // ----------------------------
-  if (client) {
-    console.log('🚀 Audit Log Monitor Initializing...');
-    setInterval(() => {
-      checkAuditLogs(client, '35807738');
-    }, 45000);
-  }
-
-  // ----------------------------
-  // 7. Error & Shutdown
-  // ----------------------------
-  app.use((req, res) => res.status(404).json({ error: 'Endpoint not found' }));
-  app.use((err, req, res, next) => {
-    console.error('❌ Server Error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  });
-
+  // Shutdown Logic
   const shutdown = () => {
     console.log('🛑 Shutting down...');
     if (client) client.destroy();
