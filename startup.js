@@ -23,16 +23,32 @@ async function main() {
   // 2. Database Health Check (CRITICAL)
   // ----------------------------
   // This prevents the bot from trying to start if Supabase is "sleeping"
+// --- DATABASE RESILIENCE CHECK ---
+let dbAwake = false;
+let retries = 5;
+
+while (!dbAwake && retries > 0) {
   try {
-    console.log('📡 Checking Supabase connection...');
-    // Assuming your db module has a simple health check or query
-    await db.raw('SELECT 1').catch(() => { throw new Error("DB not responding"); });
+    console.log(`📡 checking Supabase connection... (Attempts left: ${retries})`);
+    
+    // We just try to fetch 1 row from any table (like 'players') 
+    // to see if the connection is alive.
+    const { error } = await db.getPlayerByRobloxId(1); 
+    
+    // If it's a network error (no response), it will throw. 
+    // If it's just "user not found", it means the DB is awake!
+    dbAwake = true;
     console.log('✅ Database is Awake');
   } catch (err) {
-    console.error('❌ Supabase is INACTIVE. Please wake it up in the dashboard!');
-    // We exit here so Render doesn't just loop a broken app
-    process.exit(1);
+    retries--;
+    if (retries === 0) {
+      console.error('❌ Supabase failed to respond after 5 attempts.');
+      process.exit(1); 
+    }
+    console.log('⏳ Supabase is likely warming up... waiting 10s...');
+    await new Promise(res => setTimeout(res, 10000)); // 10s delay gives it more time
   }
+}
 
   // 3. Express Setup
   const app = express();
