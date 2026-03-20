@@ -3,10 +3,12 @@ const path = require('path');
 const session = require('express-session');
 const { startBot } = require('./bot/client');
 const { checkAuditLogs } = require('./bot/auditMonitor');
-const db = require('./endpoints/database'); // Moved up for availability
+const db = require('./endpoints/database');
 
 async function main() {
+  // ----------------------------
   // 1. Environment & Secrets
+  // ----------------------------
   require('dotenv').config({ path: '/etc/secrets/.env' });
   if (!process.env.DISCORD_TOKEN) {
     require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -17,40 +19,37 @@ async function main() {
   console.log('   DISCORD_TOKEN :', process.env.DISCORD_TOKEN ? '✅ Loaded' : '❌ MISSING');
   console.log('   GUILD_ID      :', process.env.GUILD_ID      ? '✅ Loaded' : '❌ MISSING');
   console.log('   CLIENT_ID     :', process.env.CLIENT_ID     ? '✅ Loaded' : '❌ MISSING');
+  console.log('   SUPABASE_KEY  :', process.env.SUPABASE_KEY  ? '✅ Loaded' : '❌ MISSING');
   console.log('─────────────────────────────────────');
 
   // ----------------------------
-  // 2. Database Health Check (CRITICAL)
+  // 2. Database Resilience Loop
   // ----------------------------
-  // This prevents the bot from trying to start if Supabase is "sleeping"
-// --- DATABASE RESILIENCE CHECK ---
-let dbAwake = false;
-let retries = 5;
+  // This prevents the "Inactive" crash by waiting for Supabase to wake up
+  let dbAwake = false;
+  let dbRetries = 5;
 
-while (!dbAwake && retries > 0) {
-  try {
-    console.log(`📡 checking Supabase connection... (Attempts left: ${retries})`);
-    
-    // We just try to fetch 1 row from any table (like 'players') 
-    // to see if the connection is alive.
-    const { error } = await db.getPlayerByRobloxId(1); 
-    
-    // If it's a network error (no response), it will throw. 
-    // If it's just "user not found", it means the DB is awake!
-    dbAwake = true;
-    console.log('✅ Database is Awake');
-  } catch (err) {
-    retries--;
-    if (retries === 0) {
-      console.error('❌ Supabase failed to respond after 5 attempts.');
-      process.exit(1); 
+  while (!dbAwake && dbRetries > 0) {
+    try {
+      console.log(`📡 Testing Supabase connection... (Attempt ${6 - dbRetries}/5)`);
+      // Use an existing function to test connectivity
+      await db.getPlayerByRobloxId(1); 
+      dbAwake = true;
+      console.log('✅ Database is Awake and Responding');
+    } catch (err) {
+      dbRetries--;
+      if (dbRetries === 0) {
+        console.error('❌ Supabase failed to respond. Please check your service_role key!');
+        process.exit(1); 
+      }
+      console.log('⏳ Supabase warming up or rate-limited... waiting 10s...');
+      await new Promise(res => setTimeout(res, 10000));
     }
-    console.log('⏳ Supabase is likely warming up... waiting 10s...');
-    await new Promise(res => setTimeout(res, 10000)); // 10s delay gives it more time
   }
-}
 
+  // ----------------------------
   // 3. Express Setup
+  // ----------------------------
   const app = express();
   app.use(session({
     secret: process.env.SESSION_SECRET || 'supersecretkey',
@@ -95,13 +94,11 @@ while (!dbAwake && retries > 0) {
   let client = null;
   try {
     console.log('🤖 Attempting Discord login...');
-    
-    // REMOVED Promise.race. Discord.js handles its own retries/backoff.
-    // Crashing at 30s was creating the "Attempt 3000" loop.
+    // Removed Promise.race to prevent zombie processes
     client = await startBot(); 
     global.discordClient = client;
 
-    // Rate Limit Monitoring
+    // Advanced Header Monitoring
     if (client.rest) {
       client.rest.on('response', (request, response) => {
         const remaining = response.headers.get('x-ratelimit-remaining');
@@ -118,56 +115,55 @@ while (!dbAwake && retries > 0) {
     console.log('✅ Discord bot successfully connected');
 
     // ----------------------------
-    // 5. Post-Login Background Tasks
+    // 5. Dynamic Route Injection
     // ----------------------------
-    // ONLY start these if the client successfully logged in
     app.use('/sessions', require('./endpoints/sessions')(client));
     app.use('/sotw-role', require('./endpoints/sotw-role')(client));
 
+    // ----------------------------
+    // 6. Background Tasks (Safe Interval)
+    // ----------------------------
     console.log('🚀 Starting Background Monitors...');
-    setInterval(pollAndNotify, 15000); // Relaxed to 15s to save API credits
-    setInterval(() => checkAuditLogs(client, '35807738'), 60000); // 60s for stability
+    
+    // Polling Notifications
+    setInterval(async () => {
+      if (!client?.isReady()) return;
+      try {
+        const pending = await db.getPendingNotifications();
+        for (const row of pending) {
+          const user = await client.users.fetch(row.discord_id).catch(() => null);
+          if (user) {
+            await user.send({
+              embeds: [{
+                title: '✅ Verification Complete',
+                description: `User **${row.claimed_by_username}** claimed your code.`,
+                color: 0x3498db,
+                fields: [
+                  { name: '🔑 Password', value: `\`${row.one_time_token}\`` },
+                  { name: '🌐 Login', value: '[Mochi Bar](https://cuse-k2yi.onrender.com/loginpage/login)' }
+                ]
+              }]
+            });
+            await db.markRequestNotified(row.id);
+            await new Promise(r => setTimeout(r, 1000)); // 1s safety delay
+          }
+        }
+      } catch (err) {
+        console.error('Poll error:', err.message);
+      }
+    }, 20000); // 20s interval to stay under rate limits
+
+    // Audit Log Monitor
+    setInterval(() => {
+      checkAuditLogs(client, '35807738');
+    }, 60000); 
 
   } catch (err) {
     console.error('❌ Discord bot failed to start:', err.message);
-    process.exit(1); 
+    process.exit(1); // Kill app to prevent "Attempt 3000" loops
   }
 
-  // Polling Logic (Moved inside main for access to client)
-  async function pollAndNotify() {
-    if (!client || !client.isReady()) return;
-    try {
-      const pending = await db.getPendingNotifications();
-      for (const row of pending) {
-        try {
-          const user = await client.users.fetch(row.discord_id);
-          if (user) {
-            const embed = {
-              title: '✅ Verification Complete',
-              description: `Roblox user **${row.claimed_by_username}** has claimed your code.`,
-              color: 0x3498db,
-              fields: [
-                { name: '🔑 One-Time Password', value: `\`${row.one_time_token}\``, inline: false },
-                { name: '🌐 Login Link', value: '[Dashboard](https://cuse-k2yi.onrender.com/loginpage/login)', inline: true }
-              ],
-              timestamp: new Date().toISOString()
-            };
-
-            await user.send({ embeds: [embed] });
-            await db.markRequestNotified(row.id);
-            await new Promise(r => setTimeout(r, 1000)); // 1s delay between DMs
-          }
-        } catch (dmErr) {
-          console.warn(`DM failed for ${row.discord_id}:`, dmErr.message);
-          if (dmErr.code === 50007) await db.markRequestNotified(row.id);
-        }
-      }
-    } catch (err) {
-      console.error('Poll error:', err);
-    }
-  }
-
-  // Shutdown Logic
+  // 7. Shutdown
   const shutdown = () => {
     console.log('🛑 Shutting down...');
     if (client) client.destroy();
