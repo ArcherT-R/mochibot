@@ -1,14 +1,13 @@
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const axios = require('axios'); // Add axios for pre-flight checks
 const { startBot } = require('./bot/client');
 const { checkAuditLogs } = require('./bot/auditMonitor');
 const db = require('./endpoints/database');
 
 async function main() {
-  // ----------------------------
   // 1. Environment & Secrets
-  // ----------------------------
   require('dotenv').config({ path: '/etc/secrets/.env' });
   if (!process.env.DISCORD_TOKEN) {
     require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -17,39 +16,42 @@ async function main() {
   console.log('─────────────────────────────────────');
   console.log('🔍 Environment Check:');
   console.log('   DISCORD_TOKEN :', process.env.DISCORD_TOKEN ? '✅ Loaded' : '❌ MISSING');
-  console.log('   GUILD_ID      :', process.env.GUILD_ID      ? '✅ Loaded' : '❌ MISSING');
-  console.log('   CLIENT_ID     :', process.env.CLIENT_ID     ? '✅ Loaded' : '❌ MISSING');
   console.log('   SUPABASE_KEY  :', process.env.SUPABASE_KEY  ? '✅ Loaded' : '❌ MISSING');
   console.log('─────────────────────────────────────');
 
-  // ----------------------------
+  // 🛡️ ANTI-1015 PRE-FLIGHT CHECK
+  // Check if the current Render IP is already banned before even trying to login
+  try {
+    console.log('🌐 Checking Discord API reachability...');
+    await axios.get('https://discord.com/api/v10/gateway', { timeout: 5000 });
+    console.log('✅ Network path to Discord is clear.');
+  } catch (err) {
+    if (err.response && err.response.status === 429) {
+      console.error('❌ CRITICAL: This Render IP is already 1015 rate-limited by Discord.');
+      console.error('🛑 Stopping to avoid worsening the ban. Create a NEW service in a different region.');
+      process.exit(1); 
+    }
+    console.warn('⚠️ Could not verify Discord reachability, proceeding with caution...');
+  }
+
   // 2. Database Resilience Loop
-  // ----------------------------
-  // This prevents the "Inactive" crash by waiting for Supabase to wake up
   let dbAwake = false;
   let dbRetries = 5;
-
   while (!dbAwake && dbRetries > 0) {
     try {
       console.log(`📡 Testing Supabase connection... (Attempt ${6 - dbRetries}/5)`);
-      // Use an existing function to test connectivity
       await db.getPlayerByRobloxId(1); 
       dbAwake = true;
-      console.log('✅ Database is Awake and Responding');
+      console.log('✅ Database is Awake');
     } catch (err) {
       dbRetries--;
-      if (dbRetries === 0) {
-        console.error('❌ Supabase failed to respond. Please check your service_role key!');
-        process.exit(1); 
-      }
-      console.log('⏳ Supabase warming up or rate-limited... waiting 10s...');
+      if (dbRetries === 0) process.exit(1);
+      console.log('⏳ Supabase warming up... waiting 10s...');
       await new Promise(res => setTimeout(res, 10000));
     }
   }
 
-  // ----------------------------
   // 3. Express Setup
-  // ----------------------------
   const app = express();
   app.use(session({
     secret: process.env.SESSION_SECRET || 'supersecretkey',
@@ -76,11 +78,7 @@ async function main() {
 
   app.get('/', (req, res) => res.redirect('/dashboard'));
   app.get('/health', (req, res) => {
-    res.json({
-      status: 'healthy',
-      discord: global.discordClient?.isReady() ? 'connected' : 'connecting',
-      uptime: process.uptime()
-    });
+    res.json({ status: 'healthy', discord: global.discordClient?.isReady() ? 'connected' : 'connecting' });
   });
 
   const PORT = process.env.PORT || 3000;
@@ -88,44 +86,25 @@ async function main() {
     console.log(`\n🚀 Web Server running on port ${PORT}`);
   });
 
-  // ----------------------------
   // 4. Safe Bot Setup
-  // ----------------------------
   let client = null;
   try {
     console.log('🤖 Attempting Discord login...');
-    // Removed Promise.race to prevent zombie processes
+    // Add a small 2-second delay before login to let the network stabilize
+    await new Promise(r => setTimeout(r, 2000));
+    
     client = await startBot(); 
     global.discordClient = client;
 
-    // Advanced Header Monitoring
-    if (client.rest) {
-      client.rest.on('response', (request, response) => {
-        const remaining = response.headers.get('x-ratelimit-remaining');
-        if (remaining && parseInt(remaining) < 3) {
-          console.warn(`📊 [Low RateLimit] ${request.method} ${request.path} | Remaining: ${remaining}`);
-        }
-      });
-
-      client.rest.on('rateLimited', (info) => {
-        console.warn(`⚠️ [RATE LIMITED] Reset in ${info.timeToReset}ms`);
-      });
-    }
-
     console.log('✅ Discord bot successfully connected');
 
-    // ----------------------------
     // 5. Dynamic Route Injection
-    // ----------------------------
     app.use('/sessions', require('./endpoints/sessions')(client));
     app.use('/sotw-role', require('./endpoints/sotw-role')(client));
 
-    // ----------------------------
-    // 6. Background Tasks (Safe Interval)
-    // ----------------------------
+    // 6. Background Tasks (Polished Intervals)
     console.log('🚀 Starting Background Monitors...');
     
-    // Polling Notifications
     setInterval(async () => {
       if (!client?.isReady()) return;
       try {
@@ -140,30 +119,28 @@ async function main() {
                 color: 0x3498db,
                 fields: [
                   { name: '🔑 Password', value: `\`${row.one_time_token}\`` },
-                  { name: '🌐 Login', value: '[Mochi Bar](https://cuse-k2yi.onrender.com/loginpage/login)' }
+                  { name: '🌐 Login', value: '[Mochi Bar](https://mochibar.onrender.com/loginpage/login)' }
                 ]
               }]
             });
             await db.markRequestNotified(row.id);
-            await new Promise(r => setTimeout(r, 1000)); // 1s safety delay
+            await new Promise(r => setTimeout(r, 2000)); // Increased to 2s delay
           }
         }
       } catch (err) {
         console.error('Poll error:', err.message);
       }
-    }, 20000); // 20s interval to stay under rate limits
+    }, 45000); // Increased to 45s to reduce total API calls
 
-    // Audit Log Monitor
     setInterval(() => {
-      checkAuditLogs(client, '35807738');
-    }, 60000); 
+      if (client?.isReady()) checkAuditLogs(client, '35807738');
+    }, 120000); // Increased to 2 mins
 
   } catch (err) {
     console.error('❌ Discord bot failed to start:', err.message);
-    process.exit(1); // Kill app to prevent "Attempt 3000" loops
+    process.exit(1); 
   }
 
-  // 7. Shutdown
   const shutdown = () => {
     console.log('🛑 Shutting down...');
     if (client) client.destroy();
