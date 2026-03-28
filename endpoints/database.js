@@ -834,7 +834,7 @@ async function getAllLiveSessions() {
 
 async function getCachedBloxlink(discordId) {
   const { data, error } = await supabase
-    .from('USER_LOGGED_BLOXLINK')
+    .from('user_logged_bloxlink')
     .select('roblox_id, cached_at')
     .eq('discord_id', discordId)
     .single();
@@ -844,7 +844,7 @@ async function getCachedBloxlink(discordId) {
 
 async function getCachedBloxlinkByRoblox(robloxId) {
   const { data, error } = await supabase
-    .from('USER_LOGGED_BLOXLINK')
+    .from('user_logged_bloxlink')
     .select('discord_id')
     .eq('roblox_id', robloxId)
     .single();
@@ -854,7 +854,7 @@ async function getCachedBloxlinkByRoblox(robloxId) {
 
 async function saveBloxlinkCache(discordId, robloxId) {
   const { error } = await supabase
-    .from('USER_LOGGED_BLOXLINK')
+    .from('user_logged_bloxlink')
     .upsert([{ discord_id: discordId, roblox_id: robloxId, cached_at: new Date().toISOString() }], { onConflict: 'discord_id' });
   if (error) throw error;
 }
