@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
-const axios = require('axios'); // Add axios for pre-flight checks
+const axios = require('axios');
 const { startBot } = require('./bot/client');
 const { checkAuditLogs } = require('./bot/auditMonitor');
 const db = require('./endpoints/database');
@@ -20,7 +20,6 @@ async function main() {
   console.log('─────────────────────────────────────');
 
   // 🛡️ ANTI-1015 PRE-FLIGHT CHECK
-  // Check if the current Render IP is already banned before even trying to login
   try {
     console.log('🌐 Checking Discord API reachability...');
     await axios.get('https://discord.com/api/v10/gateway', { timeout: 5000 });
@@ -29,7 +28,7 @@ async function main() {
     if (err.response && err.response.status === 429) {
       console.error('❌ CRITICAL: This Render IP is already 1015 rate-limited by Discord.');
       console.error('🛑 Stopping to avoid worsening the ban. Create a NEW service in a different region.');
-      process.exit(1); 
+      process.exit(1);
     }
     console.warn('⚠️ Could not verify Discord reachability, proceeding with caution...');
   }
@@ -40,7 +39,7 @@ async function main() {
   while (!dbAwake && dbRetries > 0) {
     try {
       console.log(`📡 Testing Supabase connection... (Attempt ${6 - dbRetries}/5)`);
-      await db.getPlayerByRobloxId(1); 
+      await db.getPlayerByRobloxId(1);
       dbAwake = true;
       console.log('✅ Database is Awake');
     } catch (err) {
@@ -90,10 +89,9 @@ async function main() {
   let client = null;
   try {
     console.log('🤖 Attempting Discord login...');
-    // Add a small 2-second delay before login to let the network stabilize
     await new Promise(r => setTimeout(r, 2000));
-    
-    client = await startBot(); 
+
+    client = await startBot();
     global.discordClient = client;
 
     console.log('✅ Discord bot successfully connected');
@@ -102,9 +100,9 @@ async function main() {
     app.use('/sessions', require('./endpoints/sessions')(client));
     app.use('/sotw-role', require('./endpoints/sotw-role')(client));
 
-    // 6. Background Tasks (Polished Intervals)
+    // 6. Background Tasks
     console.log('🚀 Starting Background Monitors...');
-    
+
     setInterval(async () => {
       if (!client?.isReady()) return;
       try {
@@ -124,27 +122,36 @@ async function main() {
               }]
             });
             await db.markRequestNotified(row.id);
-            await new Promise(r => setTimeout(r, 2000)); // Increased to 2s delay
+            await new Promise(r => setTimeout(r, 2000));
           }
         }
       } catch (err) {
         console.error('Poll error:', err.message);
       }
-    }, 45000); // Increased to 45s to reduce total API calls
+    }, 45000);
 
     setInterval(() => {
       if (client?.isReady()) checkAuditLogs(client, '35807738');
-    }, 120000); // Increased to 2 mins
+    }, 120000);
 
   } catch (err) {
     console.error('❌ Discord bot failed to start:', err.message);
-    process.exit(1); 
+    process.exit(1);
   }
 
+  // 7. Graceful Shutdown
   const shutdown = () => {
     console.log('🛑 Shutting down...');
     if (client) client.destroy();
-    server.close(() => process.exit(0));
+    server.closeAllConnections?.();
+    server.close(() => {
+      console.log('✅ Server closed cleanly.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.warn('⚠️ Forced exit after timeout.');
+      process.exit(1);
+    }, 10000);
   };
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
