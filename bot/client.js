@@ -8,12 +8,8 @@ const https = require('https');
 
 const ALLOWED_ROLE_ID = '1468537071168913500';
 
-// ----------------------------
-// Wait until Discord API is reachable (not rate limited)
-// Retries every 60 seconds, logs countdown
-// ----------------------------
 async function waitForDiscordAccess() {
-  const CHECK_INTERVAL = 60000; // 60 seconds
+  const CHECK_INTERVAL = 60000;
   let attempt = 0;
 
   while (true) {
@@ -209,6 +205,8 @@ async function startBot() {
 
   client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
+    if (interaction.replied || interaction.deferred) return;
+
     global.requestsToday = (global.requestsToday || 0) + 1;
 
     const command = client.commands.get(interaction.commandName);
@@ -239,6 +237,9 @@ async function startBot() {
   process.on('uncaughtException', err => {
     console.error('❌ Uncaught exception:', err);
     global.incidentsToday = (global.incidentsToday || 0) + 1;
+    if (err.code !== 'ECONNRESET' && err.code !== 'ETIMEDOUT') {
+      process.exit(1);
+    }
   });
 
   client.on('guildMemberAdd', async member => {
