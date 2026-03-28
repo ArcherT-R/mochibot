@@ -1,37 +1,74 @@
-if (interaction.isButton() && interaction.customId === 'fetch_roblox') {
-  await interaction.deferReply({ ephemeral: true });
+// bot/commands/setinforequest.js
+const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, ComponentType } = require('discord.js');
+const { getRobloxId } = require('../../utils/bloxlink');
 
-  const robloxId = await getRobloxId(interaction.user.id);
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('setinforequest')
+    .setDescription('Post a Roblox lookup panel in this channel.'),
 
-  if (!robloxId) {
-    const failEmbed = new EmbedBuilder()
-      .setTitle('❌ Not Found')
-      .setDescription('No Roblox account linked. Please verify with Bloxlink first.')
-      .setColor(0xFF0000);
+  async execute(interaction) {
+    const requiredRoleId = '1468451671805001894';
+    if (!interaction.member.roles.cache.has(requiredRoleId)) {
+      return await interaction.reply({ content: '❌ You do not have permission to use this command.', ephemeral: true });
+    }
 
-    return await interaction.editReply({ embeds: [failEmbed] });
+    const embed = new EmbedBuilder()
+      .setTitle('🔗 Roblox Account Lookup')
+      .setDescription('Click the button below to fetch your linked Roblox account via Bloxlink.')
+      .setColor(0x0099FF);
+
+    const button = new ButtonBuilder()
+      .setCustomId('fetch_roblox')
+      .setLabel('Fetch My Roblox Account')
+      .setStyle(ButtonStyle.Primary);
+
+    const row = new ActionRowBuilder().addComponents(button);
+
+    await interaction.reply({ content: '✅ Lookup panel posted!', ephemeral: true });
+    const message = await interaction.channel.send({ embeds: [embed], components: [row] });
+
+    const collector = message.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      filter: (i) => i.customId === 'fetch_roblox'
+    });
+
+    collector.on('collect', async (i) => {
+      await i.deferReply({ ephemeral: true });
+
+      const robloxId = await getRobloxId(i.user.id);
+
+      if (!robloxId) {
+        return await i.editReply({
+          embeds: [new EmbedBuilder()
+            .setTitle('❌ Not Found')
+            .setDescription('No Roblox account linked. Please verify with Bloxlink first.')
+            .setColor(0xFF0000)
+          ]
+        });
+      }
+
+      const userRes = await fetch(`https://users.roblox.com/v1/users/${robloxId}`);
+      const userData = await userRes.json();
+
+      const thumbRes = await fetch(
+        `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${robloxId}&size=150x150&format=Png&isCircular=true`
+      );
+      const thumbData = await thumbRes.json();
+      const thumbUrl = thumbData.data[0]?.imageUrl;
+
+      const successEmbed = new EmbedBuilder()
+        .setTitle('✅ Roblox Account Found')
+        .setColor(0x00FF00)
+        .addFields(
+          { name: 'Roblox Username', value: userData.name ?? 'Unknown', inline: true },
+          { name: 'Roblox ID', value: `${robloxId}`, inline: true }
+        )
+        .setFooter({ text: 'Powered by Bloxlink cache' });
+
+      if (thumbUrl) successEmbed.setThumbnail(thumbUrl);
+
+      await i.editReply({ embeds: [successEmbed] });
+    });
   }
-
-  // Fetch Roblox username + avatar
-  const userRes = await fetch(`https://users.roblox.com/v1/users/${robloxId}`);
-  const userData = await userRes.json();
-
-  const thumbRes = await fetch(
-    `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${robloxId}&size=150x150&format=Png&isCircular=true`
-  );
-  const thumbData = await thumbRes.json();
-  const thumbUrl = thumbData.data[0]?.imageUrl;
-
-  const successEmbed = new EmbedBuilder()
-    .setTitle('✅ Roblox Account Found')
-    .setColor(0x00FF00)
-    .addFields(
-      { name: 'Roblox Username', value: userData.name ?? 'Unknown', inline: true },
-      { name: 'Roblox ID', value: `${robloxId}`, inline: true }
-    )
-    .setFooter({ text: 'Powered by Bloxlink cache' });
-
-  if (thumbUrl) successEmbed.setThumbnail(thumbUrl);
-
-  await interaction.editReply({ embeds: [successEmbed] });
-}
+};
