@@ -827,29 +827,36 @@ async function getAllLiveSessions() {
   return data || [];
 }
 
+// ----------
+// BLOXLINK
+// ----------
+
 
 async function getCachedBloxlink(discordId) {
-  const res = await pool.query(
-    'SELECT roblox_id, cached_at FROM USER_LOGGED_BLOXLINK WHERE discord_id = $1',
-    [discordId]
-  );
-  return res.rows[0] ?? null;
+  const { data, error } = await supabase
+    .from('USER_LOGGED_BLOXLINK')
+    .select('roblox_id, cached_at')
+    .eq('discord_id', discordId)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data ?? null;
 }
 
 async function getCachedBloxlinkByRoblox(robloxId) {
-  const res = await pool.query(
-    'SELECT discord_id FROM USER_LOGGED_BLOXLINK WHERE roblox_id = $1',
-    [robloxId]
-  );
-  return res.rows[0]?.discord_id ?? null;
+  const { data, error } = await supabase
+    .from('USER_LOGGED_BLOXLINK')
+    .select('discord_id')
+    .eq('roblox_id', robloxId)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.discord_id ?? null;
 }
 
 async function saveBloxlinkCache(discordId, robloxId) {
-  await pool.query(`
-    INSERT INTO USER_LOGGED_BLOXLINK (discord_id, roblox_id, cached_at)
-    VALUES ($1, $2, NOW())
-    ON CONFLICT (discord_id) DO UPDATE SET roblox_id = $2, cached_at = NOW()
-  `, [discordId, robloxId]);
+  const { error } = await supabase
+    .from('USER_LOGGED_BLOXLINK')
+    .upsert([{ discord_id: discordId, roblox_id: robloxId, cached_at: new Date().toISOString() }], { onConflict: 'discord_id' });
+  if (error) throw error;
 }
 
 // -------------------------
