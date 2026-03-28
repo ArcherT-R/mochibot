@@ -830,10 +830,10 @@ async function getAllLiveSessions() {
 
 async function getCachedBloxlink(discordId) {
   const res = await pool.query(
-    'SELECT roblox_id FROM USER_LOGGED_BLOXLINK WHERE discord_id = $1',
+    'SELECT roblox_id, cached_at FROM USER_LOGGED_BLOXLINK WHERE discord_id = $1',
     [discordId]
   );
-  return res.rows[0]?.roblox_id ?? null;
+  return res.rows[0] ?? null;
 }
 
 async function getCachedBloxlinkByRoblox(robloxId) {
