@@ -10,24 +10,34 @@ async function getRobloxId(discordId) {
 
   if (cached) {
     const age = Date.now() - new Date(cached.cached_at).getTime();
-    if (age < CACHE_TTL_MS) return cached.roblox_id;
+    if (age < CACHE_TTL_MS) {
+      console.log(`[Bloxlink] Cache hit for ${discordId} -> ${cached.roblox_id}`);
+      return cached.roblox_id;
+    }
+    console.log(`[Bloxlink] Cache expired for ${discordId}, refreshing...`);
+  } else {
+    console.log(`[Bloxlink] No cache for ${discordId}, calling Bloxlink API...`);
   }
 
-  // Cache miss or expired — call Bloxlink
   const res = await fetch(
     `https://api.blox.link/v4/public/guilds/${GUILD_ID}/discord-to-roblox/${discordId}`,
     { headers: { Authorization: BLOXLINK_API_KEY } }
   );
 
   if (!res.ok) {
-    // If Bloxlink fails, return stale cache rather than null
+    console.warn(`[Bloxlink] API failed (${res.status}) for ${discordId}, using stale cache.`);
     return cached?.roblox_id ?? null;
   }
 
   const data = await res.json();
   const robloxId = data.robloxID ?? null;
 
-  if (robloxId) await db.saveBloxlinkCache(discordId, robloxId);
+  if (robloxId) {
+    await db.saveBloxlinkCache(discordId, robloxId);
+    console.log(`[Bloxlink] Cached ${discordId} -> ${robloxId}`);
+  } else {
+    console.warn(`[Bloxlink] No Roblox account found for Discord ID ${discordId}`);
+  }
 
   return robloxId;
 }
