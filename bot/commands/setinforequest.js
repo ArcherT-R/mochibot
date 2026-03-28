@@ -14,10 +14,10 @@ module.exports = {
       return await interaction.reply({ content: '❌ You do not have permission to use this command.', ephemeral: true });
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle('🔗 Roblox Account Lookup')
-      .setDescription('Click the button below to fetch your linked Roblox account via Bloxlink.')
-      .setColor(0x0099FF);
+  const embed = new EmbedBuilder()
+    .setTitle('🔗 Roblox Account Lookup')
+    .setDescription('Use the button below to link or relink your roblox ID to our services. You **must** be linked with bloxlink for this to work. This is a one-time thing, this allows you to receive discord related tags in-game.')
+    .setColor(0x0099FF);
 
     const button = new ButtonBuilder()
       .setCustomId('fetch_roblox')
