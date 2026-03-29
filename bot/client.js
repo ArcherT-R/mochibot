@@ -1,3 +1,4 @@
+
 const {
   Client, GatewayIntentBits, Partials, Collection,
   EmbedBuilder, REST, Routes
@@ -5,8 +6,8 @@ const {
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-
-const ALLOWED_ROLE_ID = '1468537071168913500';
+const fetch = require('node-fetch');
+const { getRobloxId } = require('../utils/bloxlink');
 
 async function waitForDiscordAccess() {
   const CHECK_INTERVAL = 60000;
@@ -93,7 +94,6 @@ async function startBot() {
     try {
       const content = JSON.stringify(client.botData, null, 2);
 
-      // If too large for Discord, save to Supabase
       if (content.length > 1990) {
         console.warn(`⚠️ Bot data too large for Discord (${content.length} chars), saving to Supabase...`);
         await db.saveBotDataBackup(content);
@@ -141,7 +141,7 @@ async function startBot() {
         console.warn('⚠️ Could not load bot data from Discord:', discordErr.message);
       }
 
-      // Fall back to Supabase if Discord failed or was empty
+      // Fall back to Supabase
       if (!parsedData) {
         try {
           const supabaseData = await db.loadBotDataBackup();
@@ -229,7 +229,67 @@ async function startBot() {
   // ----------------------------
   require('./events/countingGame')(client);
 
+  // ----------------------------
+  // Interaction Handler
+  // ----------------------------
   client.on('interactionCreate', async (interaction) => {
+
+    // Button handler
+    if (interaction.isButton()) {
+      if (interaction.customId === 'fetch_roblox') {
+        await interaction.deferReply({ ephemeral: true });
+        try {
+          const robloxId = await Promise.race([
+            getRobloxId(interaction.user.id),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
+          ]);
+
+          if (!robloxId) {
+            return await interaction.editReply({
+              embeds: [new EmbedBuilder()
+                .setTitle('❌ Not Found')
+                .setDescription('No Roblox account linked. Please verify with Bloxlink first.')
+                .setColor(0xFF0000)
+              ]
+            });
+          }
+
+          const userRes = await fetch(`https://users.roblox.com/v1/users/${robloxId}`);
+          const userData = await userRes.json();
+
+          const thumbRes = await fetch(
+            `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${robloxId}&size=150x150&format=Png&isCircular=true`
+          );
+          const thumbData = await thumbRes.json();
+          const thumbUrl = thumbData.data[0]?.imageUrl;
+
+          const successEmbed = new EmbedBuilder()
+            .setTitle('✅ Roblox Account Found')
+            .setColor(0x00FF00)
+            .addFields(
+              { name: 'Roblox Username', value: userData.name ?? 'Unknown', inline: true },
+              { name: 'Roblox ID', value: `${robloxId}`, inline: true }
+            )
+            .setFooter({ text: 'Powered by Bloxlink cache' });
+
+          if (thumbUrl) successEmbed.setThumbnail(thumbUrl);
+          await interaction.editReply({ embeds: [successEmbed] });
+
+        } catch (err) {
+          console.error('[fetch_roblox]', err);
+          await interaction.editReply({
+            embeds: [new EmbedBuilder()
+              .setTitle('❌ Error')
+              .setDescription(err.message === 'timeout' ? 'Request timed out, please try again.' : 'Something went wrong.')
+              .setColor(0xFF0000)
+            ]
+          }).catch(() => {});
+        }
+      }
+      return;
+    }
+
+    // Command handler
     if (!interaction.isCommand()) return;
     if (interaction.replied || interaction.deferred) return;
 
