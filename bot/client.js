@@ -41,6 +41,8 @@ async function waitForDiscordAccess() {
 }
 
 async function startBot() {
+  const db = require('../endpoints/database');
+
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -89,10 +91,19 @@ async function startBot() {
 
   client.saveBotData = async (createBackup = false) => {
     try {
+      const content = JSON.stringify(client.botData, null, 2);
+
+      // If too large for Discord, save to Supabase
+      if (content.length > 1990) {
+        console.warn(`⚠️ Bot data too large for Discord (${content.length} chars), saving to Supabase...`);
+        await db.saveBotDataBackup(content);
+        console.log('💾 Bot data saved to Supabase.');
+        return;
+      }
+
       const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
       const messages = await channel.messages.fetch({ limit: 10 });
       const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
-      const content = JSON.stringify(client.botData, null, 2);
 
       if (lastBotMessage) {
         await lastBotMessage.edit(content);
@@ -101,7 +112,7 @@ async function startBot() {
       }
 
       if (createBackup) await channel.send(`Backup:\n${content}`);
-      console.log('💾 Bot data saved.');
+      console.log('💾 Bot data saved to Discord.');
     } catch (err) {
       console.error('❌ Failed to save bot data:', err);
     }
@@ -114,24 +125,39 @@ async function startBot() {
     console.log(`🤖 Logged in as ${client.user.tag}`);
 
     try {
-      const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
-      const messages = await channel.messages.fetch({ limit: 10 });
-      const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
+      let parsedData = null;
 
-      if (lastBotMessage && lastBotMessage.content) {
-        try {
-          const parsedData = JSON.parse(lastBotMessage.content);
-          if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
-            client.botData = parsedData;
-            console.log('✅ Loaded bot data from message ID:', lastBotMessage.id);
-          } else {
-            console.warn('⚠ Invalid bot data structure, using defaults');
-          }
-        } catch (parseErr) {
-          console.error('❌ Failed to parse bot data JSON:', parseErr);
+      // Try Discord first
+      try {
+        const channel = await client.channels.fetch(process.env.BOT_DATA_CHANNEL_ID);
+        const messages = await channel.messages.fetch({ limit: 10 });
+        const lastBotMessage = messages.find(msg => msg.author.id === client.user.id);
+
+        if (lastBotMessage && lastBotMessage.content) {
+          parsedData = JSON.parse(lastBotMessage.content);
+          console.log('✅ Loaded bot data from Discord message ID:', lastBotMessage.id);
         }
+      } catch (discordErr) {
+        console.warn('⚠️ Could not load bot data from Discord:', discordErr.message);
+      }
+
+      // Fall back to Supabase if Discord failed or was empty
+      if (!parsedData) {
+        try {
+          const supabaseData = await db.loadBotDataBackup();
+          if (supabaseData) {
+            parsedData = JSON.parse(supabaseData);
+            console.log('✅ Loaded bot data from Supabase backup.');
+          }
+        } catch (supabaseErr) {
+          console.warn('⚠️ Could not load bot data from Supabase:', supabaseErr.message);
+        }
+      }
+
+      if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData)) {
+        client.botData = parsedData;
       } else {
-        console.log('⚠ No bot message found in data channel, will create on first save');
+        console.warn('⚠ No valid bot data found, using defaults.');
       }
 
       if (!client.botData.countingGame || typeof client.botData.countingGame !== 'object') {
