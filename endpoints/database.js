@@ -4,6 +4,25 @@ const bcrypt = require('bcryptjs');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
+//---
+
+async function saveBotDataBackup(jsonContent) {
+  const { error } = await supabase
+    .from('bot_data_backup')
+    .upsert([{ id: 1, data: jsonContent, saved_at: new Date().toISOString() }], { onConflict: 'id' });
+  if (error) throw error;
+}
+
+async function loadBotDataBackup() {
+  const { data, error } = await supabase
+    .from('bot_data_backup')
+    .select('data')
+    .eq('id', 1)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data?.data ?? null;
+}
+
 // -------------------------
 // Player Labels
 // -------------------------
@@ -1039,5 +1058,7 @@ module.exports = {
   updateMaintenanceArea,
   getCachedBloxlink,
   getCachedBloxlinkByRoblox,
-  saveBloxlinkCache
+  saveBloxlinkCache,
+  saveBotDataBackup,
+  loadBotDataBackup
 };
