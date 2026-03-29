@@ -14,7 +14,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ ephemeral: false });
 
     const staffRoleId = '1468486541172281395';
     const targetUser = interaction.options.getUser('user');
