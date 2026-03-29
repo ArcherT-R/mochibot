@@ -9,7 +9,7 @@ module.exports = {
     .setDescription('Check your linked Roblox account.')
     .addUserOption(option =>
       option.setName('user')
-        .setDescription('(Staff only) Check another user\'s linked Roblox account.')
+        .setDescription('Check a linked Roblox account.')
         .setRequired(false)
     ),
 
@@ -19,8 +19,7 @@ module.exports = {
     const staffRoleId = '1468486541172281395';
     const targetUser = interaction.options.getUser('user');
 
-    // If they specified a user, check they have staff role
-    if (targetUser && !interaction.member.roles.cache.has(staffRoleId)) {
+    if (targetUser && targetUser.id !== interaction.user.id && !interaction.member.roles.cache.has(staffRoleId)) {
       return await interaction.editReply({
         content: '❌ You do not have permission to look up other users.'
       });
@@ -38,7 +37,7 @@ module.exports = {
         return await interaction.editReply({
           embeds: [new EmbedBuilder()
             .setTitle('❌ Not Linked')
-            .setDescription(`${targetUser ? `<@${lookupUser.id}> has` : 'You have'} no Roblox account linked. Please verify with Bloxlink first.`)
+            .setDescription(`${targetUser && targetUser.id !== interaction.user.id ? `<@${lookupUser.id}> has` : 'You have'} no Roblox account linked. Please verify with Bloxlink first.`)
             .setColor(0xFF0000)
           ]
         });
@@ -54,7 +53,7 @@ module.exports = {
       const thumbUrl = thumbData.data[0]?.imageUrl;
 
       const embed = new EmbedBuilder()
-        .setTitle(targetUser ? `🔗 ${lookupUser.username}'s Linked Roblox Account` : '🔗 Your Linked Roblox Account')
+        .setTitle(targetUser && targetUser.id !== interaction.user.id ? `🔗 ${lookupUser.username}'s Linked Roblox Account` : '🔗 Your Linked Roblox Account')
         .setColor(0x0099FF)
         .addFields(
           { name: 'Discord', value: `<@${lookupUser.id}>`, inline: true },
