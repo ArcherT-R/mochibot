@@ -9,7 +9,8 @@ const IGNORED_ACTIONS = [
     'Update Asset', 
     'Configure Asset',
     'Create Group Asset',
-    'Update Group Asset'
+    'Update Group Asset',
+    'Configure Community Experience'
 ];
 
 /**
