@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const FREE_PASS_MILESTONE = 100;
+const FREE_PASS_MILESTONE = 50;
 
 module.exports = (client) => {
     const lastResponseSent = { messageId: null, timestamp: 0 };
