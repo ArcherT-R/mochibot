@@ -1,6 +1,10 @@
 const { SlashCommandBuilder, ChannelType, EmbedBuilder } = require('discord.js');
 
-const STAFF_ROLE_ID = '1468486541172281395'; 
+const STAFF_ROLE_ID = [
+  '1468486541172281395', 
+  '1490972075077140490'
+];
+
 const FREE_PASS_MILESTONE = 50;
 
 // Helper to ensure guild-specific data exists
