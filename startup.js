@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
-const axios = require('axios');
 const { startBot } = require('./bot/client');
 const { checkAuditLogs } = require('./bot/auditMonitor');
 const db = require('./endpoints/database');
@@ -19,32 +18,21 @@ async function main() {
   console.log('   SUPABASE_KEY  :', process.env.SUPABASE_KEY  ? '✅ Loaded' : '❌ MISSING');
   console.log('─────────────────────────────────────');
 
-  // 🛡️ ANTI-1015 PRE-FLIGHT CHECK
-  try {
-    console.log('🌐 Checking Discord API reachability...');
-    await axios.get('https://discord.com/api/v10/gateway', { timeout: 5000 });
-    console.log('✅ Network path to Discord is clear.');
-  } catch (err) {
-    if (err.response && err.response.status === 429) {
-      console.error('❌ CRITICAL: This Render IP is already 1015 rate-limited by Discord.');
-      console.error('🛑 Stopping to avoid worsening the ban. Create a NEW service in a different region.');
-      process.exit(1);
-    }
-    console.warn('⚠️ Could not verify Discord reachability, proceeding with caution...');
-  }
-
-  // 2. Database Resilience Loop
+  // 2. Database Resilience Loop (Modified to be less aggressive)
   let dbAwake = false;
   let dbRetries = 5;
   while (!dbAwake && dbRetries > 0) {
     try {
-      console.log(`📡 Testing Supabase connection... (Attempt ${6 - dbRetries}/5)`);
+      console.log(`📡 Testing Supabase connection... (${6 - dbRetries}/5)`);
       await db.getPlayerByRobloxId(1);
       dbAwake = true;
       console.log('✅ Database is Awake');
     } catch (err) {
       dbRetries--;
-      if (dbRetries === 0) process.exit(1);
+      if (dbRetries === 0) {
+        console.error('❌ Could not connect to DB. Exiting.');
+        process.exit(1);
+      }
       console.log('⏳ Supabase warming up... waiting 10s...');
       await new Promise(res => setTimeout(res, 10000));
     }
@@ -77,7 +65,11 @@ async function main() {
 
   app.get('/', (req, res) => res.redirect('/dashboard'));
   app.get('/health', (req, res) => {
-    res.json({ status: 'healthy', discord: global.discordClient?.isReady() ? 'connected' : 'connecting' });
+    res.json({ 
+        status: 'healthy', 
+        discord: global.discordClient?.isReady() ? 'connected' : 'connecting',
+        uptime: process.uptime()
+    });
   });
 
   const PORT = process.env.PORT || 3000;
@@ -85,22 +77,38 @@ async function main() {
     console.log(`\n🚀 Web Server running on port ${PORT}`);
   });
 
-  // 4. Safe Bot Setup
+  // 4. Safe Bot Setup (The "Gentle" way)
   let client = null;
-  try {
-    console.log('🤖 Attempting Discord login...');
-    await new Promise(r => setTimeout(r, 2000));
+  
+  async function connectBot(attempt = 1) {
+    try {
+      console.log(`🤖 Discord login attempt #${attempt}...`);
+      const botClient = await startBot();
+      
+      // Inject routes once connected
+      app.use('/sessions', require('./endpoints/sessions')(botClient));
+      app.use('/sotw-role', require('./endpoints/sotw-role')(botClient));
+      
+      console.log('✅ Discord bot successfully connected');
+      return botClient;
+    } catch (err) {
+      console.error(`❌ Bot failed to start (Attempt ${attempt}):`, err.message);
+      
+      // If we hit a rate limit (429 or 1015), wait much longer
+      const delay = attempt * 30000; // 30s, then 60s, then 90s...
+      console.log(`⏳ Waiting ${delay/1000}s before retrying to respect Discord...`);
+      
+      await new Promise(r => setTimeout(r, delay));
+      return connectBot(attempt + 1);
+    }
+  }
 
-    client = await startBot();
+  // Start the connection process without blocking the web server
+  connectBot().then(botInstance => {
+    client = botInstance;
     global.discordClient = client;
 
-    console.log('✅ Discord bot successfully connected');
-
-    // 5. Dynamic Route Injection
-    app.use('/sessions', require('./endpoints/sessions')(client));
-    app.use('/sotw-role', require('./endpoints/sotw-role')(client));
-
-    // 6. Background Tasks
+    // 5. Background Tasks (Only start if client is valid)
     console.log('🚀 Starting Background Monitors...');
 
     setInterval(async () => {
@@ -120,44 +128,39 @@ async function main() {
                   { name: '🌐 Login', value: '[Mochi Bar](https://mochibar.onrender.com/loginpage/login)' }
                 ]
               }]
-            });
+            }).catch(() => console.log(`Could not DM user ${row.discord_id}`));
+            
             await db.markRequestNotified(row.id);
-            await new Promise(r => setTimeout(r, 2000));
+            // Throttle DMs to avoid being flagged for spam
+            await new Promise(r => setTimeout(r, 3000));
           }
         }
       } catch (err) {
         console.error('Poll error:', err.message);
       }
-    }, 45000);
+    }, 60000); // Increased to 60s for safety
 
     setInterval(() => {
       if (client?.isReady()) checkAuditLogs(client, '35807738');
     }, 120000);
+  });
 
-  } catch (err) {
-    console.error('❌ Discord bot failed to start:', err.message);
-    process.exit(1);
-  }
-
-  // 7. Graceful Shutdown
+  // 6. Graceful Shutdown
   const shutdown = () => {
     console.log('🛑 Shutting down...');
     if (client) client.destroy();
-    server.closeAllConnections?.();
     server.close(() => {
-      console.log('✅ Server closed cleanly.');
+      console.log('✅ Server closed.');
       process.exit(0);
     });
-    setTimeout(() => {
-      console.warn('⚠️ Forced exit after timeout.');
-      process.exit(1);
-    }, 10000);
   };
+  
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 }
 
 main().catch(err => {
   console.error('❌ Fatal startup error:', err);
-  process.exit(1);
+  // Keep the process alive for a bit so logs can be read
+  setTimeout(() => process.exit(1), 5000);
 });
