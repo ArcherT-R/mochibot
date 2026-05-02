@@ -23,53 +23,46 @@ async function getRoleSetId(rankNumber) {
 }
 
 router.post('/promote', async (req, res) => {
-	const { userId, username, rank, roleId } = req.body;
-	const apiKey = process.env.ROBLOX_API_KEY;
+    const { userId, currentRank, steps } = req.body;
+    const apiKey = process.env.ROBLOX_API_KEY;
 
-	if (!apiKey) {
-		return res.status(500).json({ success: false, error: 'ROBLOX_API_KEY is not set.' });
-	}
-	if (!userId && !username) {
-		return res.status(400).json({ success: false, error: 'Provide either userId or username.' });
-	}
-	if (!rank && !roleId) {
-		return res.status(400).json({ success: false, error: 'Provide either rank or roleId.' });
-	}
+    if (!apiKey)    return res.status(500).json({ success: false, error: 'ROBLOX_API_KEY not set.' });
+    if (!userId)    return res.status(400).json({ success: false, error: 'Missing userId.' });
+    if (currentRank === undefined) return res.status(400).json({ success: false, error: 'Missing currentRank.' });
 
-	try {
-		const resolvedUserId     = userId ?? await getUserId(username);
-		const resolvedRoleSetId  = roleId ?? (await getRoleSetId(rank)).id;
+    try {
+        // Fetch roles — backend can access this endpoint freely
+        const rolesRes = await axios.get(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`);
+        const roles = rolesRes.data.roles.sort((a, b) => a.rank - b.rank);
 
-		// Server-side rank cap — verify against the group roles list
-		const rolesRes      = await axios.get(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`);
-		const resolvedRole  = rolesRes.data.roles.find(r => r.id === Number(resolvedRoleSetId));
-		if (resolvedRole && resolvedRole.rank > MAX_RANK) {
-			return res.status(403).json({
-				success: false,
-				error: `Rank ${resolvedRole.rank} exceeds the allowed cap of ${MAX_RANK}.`
-			});
-		}
+        // Find current index
+        let currentIndex = 0;
+        for (let i = 0; i < roles.length; i++) {
+            if (roles[i].rank === Number(currentRank)) { currentIndex = i; break; }
+        }
 
-		await axios.patch(
-			`https://apis.roblox.com/cloud/v2/groups/${GROUP_ID}/memberships/${resolvedUserId}`,
-			{ role: `groups/${GROUP_ID}/roles/${resolvedRoleSetId}` },
-			{
-				headers: {
-					'x-api-key':     apiKey,
-					'Content-Type':  'application/json'
-				}
-			}
-		);
+        // Step up
+        const targetIndex = Math.min(currentIndex + (Number(steps) || 1), roles.length - 1);
+        const targetRole  = roles[targetIndex];
 
-		return res.json({
-			success: true,
-			message: `Ranked user ${resolvedUserId} to role ${resolvedRoleSetId}.`
-		});
+        // Cap check
+        if (targetRole.rank > MAX_RANK) {
+            return res.status(403).json({ success: false, error: `Rank ${targetRole.rank} exceeds cap of ${MAX_RANK}.` });
+        }
 
-	} catch (error) {
-		const msg = error.response?.data?.message || error.message;
-		return res.status(500).json({ success: false, error: msg });
-	}
+        // Promote via Open Cloud
+        await axios.patch(
+            `https://apis.roblox.com/cloud/v2/groups/${GROUP_ID}/memberships/${userId}`,
+            { role: `groups/${GROUP_ID}/roles/${targetRole.id}` },
+            { headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } }
+        );
+
+        return res.json({ success: true, rankName: targetRole.name, message: `Ranked user ${userId} to ${targetRole.name}.` });
+
+    } catch (error) {
+        const msg = error.response?.data?.message || error.message;
+        return res.status(500).json({ success: false, error: msg });
+    }
 });
 
 module.exports = router;
